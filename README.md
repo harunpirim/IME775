@@ -51,9 +51,11 @@ Each weekly folder contains supplementary lecture notes and notebooks from ML Re
 
 | Component | Weight |
 |-----------|--------|
-| Assignments | 50% |
+| Assignments | 40% |
+| Quizzes | 10% |
 | Midterm Exam | 20% |
-| Project | 30% |
+| Project Presentation | 15% |
+| Project Report (Paper/Article) | 15% |
 
 ---
 
