@@ -93,30 +93,27 @@ pip install -r requirements.txt
 
 ### Running Notebooks
 
-**Option 1: Google Colab (Recommended - No Setup Required)**
-
-Each notebook includes a "Open in Colab" badge at the top. Simply:
-1. Browse to any week folder
-2. Click on a `.ipynb` file (e.g., `notebook-math-dl.ipynb`)
-3. Click the Colab badge at the top of the notebook
-4. Run in your browser with free GPU access!
-
-Quick links:
-- Week 1 (DL): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/harunpirim/IME775/blob/main/week-01/notebook-math-dl.ipynb)
-- Week 1 (ML): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/harunpirim/IME775/blob/main/week-01/notebook.ipynb)
-
-**Option 2: Marimo (Local - Interactive)**
+All notebooks are provided as **Marimo** interactive notebooks (`.py` files).
 
 ```bash
 # Install marimo
 pip install marimo
 
-# Run a specific notebook
+# Run a specific notebook in edit mode
 marimo edit week-01/notebook-math-dl.py
 
 # Or run in read-only mode
 marimo run week-01/notebook-math-dl.py
+
+# Run in presentation mode
+marimo run week-01/notebook-math-dl.py --presentation
 ```
+
+**Why Marimo?**
+- 📝 Notebooks are pure Python files (version control friendly)
+- 🔄 Reactive execution (cells auto-update when dependencies change)
+- 🎨 Clean, modern UI
+- 🚀 Fast and lightweight
 
 ## 📁 Repository Structure
 
@@ -128,11 +125,9 @@ IME775/
 │   ├── chapter_1.pdf
 │   └── ...
 ├── week-01/
-│   ├── notebook-math-dl.py      # Primary: Deep learning notebook (Marimo)
-│   ├── notebook-math-dl.ipynb   # Primary: Deep learning notebook (Colab/Jupyter) 🔗
+│   ├── notebook-math-dl.py      # Primary: Deep learning notebook
 │   ├── lecture-notes-math-dl.md # Primary: Deep learning notes
-│   ├── notebook.py              # Supplementary: ML Refined notebook (Marimo)
-│   ├── notebook.ipynb           # Supplementary: ML Refined notebook (Colab/Jupyter) 🔗
+│   ├── notebook.py              # Supplementary: ML Refined notebook
 │   └── lecture-notes.md         # Supplementary: ML Refined notes
 ├── week-02/
 │   ├── notebook-math-dl.py
