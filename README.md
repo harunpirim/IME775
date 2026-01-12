@@ -41,10 +41,11 @@ Each weekly folder contains supplementary lecture notes and notebooks from ML Re
 
 ## 🎯 Learning Outcomes
 
-1. Mathematical foundations of deep learning (linear algebra, calculus, optimization)
-2. Neural network architectures and training algorithms
-3. Modern deep learning: CNNs, RNNs, Transformers
-4. Real world data driven modeling, optimization, and inference
+1. Mathematical foundations (linear algebra, calculus, probability, Bayesian methods)
+2. Neural network architectures (perceptrons, MLPs, CNNs) and training algorithms
+3. Optimization techniques (SGD, Adam) and regularization methods
+4. Computer vision: image classification and object detection
+5. Generative models: autoencoders and variational autoencoders
 
 ## 📊 Grading
 
@@ -60,19 +61,19 @@ Each weekly folder contains supplementary lecture notes and notebooks from ML Re
 
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
-| 01 | Vectors, Matrices, and Tensors for Deep Learning | Ch. 1-2 | [📓 Notebook](week-01/notebook-math-dl.py) \| [📝 Notes](week-01/lecture-notes-math-dl.md) \| [📚 Supp](week-01/lecture-notes.md) |
-| 02 | Derivatives, Gradients, and the Chain Rule | Ch. 3 | 🔒 Coming Soon |
-| 03 | Gradient Descent and Advanced Optimizers (SGD, Adam) | Ch. 4 | 🔒 Coming Soon |
-| 04 | Perceptrons, Activation Functions, and MLPs | Ch. 5 | 🔒 Coming Soon |
-| 05 | Computational Graphs and Automatic Differentiation | Ch. 6 | 🔒 Coming Soon |
-| 06 | Overfitting, Dropout, and Batch Normalization | Ch. 7 | 🔒 Coming Soon |
-| 07 | Skip Connections, ResNets, and Efficient Networks | Ch. 8 | 🔒 Coming Soon |
+| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📓 Notebook](week-01/notebook-math-dl.py) \| [📝 Notes](week-01/lecture-notes-math-dl.md) \| [📚 Supp](week-01/lecture-notes.md) |
+| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | 🔒 Coming Soon |
+| 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
+| 04 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
+| 05 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
+| 06 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
+| 07 | Forward Propagation and Backpropagation | Ch. 8 | 🔒 Coming Soon |
 | 08 | Midterm Exam | — | 🔒 Coming Soon |
-| 09 | Convolution, Pooling, and CNN Architectures | Ch. 9 | 🔒 Coming Soon |
-| 10 | Advanced CNN Applications | — | 🔒 Coming Soon |
-| 11 | Sequence Modeling: RNNs, LSTM, and GRU | Ch. 10 | 🔒 Coming Soon |
-| 12 | Sequence-to-Sequence and Encoder-Decoder Models | — | 🔒 Coming Soon |
-| 13 | Self-Attention, Transformers, BERT, and GPT | Ch. 11 | 🔒 Coming Soon |
+| 09 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | 🔒 Coming Soon |
+| 10 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | 🔒 Coming Soon |
+| 11 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
+| 12 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
+| 13 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
 | 14 | Student Project Presentations | — | 🔒 Coming Soon |
 | 15 | Student Project Presentations | — | 🔒 Coming Soon |
 
@@ -148,33 +149,43 @@ Note: Additional weekly materials (week-02 through week-15) will be released pro
 
 ## 📖 Primary Textbook Chapter Overview
 
-### Part I: Mathematical Foundations
-- **Chapter 1**: Introduction to Deep Learning
-  - Machine learning paradigms, deep learning motivation, historical context
-- **Chapter 2**: Linear Algebra for Deep Learning
-  - Vectors, matrices, tensors, eigenvalues, SVD, norms, matrix calculus
-- **Chapter 3**: Calculus for Deep Learning
-  - Derivatives, partial derivatives, gradients, chain rule, Jacobians, Hessians
-- **Chapter 4**: Optimization Algorithms
-  - Gradient descent, SGD, momentum, AdaGrad, RMSprop, Adam, learning rate schedules
+> **Krishnendu Chaudhury. (2024).** *Math and Architectures of Deep Learning*. Manning Publications.
 
-### Part II: Neural Network Fundamentals
-- **Chapter 5**: Neural Network Basics
-  - Perceptrons, activation functions, multi-layer perceptrons, universal approximation
-- **Chapter 6**: Backpropagation
-  - Computational graphs, forward/backward pass, automatic differentiation
-- **Chapter 7**: Regularization and Generalization
-  - Overfitting, L1/L2 regularization, dropout, batch normalization, data augmentation
+### Part I: Mathematical Foundations (Ch. 1-6)
+- **Chapter 1**: Overview of Machine Learning and Deep Learning
+  - Paradigm shift, function approximation view, cat brain example, regression vs. classification
+- **Chapter 2**: Vectors, Matrices, and Tensors
+  - Dot product, matrix multiplication, linear transforms, eigenvalues, eigenvectors, diagonalization, spectral decomposition
+- **Chapter 3**: Classifiers and Vector Calculus
+  - Decision boundaries, loss functions, gradients, Taylor series, Hessian matrix, convexity
+- **Chapter 4**: Linear Algebraic Tools
+  - PCA, dimensionality reduction, SVD, low-rank approximation, document retrieval with LSA
+- **Chapter 5**: Probability Distributions
+  - Random variables, joint/marginal probabilities, Gaussian, binomial, multinomial, Bernoulli, categorical
+- **Chapter 6**: Bayesian Tools
+  - Bayes' theorem, entropy, cross-entropy, KL divergence, MLE, MAP, Gaussian mixture models
 
-### Part III: Deep Learning Architectures
-- **Chapter 8**: Modern Network Architectures
-  - Skip connections, ResNets, DenseNets, squeeze-and-excitation, efficient networks
-- **Chapter 9**: Convolutional Neural Networks
-  - Convolution operation, pooling, padding, stride, LeNet, AlexNet, VGG, receptive fields
-- **Chapter 10**: Recurrent Neural Networks
-  - Sequence modeling, vanilla RNN, LSTM, GRU, bidirectional RNNs, seq2seq
-- **Chapter 11**: Attention and Transformers
-  - Attention mechanism, self-attention, multi-head attention, positional encoding, BERT, GPT
+### Part II: Neural Networks (Ch. 7-9)
+- **Chapter 7**: Function Approximation with Neural Networks
+  - Perceptrons, Heaviside function, hyperplanes, MLPs, XOR problem, Cybenko's universal approximation theorem
+- **Chapter 8**: Training Neural Networks
+  - Sigmoid/tanh activation, linear layers, forward propagation, backpropagation algorithm, gradient descent
+- **Chapter 9**: Loss, Optimization, and Regularization
+  - Cross-entropy, softmax, focal loss, hinge loss, SGD, momentum, AdaGrad, RMSprop, Adam, L1/L2 regularization, dropout
+
+### Part III: Computer Vision (Ch. 10-11)
+- **Chapter 10**: Convolutions in Neural Networks
+  - 1D/2D/3D convolution, smoothing, edge detection, transposed convolution, pooling
+- **Chapter 11**: Image Classification and Object Detection
+  - LeNet, VGG, Inception, ResNet, R-CNN, Fast R-CNN, Faster R-CNN
+
+### Part IV: Advanced Topics (Ch. 12-14)
+- **Chapter 12**: Manifolds and Homeomorphism
+  - Manifold properties, Hausdorff, second countable, neural networks as homeomorphisms
+- **Chapter 13**: Fully Bayesian Parameter Estimation
+  - Prior beliefs, conjugate priors, normal-gamma distribution, Bayesian inference
+- **Chapter 14**: Latent Spaces and Generative Models
+  - Autoencoders, variational autoencoders (VAEs), ELBO, reparameterization trick
 
 ---
 
