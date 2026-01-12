@@ -1,0 +1,35 @@
+# IME775: Data Driven Modeling and Optimization
+# Python Dependencies
+
+# Core Data Science
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+
+# Deep Learning
+torch>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# Interactive Notebooks
+marimo>=0.18.0
+
+# Optimization (Optional)
+# amplpy  # AMPL Python API - requires separate license
+
+# Utilities
+tqdm>=4.65.0
+
+# PDF Processing (for textbook access)
+pymupdf>=1.23.0  # fitz library
+
+# Jupyter compatibility (optional)
+jupyter>=1.0.0
