@@ -91,8 +91,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Running Marimo Notebooks
+### Running Notebooks
 
+**Marimo Notebooks:**
 ```bash
 # Run a specific notebook
 marimo edit week-01/notebook-math-dl.py
@@ -100,6 +101,11 @@ marimo edit week-01/notebook-math-dl.py
 # Or run in read-only mode
 marimo run week-01/notebook-math-dl.py
 ```
+
+**Google Colab Notebooks:**
+- Each Marimo notebook has a corresponding `.ipynb` file for Google Colab
+- Open directly in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/harunpirim/IME775/blob/main/week-01/notebook-math-dl.ipynb)
+- Or upload the `.ipynb` files to your Colab workspace
 
 ## 📁 Repository Structure
 
@@ -111,9 +117,11 @@ IME775/
 │   ├── chapter_1.pdf
 │   └── ...
 ├── week-01/
-│   ├── notebook-math-dl.py      # Primary: Deep learning notebook
+│   ├── notebook-math-dl.py      # Primary: Deep learning notebook (Marimo)
+│   ├── notebook-math-dl.ipynb   # Primary: Deep learning notebook (Colab)
 │   ├── lecture-notes-math-dl.md # Primary: Deep learning notes
-│   ├── notebook.py              # Supplementary: ML Refined notebook
+│   ├── notebook.py              # Supplementary: ML Refined notebook (Marimo)
+│   ├── notebook.ipynb           # Supplementary: ML Refined notebook (Colab)
 │   └── lecture-notes.md         # Supplementary: ML Refined notes
 ├── week-02/
 │   ├── notebook-math-dl.py
