@@ -129,10 +129,10 @@ IME775/
 │   └── ...
 ├── week-01/
 │   ├── notebook-math-dl.py      # Primary: Deep learning notebook (Marimo)
-│   ├── notebook-math-dl.ipynb   # Primary: Deep learning notebook (Colab)
+│   ├── notebook-math-dl.ipynb   # Primary: Deep learning notebook (Colab/Jupyter) 🔗
 │   ├── lecture-notes-math-dl.md # Primary: Deep learning notes
 │   ├── notebook.py              # Supplementary: ML Refined notebook (Marimo)
-│   ├── notebook.ipynb           # Supplementary: ML Refined notebook (Colab)
+│   ├── notebook.ipynb           # Supplementary: ML Refined notebook (Colab/Jupyter) 🔗
 │   └── lecture-notes.md         # Supplementary: ML Refined notes
 ├── week-02/
 │   ├── notebook-math-dl.py
