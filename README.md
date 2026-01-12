@@ -60,21 +60,21 @@ Each weekly folder contains supplementary lecture notes and notebooks from ML Re
 
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
-| 01 | Linear Algebra Foundations for Deep Learning | Ch. 1-2 | [📓 Notebook](week-01/notebook-math-dl.py) \| [📝 Notes](week-01/lecture-notes-math-dl.md) \| [📚 Supp](week-01/lecture-notes.md) |
-| 02 | Calculus for Deep Learning | Ch. 3 | [📓 Notebook](week-02/notebook-math-dl.py) \| [📝 Notes](week-02/lecture-notes-math-dl.md) \| [📚 Supp](week-02/lecture-notes.md) |
-| 03 | Gradient-Based Optimization Algorithms | Ch. 4 | [📓 Notebook](week-03/notebook-math-dl.py) \| [📝 Notes](week-03/lecture-notes-math-dl.md) \| [📚 Supp](week-03/lecture-notes.md) |
-| 04 | Neural Network Foundations: Perceptrons to MLPs | Ch. 5 | [📓 Notebook](week-04/notebook-math-dl.py) \| [📝 Notes](week-04/lecture-notes-math-dl.md) \| [📚 Supp](week-04/lecture-notes.md) |
-| 05 | Backpropagation: The Engine of Deep Learning | Ch. 6 | [📓 Notebook](week-05/notebook-math-dl.py) \| [📝 Notes](week-05/lecture-notes-math-dl.md) \| [📚 Supp](week-05/lecture-notes.md) |
-| 06 | Regularization and Generalization | Ch. 7 | [📓 Notebook](week-06/notebook-math-dl.py) \| [📝 Notes](week-06/lecture-notes-math-dl.md) \| [📚 Supp](week-06/lecture-notes.md) |
-| 07 | Modern Deep Architectures: ResNets & Beyond | Ch. 8 | [📓 Notebook](week-07/notebook-math-dl.py) \| [📝 Notes](week-07/lecture-notes-math-dl.md) \| [📚 Supp](week-07/lecture-notes.md) |
-| 08 | Unsupervised Learning & Dimensionality Reduction | — | [📓 Notebook](week-08/notebook.py) \| [📝 Notes](week-08/lecture-notes.md) |
-| 09 | Convolutional Neural Networks (CNNs) | Ch. 9 | [📓 Notebook](week-09/notebook-math-dl.py) \| [📝 Notes](week-09/lecture-notes-math-dl.md) \| [📚 Supp](week-09/lecture-notes.md) |
-| 10 | Advanced CNN Architectures & Applications | — | [📓 Notebook](week-10/notebook.py) \| [📝 Notes](week-10/lecture-notes.md) |
-| 11 | Recurrent Neural Networks: RNNs, LSTM, GRU | Ch. 10 | [📓 Notebook](week-11/notebook-math-dl.py) \| [📝 Notes](week-11/lecture-notes-math-dl.md) \| [📚 Supp](week-11/lecture-notes.md) |
-| 12 | Sequence-to-Sequence Models | — | [📓 Notebook](week-12/notebook.py) \| [📝 Notes](week-12/lecture-notes.md) |
-| 13 | Attention Mechanisms & Transformers | Ch. 11 | [📓 Notebook](week-13/notebook-math-dl.py) \| [📝 Notes](week-13/lecture-notes-math-dl.md) \| [📚 Supp](week-13/lecture-notes.md) |
-| 14 | Student Presentations | — | [📝 Guidelines](week-14/presentation-guidelines.md) |
-| 15 | Student Presentations | — | [📝 Guidelines](week-15/presentation-guidelines.md) |
+| 01 | Vectors, Matrices, and Tensors for Deep Learning | Ch. 1-2 | [📓 Notebook](week-01/notebook-math-dl.py) \| [📝 Notes](week-01/lecture-notes-math-dl.md) \| [📚 Supp](week-01/lecture-notes.md) |
+| 02 | Derivatives, Gradients, and the Chain Rule | Ch. 3 | 🔒 Coming Soon |
+| 03 | Gradient Descent and Advanced Optimizers (SGD, Adam) | Ch. 4 | 🔒 Coming Soon |
+| 04 | Perceptrons, Activation Functions, and MLPs | Ch. 5 | 🔒 Coming Soon |
+| 05 | Computational Graphs and Automatic Differentiation | Ch. 6 | 🔒 Coming Soon |
+| 06 | Overfitting, Dropout, and Batch Normalization | Ch. 7 | 🔒 Coming Soon |
+| 07 | Skip Connections, ResNets, and Efficient Networks | Ch. 8 | 🔒 Coming Soon |
+| 08 | Midterm Exam | — | 🔒 Coming Soon |
+| 09 | Convolution, Pooling, and CNN Architectures | Ch. 9 | 🔒 Coming Soon |
+| 10 | Advanced CNN Applications | — | 🔒 Coming Soon |
+| 11 | Sequence Modeling: RNNs, LSTM, and GRU | Ch. 10 | 🔒 Coming Soon |
+| 12 | Sequence-to-Sequence and Encoder-Decoder Models | — | 🔒 Coming Soon |
+| 13 | Self-Attention, Transformers, BERT, and GPT | Ch. 11 | 🔒 Coming Soon |
+| 14 | Student Project Presentations | — | 🔒 Coming Soon |
+| 15 | Student Project Presentations | — | 🔒 Coming Soon |
 
 ---
 
@@ -115,6 +115,8 @@ marimo run week-01/notebook-math-dl.py --presentation
 - 🎨 Clean, modern UI
 - 🚀 Fast and lightweight
 
+> **Note:** Course materials are released progressively. Currently, Week 1 materials are available. Additional weeks will be released as the semester progresses.
+
 ## 📁 Repository Structure
 
 ```
@@ -124,19 +126,13 @@ IME775/
 ├── 2nd_ed/                      # ML Refined chapters (supplementary)
 │   ├── chapter_1.pdf
 │   └── ...
-├── week-01/
-│   ├── notebook-math-dl.py      # Primary: Deep learning notebook
-│   ├── lecture-notes-math-dl.md # Primary: Deep learning notes
-│   ├── notebook.py              # Supplementary: ML Refined notebook
-│   └── lecture-notes.md         # Supplementary: ML Refined notes
-├── week-02/
-│   ├── notebook-math-dl.py
-│   ├── lecture-notes-math-dl.md
-│   ├── notebook.py
-│   └── lecture-notes.md
-...
-└── week-15/
-    └── presentation-guidelines.md
+└── week-01/                     # ✅ Released
+    ├── notebook-math-dl.py      # Primary: Deep learning notebook
+    ├── lecture-notes-math-dl.md # Primary: Deep learning notes
+    ├── notebook.py              # Supplementary: ML Refined notebook
+    └── lecture-notes.md         # Supplementary: ML Refined notes
+
+Note: Additional weekly materials (week-02 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
