@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
-Convert Marimo notebooks to Google Colab (Jupyter) format.
+Generate Google Colab notebooks from Marimo notebooks with proper formatting and badges.
 """
 import json
 import re
 from pathlib import Path
+
+GITHUB_REPO = "harunpirim/IME775"
+GITHUB_BRANCH = "main"
 
 def extract_marimo_content(marimo_file):
     """Extract cells from Marimo notebook."""
@@ -99,15 +102,40 @@ def extract_marimo_content(marimo_file):
     
     return cells
 
-def create_colab_notebook(cells, title="Notebook"):
-    """Create Jupyter/Colab notebook JSON structure."""
+def create_colab_badge_cell(notebook_path):
+    """Create a Colab badge cell."""
+    # Convert local path to GitHub path
+    github_path = str(notebook_path).replace('/Users/harunpirim/Documents/GitHub/IME775/', '')
+    colab_url = f"https://colab.research.google.com/github/{GITHUB_REPO}/blob/{GITHUB_BRANCH}/{github_path}"
+    
+    badge_markdown = f"""<a href="{colab_url}" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+---
+"""
+    
+    return {
+        "cell_type": "markdown",
+        "metadata": {
+            "id": "colab_badge"
+        },
+        "source": badge_markdown.split('\n')
+    }
+
+def create_colab_notebook(cells, notebook_path, title="Notebook"):
+    """Create Jupyter/Colab notebook JSON structure with badge."""
     notebook_cells = []
     
-    for cell in cells:
+    # Add Colab badge as first cell
+    notebook_cells.append(create_colab_badge_cell(notebook_path))
+    
+    # Add all other cells
+    for idx, cell in enumerate(cells):
         if cell['type'] == 'markdown':
             notebook_cells.append({
                 "cell_type": "markdown",
-                "metadata": {"id": f"md_{len(notebook_cells)}"},
+                "metadata": {
+                    "id": f"markdown_{idx}"
+                },
                 "source": [line + '\n' for line in cell['content'].split('\n')]
             })
         else:
@@ -121,7 +149,9 @@ def create_colab_notebook(cells, title="Notebook"):
             notebook_cells.append({
                 "cell_type": "code",
                 "execution_count": None,
-                "metadata": {"id": f"code_{len(notebook_cells)}"},
+                "metadata": {
+                    "id": f"code_{idx}"
+                },
                 "outputs": [],
                 "source": formatted_lines
             })
@@ -130,8 +160,10 @@ def create_colab_notebook(cells, title="Notebook"):
         "cells": notebook_cells,
         "metadata": {
             "colab": {
+                "name": notebook_path.stem,
                 "provenance": [],
-                "toc_visible": True
+                "toc_visible": True,
+                "collapsed_sections": []
             },
             "kernelspec": {
                 "display_name": "Python 3",
@@ -139,8 +171,16 @@ def create_colab_notebook(cells, title="Notebook"):
             },
             "language_info": {
                 "name": "python",
-                "version": "3.12.0"
-            }
+                "version": "3.12.0",
+                "codemirror_mode": {
+                    "name": "ipython",
+                    "version": 3
+                },
+                "pygments_lexer": "ipython3",
+                "nbconvert_exporter": "python",
+                "file_extension": ".py"
+            },
+            "accelerator": "GPU"
         },
         "nbformat": 4,
         "nbformat_minor": 0
@@ -148,9 +188,9 @@ def create_colab_notebook(cells, title="Notebook"):
     
     return notebook
 
-def convert_notebook(marimo_path, output_path):
-    """Convert a single Marimo notebook to Colab format."""
-    print(f"Converting {marimo_path.name}...", end=' ')
+def generate_notebook(marimo_path, output_path):
+    """Generate a Colab notebook from a Marimo notebook."""
+    print(f"Generating {output_path.name}...", end=' ')
     
     try:
         cells = extract_marimo_content(marimo_path)
@@ -159,37 +199,46 @@ def convert_notebook(marimo_path, output_path):
             print("⚠ No cells extracted")
             return False
         
-        notebook = create_colab_notebook(cells)
+        notebook = create_colab_notebook(cells, output_path, title=marimo_path.stem)
         
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(notebook, f, indent=2, ensure_ascii=False)
         
-        print(f"✓ ({len(cells)} cells)")
+        print(f"✓ ({len(cells) + 1} cells with badge)")
         return True
     except Exception as e:
         print(f"✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def main():
-    """Convert all Marimo notebooks to Colab format."""
+    """Generate all Colab notebooks from Marimo notebooks."""
     base_dir = Path(__file__).parent
     
     # Find all Marimo notebooks
     notebooks = sorted(base_dir.glob("week-*/notebook*.py"))
     
-    print(f"Found {len(notebooks)} notebooks to convert\n")
+    print(f"Generating {len(notebooks)} Colab notebooks with badges\n")
+    print("=" * 60)
     
-    converted = 0
+    generated = 0
     for notebook_path in notebooks:
         # Create output path
         week_dir = notebook_path.parent
-        notebook_name = notebook_path.stem  # e.g., "notebook-math-dl" or "notebook"
+        notebook_name = notebook_path.stem
         output_path = week_dir / f"{notebook_name}.ipynb"
         
-        if convert_notebook(notebook_path, output_path):
-            converted += 1
+        if generate_notebook(notebook_path, output_path):
+            generated += 1
     
-    print(f"\n✓ Successfully converted {converted}/{len(notebooks)} notebooks")
+    print("=" * 60)
+    print(f"\n✓ Successfully generated {generated}/{len(notebooks)} notebooks")
+    print(f"\nEach notebook includes:")
+    print(f"  • Google Colab badge linking to GitHub")
+    print(f"  • Proper markdown formatting")
+    print(f"  • GPU acceleration enabled")
+    print(f"  • Table of contents enabled")
 
 if __name__ == "__main__":
     main()

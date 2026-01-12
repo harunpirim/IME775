@@ -93,19 +93,30 @@ pip install -r requirements.txt
 
 ### Running Notebooks
 
-**Marimo Notebooks:**
+**Option 1: Google Colab (Recommended - No Setup Required)**
+
+Each notebook includes a "Open in Colab" badge at the top. Simply:
+1. Browse to any week folder
+2. Click on a `.ipynb` file (e.g., `notebook-math-dl.ipynb`)
+3. Click the Colab badge at the top of the notebook
+4. Run in your browser with free GPU access!
+
+Quick links:
+- Week 1 (DL): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/harunpirim/IME775/blob/main/week-01/notebook-math-dl.ipynb)
+- Week 1 (ML): [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/harunpirim/IME775/blob/main/week-01/notebook.ipynb)
+
+**Option 2: Marimo (Local - Interactive)**
+
 ```bash
+# Install marimo
+pip install marimo
+
 # Run a specific notebook
 marimo edit week-01/notebook-math-dl.py
 
 # Or run in read-only mode
 marimo run week-01/notebook-math-dl.py
 ```
-
-**Google Colab Notebooks:**
-- Each Marimo notebook has a corresponding `.ipynb` file for Google Colab
-- Open directly in Colab: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/harunpirim/IME775/blob/main/week-01/notebook-math-dl.ipynb)
-- Or upload the `.ipynb` files to your Colab workspace
 
 ## 📁 Repository Structure
 
