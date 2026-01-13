@@ -3,7 +3,6 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Marimo](https://img.shields.io/badge/Marimo-Notebooks-FF6B6B?style=for-the-badge)
 ![NDSU](https://img.shields.io/badge/NDSU-Graduate-006747?style=for-the-badge)
 
 **A graduate course covering mathematical foundations and architectures of deep learning with applications to data-driven modeling and optimization**
@@ -30,7 +29,7 @@
 
 > **Watt, J., Borhani, R., & Katsaggelos, A. K. (2020).** *Machine Learning Refined: Foundations, Algorithms, and Applications* (2nd ed.). Cambridge University Press.
 
-Each weekly folder contains supplementary lecture notes and notebooks from ML Refined (without `-math-dl` suffix).
+Chapter PDFs available in the `2nd_ed/` folder.
 
 ### Additional Recommended Books
 
@@ -63,7 +62,7 @@ Each weekly folder contains supplementary lecture notes and notebooks from ML Re
 
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
-| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📓 Notebook](week-01/notebook-math-dl.py) \| [📝 Notes](week-01/lecture-notes-math-dl.md) \| [📚 Supp](week-01/lecture-notes.md) |
+| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/Lecture_Notes1.md) \| [📄 PDF](week-01/Lecture_Notes1.pdf) |
 | 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | 🔒 Coming Soon |
 | 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
 | 04 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
@@ -94,29 +93,11 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Running Notebooks
+### Course Materials
 
-All notebooks are provided as **Marimo** interactive notebooks (`.py` files).
-
-```bash
-# Install marimo
-pip install marimo
-
-# Run a specific notebook in edit mode
-marimo edit week-01/notebook-math-dl.py
-
-# Or run in read-only mode
-marimo run week-01/notebook-math-dl.py
-
-# Run in presentation mode
-marimo run week-01/notebook-math-dl.py --presentation
-```
-
-**Why Marimo?**
-- 📝 Notebooks are pure Python files (version control friendly)
-- 🔄 Reactive execution (cells auto-update when dependencies change)
-- 🎨 Clean, modern UI
-- 🚀 Fast and lightweight
+Each week's folder contains:
+- **Lecture Notes** (`.md`) - Markdown format for easy reading and version control
+- **PDF** (`.pdf`) - Printable lecture notes
 
 > **Note:** Course materials are released progressively. Currently, Week 1 materials are available. Additional weeks will be released as the semester progresses.
 
@@ -130,10 +111,8 @@ IME775/
 │   ├── chapter_1.pdf
 │   └── ...
 └── week-01/                     # ✅ Released
-    ├── notebook-math-dl.py      # Primary: Deep learning notebook
-    ├── lecture-notes-math-dl.md # Primary: Deep learning notes
-    ├── notebook.py              # Supplementary: ML Refined notebook
-    └── lecture-notes.md         # Supplementary: ML Refined notes
+    ├── Lecture_Notes1.md        # Lecture notes (Markdown)
+    └── Lecture_Notes1.pdf       # Lecture notes (PDF)
 
 Note: Additional weekly materials (week-02 through week-15) will be released progressively throughout the semester.
 ```
@@ -145,7 +124,6 @@ Note: Additional weekly materials (week-02 through week-15) will be released pro
 - **Scikit-learn** - Machine learning
 - **PyTorch** - Deep learning
 - **Matplotlib/Seaborn** - Visualization
-- **Marimo** - Interactive notebooks
 
 ---
 
