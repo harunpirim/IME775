@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+__pycache__/
+
+# Textbook PDFs
+Math_and_Architectures_of_Deep_Learning.pdf
+
+# Unreleased weekly materials
+.unreleased/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Marimo cache
+__marimo__/
