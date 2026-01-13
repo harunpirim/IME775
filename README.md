@@ -31,12 +31,7 @@
 
 Chapter PDFs available in the `2nd_ed/` folder.
 
-### Additional Recommended Books
 
-- Joel Grus, *Data Science from Scratch*, 2nd Edition, 2019
-- Gareth James et al., *An Introduction to Statistical Learning*, Springer, 2023
-- Christoph Molnar, *Interpretable Machine Learning*, 2022 (Free online)
-- Serg Masis, *Interpretable Machine Learning with Python*, 2nd Edition, 2023
 
 ## 🎯 Learning Outcomes
 
