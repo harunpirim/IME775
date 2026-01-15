@@ -192,7 +192,7 @@ The classification or estimation task is designed to be **easier in the output s
 
 > **For classification:** Input points belonging to separate classes are expected to map to separate clusters in output space.
 
-### Example: Cat Brain Geometry (Figure 1.2)
+### Example: Cat Brain Geometry ([Figure 1.2](https://claude.ai/public/artifacts/d1f1d4fc-6989-478a-8a44-bb22097bb45a))
 
 In the 2D feature space, the threat score can be modeled as the **signed distance** from the separator line x₀ + x₁ = 1:
 
@@ -206,14 +206,17 @@ The optimal parameters are:
 
 $$w_0 = \frac{1}{\sqrt{2}}, \quad w_1 = \frac{1}{\sqrt{2}}, \quad b = -\frac{1}{\sqrt{2}}$$
 
-### Higher-Dimensional Example (Figure 1.3)
+### Higher-Dimensional Example ([Figure 1.3](https://claude.ai/public/artifacts/7b306368-988e-42d0-81e8-ca95b3afe727))
 
 A model maps points from input (feature) space to an output space where it is easier to separate classes:
 
 - Input: Feature points belonging to two classes distributed over the volume of a cylinder in 3D
 - Transformation: The model "unfurls" the cylinder into a rectangle
 - Output: 2D planar space where classes can be discriminated with a simple linear separator
-
+<p style="text-align: center;">
+  <strong>Unit circle with angles and values</strong><br>
+  <img src="unit_circle.png" width="50%" alt="Unit circle with angles and values" />
+</p>
 ---
 
 ## 7. Linear vs. Nonlinear Models
@@ -222,7 +225,7 @@ A model maps points from input (feature) space to an output space where it is ea
 
 In Figure 1.2, classes could be separated by a line (hyperplane in higher dimensions). **This does not happen often in real life.**
 
-### When Linear Models Fail (Figure 1.4)
+### When Linear Models Fail ([Figure 1.4](https://claude.ai/public/artifacts/6f07526d-711e-49df-95be-820e03501ac7))
 
 When classes are distributed such that no line can separate them, we need a **curved separator**:
 
@@ -236,7 +239,7 @@ This requires **nonlinear model architectures**.
 
 A very popular nonlinear function in machine learning is the **sigmoid function** (σ), so named because it looks like the letter S.
 
-**Definition (Equation 1.5):**
+**Definition ([Equation 1.5](https://claude.ai/public/artifacts/0d03f079-356c-4a60-b6f7-ba6a82120915)):**
 
 $$\sigma(x) = \frac{1}{1 + e^{-x}}$$
 
@@ -282,7 +285,9 @@ Instead of generating output from input in a single step:
 4. Continue stacking layers
 5. Combine outermost hidden layer outputs into final output
 
-### Multilayered Neural Network Architecture (Figure 1.7)
+### Multilayered Neural Network Architecture ([Figure 1.7](https://claude.ai/public/artifacts/51dc5ad2-8eb2-4fbd-a0ca-7e6a9d3c0ad2))
+
+[3D Visualization](https://nn-vis.noelith.dev/)
 
 **Notation conventions:**
 - Superscript identifies the layer (layer 0 closest to input, layer L furthest)
