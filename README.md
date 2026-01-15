@@ -57,7 +57,7 @@ Chapter PDFs available in the `2nd_ed/` folder.
 
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
-| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/Lecture_Notes1.md) \| [📄 PDF](week-01/Lecture_Notes1.pdf) |
+| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/Lecture_Notes1.md) \| [📄 PDF](week-01/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/cat_brain_marimo.py) |
 | 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | 🔒 Coming Soon |
 | 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
 | 04 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
@@ -93,6 +93,8 @@ pip install -r requirements.txt
 Each week's folder contains:
 - **Lecture Notes** (`.md`) - Markdown format for easy reading and version control
 - **PDF** (`.pdf`) - Printable lecture notes
+- **Python Scripts** (`.py`) - Standalone implementations
+- **Marimo Notebooks** (`*_marimo.py`) - Interactive demos with widgets
 
 > **Note:** Course materials are released progressively. Currently, Week 1 materials are available. Additional weeks will be released as the semester progresses.
 
@@ -107,7 +109,9 @@ IME775/
 │   └── ...
 └── week-01/                     # ✅ Released
     ├── Lecture_Notes1.md        # Lecture notes (Markdown)
-    └── Lecture_Notes1.pdf       # Lecture notes (PDF)
+    ├── Lecture_Notes1.pdf       # Lecture notes (PDF)
+    ├── cat_brain_pytorch.py     # Cat Brain model (standalone script)
+    └── cat_brain_marimo.py      # Cat Brain model (interactive notebook)
 
 Note: Additional weekly materials (week-02 through week-15) will be released progressively throughout the semester.
 ```
@@ -119,6 +123,36 @@ Note: Additional weekly materials (week-02 through week-15) will be released pro
 - **Scikit-learn** - Machine learning
 - **PyTorch** - Deep learning
 - **Matplotlib/Seaborn** - Visualization
+- **Marimo** - Interactive notebooks
+
+---
+
+## 🐱 Interactive Demos
+
+This course includes interactive notebooks built with [Marimo](https://marimo.io/) for hands-on learning.
+
+### Week 1: Cat Brain Model
+
+The Cat Brain demo (`week-01/cat_brain_marimo.py`) implements the threat estimator from Chapter 1 with interactive widgets:
+
+**Features:**
+- 🎲 Adjust random seed, sample sizes, and noise levels
+- 📐 Tune learning rate, epochs, and optimizer (SGD/Adam)
+- 📊 Real-time training visualization (loss curve, parameter convergence)
+- 🔮 Test inference with custom objects
+- 🎯 Adjustable decision threshold
+
+**To run:**
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run in edit mode (see code + output)
+marimo edit week-01/cat_brain_marimo.py
+
+# Or run in app mode (output only)
+marimo run week-01/cat_brain_marimo.py
+```
 
 ---
 
