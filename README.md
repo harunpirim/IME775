@@ -58,7 +58,7 @@ Chapter PDFs available in the `2nd_ed/` folder.
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
 | 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/Lecture_Notes1.md) \| [📄 PDF](week-01/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/cat_brain_marimo.py) |
-| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | 🔒 Coming Soon |
+| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes](week-02/Lecture_Notes2.md) \| [📓 Notebooks](week-02/) |
 | 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
 | 04 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
 | 05 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
@@ -96,7 +96,7 @@ Each week's folder contains:
 - **Python Scripts** (`.py`) - Standalone implementations
 - **Marimo Notebooks** (`*_marimo.py`) - Interactive demos with widgets
 
-> **Note:** Course materials are released progressively. Currently, Week 1 materials are available. Additional weeks will be released as the semester progresses.
+> **Note:** Course materials are released progressively. Currently, Week 1 and Week 2 materials are available. Additional weeks will be released as the semester progresses.
 
 ## 📁 Repository Structure
 
@@ -107,13 +107,18 @@ IME775/
 ├── 2nd_ed/                      # ML Refined chapters (supplementary)
 │   ├── chapter_1.pdf
 │   └── ...
-└── week-01/                     # ✅ Released
-    ├── Lecture_Notes1.md        # Lecture notes (Markdown)
-    ├── Lecture_Notes1.pdf       # Lecture notes (PDF)
-    ├── cat_brain_pytorch.py     # Cat Brain model (standalone script)
-    └── cat_brain_marimo.py      # Cat Brain model (interactive notebook)
+├── week-01/                     # ✅ Released
+│   ├── Lecture_Notes1.md        # Lecture notes (Markdown)
+│   ├── Lecture_Notes1.pdf       # Lecture notes (PDF)
+│   ├── cat_brain_pytorch.py     # Cat Brain model (standalone script)
+│   └── cat_brain_marimo.py      # Cat Brain model (interactive notebook)
+└── week-02/                     # ✅ Released
+    ├── Lecture_Notes2.md        # Lecture notes (Markdown)
+    ├── IME775_Lecture3-4_Notes.md
+    ├── IME775_Lecture3-4_Problems.md
+    └── *.py                     # Marimo notebooks and Python scripts
 
-Note: Additional weekly materials (week-02 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-03 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
