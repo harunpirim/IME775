@@ -82,11 +82,13 @@ $$\mathbf{A} = \begin{bmatrix} a_{11} & a_{12} & \cdots & a_{1n} \\ a_{21} & a_{
      1800 & 4 & 3 & 5 \\\\
      1200 & 2 & 1 & 30
    \end{bmatrix}$$  
-   *(Each row: [sqft, bedrooms, bathrooms, age] for a house)*
-
-2. **Linear Transform:** Maps $\mathbb{R}^n \to \mathbb{R}^m$  
+   *(Each row: [sqft, bedrooms, bathrooms, age] for a house)* 
+   
+&nbsp;
+2.  **Linear Transform:** Maps $\mathbb{R}^n \to \mathbb{R}^m$  
    *Example:*  
-   $$\mathbf{A}_{\text{transform}}\mathbf{x} =
+   
+   $\mathbf{A}_{\text{transform}}\mathbf{x} =
    \begin{bmatrix}
      2 & 0 \\\\
      1 & 3
@@ -99,8 +101,7 @@ $$\mathbf{A} = \begin{bmatrix} a_{11} & a_{12} & \cdots & a_{1n} \\ a_{21} & a_{
    \begin{bmatrix}
      2x_1  \\\\
      x_1 + 3x_2
-   \end{bmatrix}
-   $$
+   \end{bmatrix}$
    *(Maps a 2D input $\mathbf{x}$ to a 2D output by stretching and mixing the coordinates)*
 
 &nbsp;
@@ -200,6 +201,7 @@ $$\mathbf{u}\cdot\mathbf{v} = \|\mathbf{u}\|\|\mathbf{v}\|\cos\theta$$
 
 > We form a triangle using $\mathbf{u}, \mathbf{v}$, and $\mathbf{u}-\mathbf{v}$, then apply the Law of Cosines to relate vector lengths to the angle between them.
 
+[Visualisation](https://claude.ai/public/artifacts/da29c97d-5479-4a48-827a-5a4fb32e3628)
 
 &nbsp;
 

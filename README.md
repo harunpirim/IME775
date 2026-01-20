@@ -58,7 +58,7 @@ Chapter PDFs available in the `2nd_ed/` folder.
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
 | 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/Lecture_Notes1.md) \| [📄 PDF](week-01/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/cat_brain_marimo.py) |
-| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes](week-02/Lecture_Notes2.md) \| [📓 Notebooks](week-02/) |
+| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes](week-02/Lecture_Notes2.md) \| [📄 PDF](week-02/Lecture_Notes2.pdf) \| [📓 Notebooks](week-02/) |
 | 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
 | 04 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
 | 05 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
@@ -114,6 +114,7 @@ IME775/
 │   └── cat_brain_marimo.py      # Cat Brain model (interactive notebook)
 └── week-02/                     # ✅ Released
     ├── Lecture_Notes2.md        # Lecture notes (Markdown)
+    ├── Lecture_Notes2.pdf       # Lecture notes (PDF)
     ├── IME775_Lecture3-4_Notes.md
     ├── IME775_Lecture3-4_Problems.md
     └── *.py                     # Marimo notebooks and Python scripts
