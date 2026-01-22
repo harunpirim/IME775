@@ -3,7 +3,7 @@ IME 775: Matrix Operations and Linear Transforms
 =================================================
 A marimo notebook exploring matrices and their role in machine learning.
 
-Course: IME 775 - Mathematical Foundations of Deep Learning
+Course: IME 775 
 Topics: Matrices, Linear Transforms, Matrix Multiplication, Systems of Equations
 """
 

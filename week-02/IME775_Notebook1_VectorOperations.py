@@ -3,7 +3,7 @@ IME 775: Vector Operations - Interactive Exploration
 =====================================================
 A marimo notebook exploring fundamental vector operations in machine learning.
 
-Course: IME 775 - Mathematical Foundations of Deep Learning
+Course: IME 775 
 Topics: Vectors, Dot Product, Cosine Similarity, L2 Norm
 """
 

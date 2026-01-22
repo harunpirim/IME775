@@ -3,7 +3,7 @@ IME 775: Eigenvalues, Eigenvectors, and Spectral Analysis
 ==========================================================
 A marimo notebook exploring eigendecomposition and its applications in ML.
 
-Course: IME 775 - Mathematical Foundations of Deep Learning
+Course: IME 775 
 Topics: Eigenvalues, Eigenvectors, Diagonalization, PCA
 """
 

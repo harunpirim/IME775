@@ -623,3 +623,6 @@ $$\mathbf{e}_1 = \begin{bmatrix}1\\0\\0\end{bmatrix}, \quad \mathbf{e}_2 = \begi
 
 ML is geometry in high dimensions:
 data live in spans, models choose bases, and classifiers cut space with hyperplanes.
+
+
+[[lecture_notes_hyperplanes_ml]] 
