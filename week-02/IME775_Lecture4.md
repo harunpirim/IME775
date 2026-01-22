@@ -176,6 +176,99 @@ This is the foundation of **linear regression**!
 
 *Workout:* For data points $(0,1), (1,3), (2,5)$, set up the normal equations for $y = mx + c$:
 
+Solution: 
+
+Given data points:
+$$(0,1),\ (1,3),\ (2,5)$$
+
+Each row of A is $$[x_i \;\; 1]$$, and b contains the $$y_i’s$$:
+
+$A=
+\begin{bmatrix}
+0 & 1\\
+1 & 1\\
+2 & 1
+\end{bmatrix},
+\qquad
+\mathbf{x}=
+\begin{bmatrix}
+m\\
+c
+\end{bmatrix},
+\qquad
+\mathbf{b}=
+\begin{bmatrix}
+1\\
+3\\
+5
+\end{bmatrix}$
+So the overdetermined system is:
+$$A\mathbf{x}\approx \mathbf{b}$$
+
+
+
+$$A^T=
+\begin{bmatrix}
+0 & 1 & 2\\
+1 & 1 & 1
+\end{bmatrix}$$
+
+$$A^T A=
+\begin{bmatrix}
+0 & 1 & 2\\
+1 & 1 & 1
+\end{bmatrix}
+\begin{bmatrix}
+0 & 1\\
+1 & 1\\
+2 & 1
+\end{bmatrix}
+=
+\begin{bmatrix}
+5 & 3\\
+3 & 3
+\end{bmatrix}$$
+
+$$A^T b=
+\begin{bmatrix}
+0 & 1 & 2\\
+1 & 1 & 1
+\end{bmatrix}
+\begin{bmatrix}
+1\\
+3\\
+5
+\end{bmatrix}
+=
+\begin{bmatrix}
+13\\
+9
+\end{bmatrix}$$
+
+$$\boxed{
+\begin{bmatrix}
+5 & 3\\
+3 & 3
+\end{bmatrix}
+\begin{bmatrix}
+m\\
+c
+\end{bmatrix}
+=
+\begin{bmatrix}
+13\\
+9
+\end{bmatrix}
+}$$
+
+$$\boxed{
+\begin{aligned}
+5m + 3c &= 13 \\
+3m + 3c &= 9
+\end{aligned}
+}$$
+
+
 &nbsp;
 
 &nbsp;
