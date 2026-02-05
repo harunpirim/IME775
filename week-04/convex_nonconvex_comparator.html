@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convex vs Non-Convex Function Comparator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .function-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 3px solid;
+        }
+        .function-panel.convex {
+            border-color: #4CAF50;
+        }
+        .function-panel.nonconvex {
+            border-color: #FF5722;
+        }
+        .panel-title {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .panel-title.convex {
+            color: #4CAF50;
+        }
+        .panel-title.nonconvex {
+            color: #FF5722;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: block;
+            margin: 0 auto;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        select, button {
+            padding: 10px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #d32f2f;
+        }
+        .stats-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stats-panel {
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid;
+        }
+        .stats-panel.convex {
+            background: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        .stats-panel.nonconvex {
+            background: #ffebee;
+            border-color: #FF5722;
+        }
+        .stats-panel h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            font-weight: 600;
+            color: #555;
+        }
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            color: #333;
+        }
+        .info-box {
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #f57c00;
+        }
+        .runs-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .run-badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .run-badge:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function ConvexNonconvexComparator() {
+            const canvasConvexRef = useRef(null);
+            const canvasNonconvexRef = useRef(null);
+            const [numRuns, setNumRuns] = useState(10);
+            const [learningRate, setLearningRate] = useState(0.05);
+            const [maxIterations, setMaxIterations] = useState(100);
+            const [runs, setRuns] = useState([]);
+            const [isRunning, setIsRunning] = useState(false);
+
+            const canvasWidth = 600;
+            const canvasHeight = 500;
+
+            // Convex function: quadratic
+            const convexFunc = {
+                name: 'Convex: f(x) = x²',
+                eval: (x) => x * x,
+                derivative: (x) => 2 * x,
+                globalMin: 0,
+                range: { min: -5, max: 5 },
+                yRange: { min: -1, max: 25 }
+            };
+
+            // Non-convex function: with multiple local minima
+            const nonconvexFunc = {
+                name: 'Non-convex: f(x) = x⁴ - 5x² + 4x',
+                eval: (x) => Math.pow(x, 4) - 5 * Math.pow(x, 2) + 4 * x,
+                derivative: (x) => 4 * Math.pow(x, 3) - 10 * x + 4,
+                globalMin: -1.7,
+                range: { min: -3, max: 3 },
+                yRange: { min: -7, max: 10 }
+            };
+
+            const worldToCanvas = (x, y, func) => {
+                const xScale = canvasWidth / (func.range.max - func.range.min);
+                const yScale = canvasHeight / (func.yRange.max - func.yRange.min);
+                const canvasX = (x - func.range.min) * xScale;
+                const canvasY = canvasHeight - (y - func.yRange.min) * yScale;
+                return { x: canvasX, y: canvasY };
+            };
+
+            const runOptimization = (func, startX) => {
+                const path = [{ x: startX, y: func.eval(startX) }];
+                let currentX = startX;
+                let converged = false;
+                let iterations = 0;
+
+                for (let i = 0; i < maxIterations; i++) {
+                    const grad = func.derivative(currentX);
+                    const newX = currentX - learningRate * grad;
+                    const newY = func.eval(newX);
+
+                    path.push({ x: newX, y: newY });
+                    
+                    if (Math.abs(grad) < 0.001) {
+                        converged = true;
+                        iterations = i + 1;
+                        break;
+                    }
+
+                    currentX = newX;
+                    iterations = i + 1;
+                }
+
+                return {
+                    path,
+                    startX,
+                    endX: currentX,
+                    endY: func.eval(currentX),
+                    converged,
+                    iterations,
+                    distanceFromGlobalMin: Math.abs(currentX - func.globalMin)
+                };
+            };
+
+            const runMultipleOptimizations = () => {
+                setIsRunning(true);
+                const newRuns = [];
+
+                for (let i = 0; i < numRuns; i++) {
+                    // Random starting point
+                    const startXConvex = (Math.random() - 0.5) * 8; // Range [-4, 4]
+                    const startXNonconvex = (Math.random() - 0.5) * 5; // Range [-2.5, 2.5]
+
+                    const convexResult = runOptimization(convexFunc, startXConvex);
+                    const nonconvexResult = runOptimization(nonconvexFunc, startXNonconvex);
+
+                    newRuns.push({
+                        id: i,
+                        convex: convexResult,
+                        nonconvex: nonconvexResult,
+                        color: `hsl(${(i * 360) / numRuns}, 70%, 50%)`
+                    });
+                }
+
+                setRuns(newRuns);
+                setIsRunning(false);
+            };
+
+            const drawFunction = (canvas, func, runs, isConvex) => {
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                // Clear canvas
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Draw grid
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                for (let x = Math.ceil(func.range.min); x <= Math.floor(func.range.max); x++) {
+                    const canvasPos = worldToCanvas(x, 0, func);
+                    ctx.beginPath();
+                    ctx.moveTo(canvasPos.x, 0);
+                    ctx.lineTo(canvasPos.x, canvasHeight);
+                    ctx.stroke();
+                }
+
+                // Draw axes
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 2;
+                const xAxis = worldToCanvas(0, 0, func);
+                const yAxis = worldToCanvas(0, 0, func);
+                ctx.beginPath();
+                ctx.moveTo(0, xAxis.y);
+                ctx.lineTo(canvasWidth, xAxis.y);
+                ctx.moveTo(yAxis.x, 0);
+                ctx.lineTo(yAxis.x, canvasHeight);
+                ctx.stroke();
+
+                // Draw function curve
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                let started = false;
+                for (let x = func.range.min; x <= func.range.max; x += 0.01) {
+                    const y = func.eval(x);
+                    if (y >= func.yRange.min && y <= func.yRange.max) {
+                        const canvasPos = worldToCanvas(x, y, func);
+                        if (!started) {
+                            ctx.moveTo(canvasPos.x, canvasPos.y);
+                            started = true;
+                        } else {
+                            ctx.lineTo(canvasPos.x, canvasPos.y);
+                        }
+                    }
+                }
+                ctx.stroke();
+
+                // Draw global minimum
+                const globalMinY = func.eval(func.globalMin);
+                const globalMinCanvas = worldToCanvas(func.globalMin, globalMinY, func);
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(globalMinCanvas.x, globalMinCanvas.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw all optimization paths
+                runs.forEach(run => {
+                    const data = isConvex ? run.convex : run.nonconvex;
+                    
+                    // Draw path
+                    ctx.strokeStyle = run.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.6;
+                    ctx.beginPath();
+                    data.path.forEach((point, i) => {
+                        const canvasPos = worldToCanvas(point.x, point.y, func);
+                        if (i === 0) {
+                            ctx.moveTo(canvasPos.x, canvasPos.y);
+                        } else {
+                            ctx.lineTo(canvasPos.x, canvasPos.y);
+                        }
+                    });
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+
+                    // Draw start point
+                    const startCanvas = worldToCanvas(data.startX, func.eval(data.startX), func);
+                    ctx.fillStyle = run.color;
+                    ctx.beginPath();
+                    ctx.arc(startCanvas.x, startCanvas.y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    // Draw end point
+                    const endCanvas = worldToCanvas(data.endX, data.endY, func);
+                    ctx.fillStyle = run.color;
+                    ctx.beginPath();
+                    ctx.arc(endCanvas.x, endCanvas.y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+
+                // Draw labels
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('x', canvasWidth - 20, xAxis.y - 10);
+                ctx.fillText('f(x)', yAxis.x + 10, 20);
+            };
+
+            useEffect(() => {
+                drawFunction(canvasConvexRef.current, convexFunc, runs, true);
+            }, [runs]);
+
+            useEffect(() => {
+                drawFunction(canvasNonconvexRef.current, nonconvexFunc, runs, false);
+            }, [runs]);
+
+            const convexStats = runs.length > 0 ? {
+                avgIterations: runs.reduce((sum, r) => sum + r.convex.iterations, 0) / runs.length,
+                convergedCount: runs.filter(r => r.convex.converged).length,
+                avgDistanceFromGlobal: runs.reduce((sum, r) => sum + r.convex.distanceFromGlobalMin, 0) / runs.length,
+                foundGlobal: runs.filter(r => r.convex.distanceFromGlobalMin < 0.1).length
+            } : null;
+
+            const nonconvexStats = runs.length > 0 ? {
+                avgIterations: runs.reduce((sum, r) => sum + r.nonconvex.iterations, 0) / runs.length,
+                convergedCount: runs.filter(r => r.nonconvex.converged).length,
+                avgDistanceFromGlobal: runs.reduce((sum, r) => sum + r.nonconvex.distanceFromGlobalMin, 0) / runs.length,
+                foundGlobal: runs.filter(r => r.nonconvex.distanceFromGlobalMin < 0.1).length
+            } : null;
+
+            return (
+                <div className="container">
+                    <h1>⚖️ Convex vs Non-Convex Function Comparator</h1>
+                    <p className="subtitle">
+                        Run multiple gradient descent optimizations and compare convergence behavior
+                    </p>
+
+                    <div className="controls">
+                        <div className="control-group">
+                            <label>Number of Runs: {numRuns}</label>
+                            <input 
+                                type="range" 
+                                min="1" 
+                                max="20" 
+                                step="1" 
+                                value={numRuns} 
+                                onChange={(e) => setNumRuns(parseInt(e.target.value))}
+                                disabled={isRunning}
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Learning Rate η: {learningRate.toFixed(3)}</label>
+                            <input 
+                                type="range" 
+                                min="0.001" 
+                                max="0.2" 
+                                step="0.001" 
+                                value={learningRate} 
+                                onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+                                disabled={isRunning}
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Max Iterations: {maxIterations}</label>
+                            <input 
+                                type="range" 
+                                min="50" 
+                                max="500" 
+                                step="10" 
+                                value={maxIterations} 
+                                onChange={(e) => setMaxIterations(parseInt(e.target.value))}
+                                disabled={isRunning}
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Actions</label>
+                            <div style={{display: 'flex', gap: '10px'}}>
+                                <button onClick={runMultipleOptimizations} disabled={isRunning}>
+                                    ▶ Run Optimizations
+                                </button>
+                                <button className="danger" onClick={() => setRuns([])}>
+                                    🗑️ Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="comparison-grid">
+                        <div className="function-panel convex">
+                            <div className="panel-title convex">✅ CONVEX FUNCTION</div>
+                            <canvas ref={canvasConvexRef} width={canvasWidth} height={canvasHeight} />
+                            <p style={{textAlign: 'center', marginTop: '10px', fontWeight: '600'}}>
+                                {convexFunc.name}
+                            </p>
+                        </div>
+
+                        <div className="function-panel nonconvex">
+                            <div className="panel-title nonconvex">⚠️ NON-CONVEX FUNCTION</div>
+                            <canvas ref={canvasNonconvexRef} width={canvasWidth} height={canvasHeight} />
+                            <p style={{textAlign: 'center', marginTop: '10px', fontWeight: '600'}}>
+                                {nonconvexFunc.name}
+                            </p>
+                        </div>
+                    </div>
+
+                    {convexStats && nonconvexStats && (
+                        <div className="stats-comparison">
+                            <div className="stats-panel convex">
+                                <h3>✅ Convex Function Statistics</h3>
+                                <div className="stat-row">
+                                    <span className="stat-label">Average Iterations:</span>
+                                    <span className="stat-value">{convexStats.avgIterations.toFixed(1)}</span>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">Converged Runs:</span>
+                                    <span className="stat-value">{convexStats.convergedCount} / {numRuns}</span>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">Found Global Min:</span>
+                                    <span className="stat-value">{convexStats.foundGlobal} / {numRuns} ({(convexStats.foundGlobal/numRuns*100).toFixed(0)}%)</span>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">Avg Distance from Global:</span>
+                                    <span className="stat-value">{convexStats.avgDistanceFromGlobal.toFixed(4)}</span>
+                                </div>
+                            </div>
+
+                            <div className="stats-panel nonconvex">
+                                <h3>⚠️ Non-Convex Function Statistics</h3>
+                                <div className="stat-row">
+                                    <span className="stat-label">Average Iterations:</span>
+                                    <span className="stat-value">{nonconvexStats.avgIterations.toFixed(1)}</span>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">Converged Runs:</span>
+                                    <span className="stat-value">{nonconvexStats.convergedCount} / {numRuns}</span>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">Found Global Min:</span>
+                                    <span className="stat-value">{nonconvexStats.foundGlobal} / {numRuns} ({(nonconvexStats.foundGlobal/numRuns*100).toFixed(0)}%)</span>
+                                </div>
+                                <div className="stat-row">
+                                    <span className="stat-label">Avg Distance from Global:</span>
+                                    <span className="stat-value">{nonconvexStats.avgDistanceFromGlobal.toFixed(4)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="info-box">
+                        <h3>🎯 Key Observations</h3>
+                        <p><strong>Convex Functions (f(x) = x²):</strong></p>
+                        <ul>
+                            <li>Single global minimum - no local minima</li>
+                            <li>Gradient descent <strong>always</strong> finds global minimum (if learning rate appropriate)</li>
+                            <li>All starting points lead to same final solution</li>
+                            <li>Predictable, reliable optimization</li>
+                        </ul>
+                        
+                        <p><strong>Non-Convex Functions (f(x) = x⁴ - 5x² + 4x):</strong></p>
+                        <ul>
+                            <li>Multiple local minima exist</li>
+                            <li>Gradient descent may get <strong>stuck</strong> in local minimum</li>
+                            <li>Final solution depends heavily on starting point</li>
+                            <li>May need multiple random restarts to find global minimum</li>
+                        </ul>
+
+                        <p><strong>Practical Implications:</strong></p>
+                        <ul>
+                            <li>Convex loss functions (e.g., linear regression with MSE) guarantee finding optimal solution</li>
+                            <li>Deep neural networks have non-convex loss landscapes</li>
+                            <li>Modern deep learning uses techniques like good initialization, momentum, and adaptive learning rates</li>
+                            <li>Often a "good enough" local minimum suffices for practical applications</li>
+                        </ul>
+                    </div>
+
+                    {runs.length > 0 && (
+                        <div style={{marginTop: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '10px'}}>
+                            <h3>Individual Run Results</h3>
+                            <div className="runs-container">
+                                {runs.map(run => (
+                                    <div 
+                                        key={run.id} 
+                                        className="run-badge" 
+                                        style={{
+                                            background: run.color,
+                                            color: 'white'
+                                        }}
+                                        title={`Run ${run.id + 1}\nConvex: ${run.convex.iterations} iters\nNon-convex: ${run.nonconvex.iterations} iters`}
+                                    >
+                                        Run {run.id + 1}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<ConvexNonconvexComparator />, document.getElementById('root'));
+    </script>
+</body>
+</html>

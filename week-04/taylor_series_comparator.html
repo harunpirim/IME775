@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taylor Series Approximation Comparator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        .canvas-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .equation-box {
+            padding: 20px;
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .equation-box h3 {
+            margin: 0 0 15px 0;
+            color: #e65100;
+        }
+        .formula {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .error-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        .error-table th,
+        .error-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .error-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        .error-table tr:hover {
+            background: #f8f9fa;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-line {
+            width: 30px;
+            height: 3px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function TaylorSeriesComparator() {
+            const canvas1DRef = useRef(null);
+            const canvas2DRef = useRef(null);
+            const [functionType, setFunctionType] = useState('exp');
+            const [expansionPoint, setExpansionPoint] = useState(0);
+            const [showOriginal, setShowOriginal] = useState(true);
+            const [showZeroth, setShowZeroth] = useState(false);
+            const [showFirst, setShowFirst] = useState(true);
+            const [showSecond, setShowSecond] = useState(true);
+            const [showThird, setShowThird] = useState(false);
+            const [testPoint, setTestPoint] = useState(1);
+
+            const canvasWidth = 600;
+            const canvasHeight = 500;
+
+            const functions = {
+                exp: {
+                    name: 'f(x) = eˣ',
+                    eval: (x) => Math.exp(x),
+                    derivative: (x, order) => Math.exp(x), // All derivatives are eˣ
+                    range: { min: -3, max: 3 },
+                    yRange: { min: -2, max: 20 }
+                },
+                sin: {
+                    name: 'f(x) = sin(x)',
+                    eval: (x) => Math.sin(x),
+                    derivative: (x, order) => {
+                        const derivatives = [Math.sin(x), Math.cos(x), -Math.sin(x), -Math.cos(x)];
+                        return derivatives[order % 4];
+                    },
+                    range: { min: -2 * Math.PI, max: 2 * Math.PI },
+                    yRange: { min: -2, max: 2 }
+                },
+                cos: {
+                    name: 'f(x) = cos(x)',
+                    eval: (x) => Math.cos(x),
+                    derivative: (x, order) => {
+                        const derivatives = [Math.cos(x), -Math.sin(x), -Math.cos(x), Math.sin(x)];
+                        return derivatives[order % 4];
+                    },
+                    range: { min: -2 * Math.PI, max: 2 * Math.PI },
+                    yRange: { min: -2, max: 2 }
+                },
+                poly: {
+                    name: 'f(x) = x³ - 2x² + x + 1',
+                    eval: (x) => Math.pow(x, 3) - 2 * Math.pow(x, 2) + x + 1,
+                    derivative: (x, order) => {
+                        if (order === 0) return Math.pow(x, 3) - 2 * Math.pow(x, 2) + x + 1;
+                        if (order === 1) return 3 * Math.pow(x, 2) - 4 * x + 1;
+                        if (order === 2) return 6 * x - 4;
+                        if (order === 3) return 6;
+                        return 0;
+                    },
+                    range: { min: -2, max: 3 },
+                    yRange: { min: -5, max: 15 }
+                },
+                ln: {
+                    name: 'f(x) = ln(x)',
+                    eval: (x) => Math.log(x),
+                    derivative: (x, order) => {
+                        if (order === 0) return Math.log(x);
+                        if (order === 1) return 1 / x;
+                        if (order === 2) return -1 / Math.pow(x, 2);
+                        if (order === 3) return 2 / Math.pow(x, 3);
+                        return 0;
+                    },
+                    range: { min: 0.1, max: 5 },
+                    yRange: { min: -3, max: 2 }
+                }
+            };
+
+            const currentFunc = functions[functionType];
+
+            const factorial = (n) => {
+                if (n <= 1) return 1;
+                return n * factorial(n - 1);
+            };
+
+            const taylorApproximation = (x, a, order) => {
+                let sum = 0;
+                for (let n = 0; n <= order; n++) {
+                    const derivative = currentFunc.derivative(a, n);
+                    sum += (derivative / factorial(n)) * Math.pow(x - a, n);
+                }
+                return sum;
+            };
+
+            const worldToCanvas1D = (x, y) => {
+                const xScale = canvasWidth / (currentFunc.range.max - currentFunc.range.min);
+                const yScale = canvasHeight / (currentFunc.yRange.max - currentFunc.yRange.min);
+                const canvasX = (x - currentFunc.range.min) * xScale;
+                const canvasY = canvasHeight - (y - currentFunc.yRange.min) * yScale;
+                return { x: canvasX, y: canvasY };
+            };
+
+            useEffect(() => {
+                draw1DPlot();
+            }, [functionType, expansionPoint, showOriginal, showZeroth, showFirst, showSecond, showThird, testPoint]);
+
+            useEffect(() => {
+                draw2DPlot();
+            }, [functionType, expansionPoint]);
+
+            const draw1DPlot = () => {
+                const canvas = canvas1DRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Draw grid
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                for (let x = currentFunc.range.min; x <= currentFunc.range.max; x += 1) {
+                    const canvas = worldToCanvas1D(x, 0);
+                    ctx.beginPath();
+                    ctx.moveTo(canvas.x, 0);
+                    ctx.lineTo(canvas.x, canvasHeight);
+                    ctx.stroke();
+                }
+                for (let y = currentFunc.yRange.min; y <= currentFunc.yRange.max; y += 2) {
+                    const canvas = worldToCanvas1D(0, y);
+                    ctx.beginPath();
+                    ctx.moveTo(0, canvas.y);
+                    ctx.lineTo(canvasWidth, canvas.y);
+                    ctx.stroke();
+                }
+
+                // Draw axes
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 2;
+                const xAxis = worldToCanvas1D(0, 0);
+                const yAxis = worldToCanvas1D(0, 0);
+                ctx.beginPath();
+                ctx.moveTo(0, xAxis.y);
+                ctx.lineTo(canvasWidth, xAxis.y);
+                ctx.moveTo(yAxis.x, 0);
+                ctx.lineTo(yAxis.x, canvasHeight);
+                ctx.stroke();
+
+                // Helper function to draw a function
+                const drawFunction = (func, color, lineWidth, label) => {
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = lineWidth;
+                    ctx.beginPath();
+                    let started = false;
+                    for (let x = currentFunc.range.min; x <= currentFunc.range.max; x += 0.01) {
+                        const y = func(x);
+                        if (!isNaN(y) && isFinite(y) && y >= currentFunc.yRange.min && y <= currentFunc.yRange.max) {
+                            const canvas = worldToCanvas1D(x, y);
+                            if (!started) {
+                                ctx.moveTo(canvas.x, canvas.y);
+                                started = true;
+                            } else {
+                                ctx.lineTo(canvas.x, canvas.y);
+                            }
+                        }
+                    }
+                    ctx.stroke();
+                };
+
+                // Draw functions based on visibility
+                if (showOriginal) {
+                    drawFunction(currentFunc.eval, '#000', 3, 'Original');
+                }
+                if (showZeroth) {
+                    drawFunction((x) => taylorApproximation(x, expansionPoint, 0), '#9C27B0', 2, '0th order');
+                }
+                if (showFirst) {
+                    drawFunction((x) => taylorApproximation(x, expansionPoint, 1), '#2196F3', 2, '1st order');
+                }
+                if (showSecond) {
+                    drawFunction((x) => taylorApproximation(x, expansionPoint, 2), '#4CAF50', 2, '2nd order');
+                }
+                if (showThird) {
+                    drawFunction((x) => taylorApproximation(x, expansionPoint, 3), '#FF5722', 2, '3rd order');
+                }
+
+                // Draw expansion point
+                const expY = currentFunc.eval(expansionPoint);
+                const expCanvas = worldToCanvas1D(expansionPoint, expY);
+                ctx.fillStyle = '#FF9800';
+                ctx.beginPath();
+                ctx.arc(expCanvas.x, expCanvas.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw test point
+                if (testPoint >= currentFunc.range.min && testPoint <= currentFunc.range.max) {
+                    const testY = currentFunc.eval(testPoint);
+                    const testCanvas = worldToCanvas1D(testPoint, testY);
+                    ctx.fillStyle = '#E91E63';
+                    ctx.beginPath();
+                    ctx.arc(testCanvas.x, testCanvas.y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Draw vertical line
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = '#E91E63';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(testCanvas.x, 0);
+                    ctx.lineTo(testCanvas.x, canvasHeight);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Draw axis labels
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('x', canvasWidth - 20, xAxis.y - 10);
+                ctx.fillText('f(x)', yAxis.x + 10, 20);
+            };
+
+            const draw2DPlot = () => {
+                const canvas = canvas2DRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // For 2D, we'll show error as a function of distance from expansion point
+                const maxDist = Math.abs(currentFunc.range.max - currentFunc.range.min) / 2;
+                
+                const distToCanvas = (dist, error) => {
+                    const x = (dist / maxDist) * (canvasWidth - 100) + 50;
+                    const y = canvasHeight - 50 - Math.min(error, canvasHeight - 100);
+                    return { x, y };
+                };
+
+                // Draw grid
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 10; i++) {
+                    const x = 50 + i * (canvasWidth - 100) / 10;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvasHeight - 50);
+                    ctx.stroke();
+                }
+
+                // Draw axes
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(50, canvasHeight - 50);
+                ctx.lineTo(canvasWidth - 50, canvasHeight - 50);
+                ctx.moveTo(50, canvasHeight - 50);
+                ctx.lineTo(50, 50);
+                ctx.stroke();
+
+                // Draw error curves
+                const orders = [
+                    { order: 0, show: showZeroth, color: '#9C27B0', label: '0th order' },
+                    { order: 1, show: showFirst, color: '#2196F3', label: '1st order' },
+                    { order: 2, show: showSecond, color: '#4CAF50', label: '2nd order' },
+                    { order: 3, show: showThird, color: '#FF5722', label: '3rd order' }
+                ];
+
+                orders.forEach(({order, show, color}) => {
+                    if (show) {
+                        ctx.strokeStyle = color;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        let started = false;
+                        
+                        for (let dist = 0; dist <= maxDist; dist += 0.05) {
+                            const x = expansionPoint + dist;
+                            if (x >= currentFunc.range.min && x <= currentFunc.range.max) {
+                                const trueVal = currentFunc.eval(x);
+                                const approxVal = taylorApproximation(x, expansionPoint, order);
+                                const error = Math.abs(trueVal - approxVal) * 50; // Scale for visibility
+                                
+                                const canvas = distToCanvas(dist, error);
+                                if (!started) {
+                                    ctx.moveTo(canvas.x, canvas.y);
+                                    started = true;
+                                } else {
+                                    ctx.lineTo(canvas.x, canvas.y);
+                                }
+                            }
+                        }
+                        ctx.stroke();
+                    }
+                });
+
+                // Draw labels
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Distance from expansion point', canvasWidth / 2 - 100, canvasHeight - 10);
+                ctx.save();
+                ctx.translate(20, canvasHeight / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Approximation Error', -80, 0);
+                ctx.restore();
+            };
+
+            const computeErrors = () => {
+                const trueVal = currentFunc.eval(testPoint);
+                const errors = [
+                    { order: '0th (constant)', value: Math.abs(trueVal - taylorApproximation(testPoint, expansionPoint, 0)) },
+                    { order: '1st (linear)', value: Math.abs(trueVal - taylorApproximation(testPoint, expansionPoint, 1)) },
+                    { order: '2nd (quadratic)', value: Math.abs(trueVal - taylorApproximation(testPoint, expansionPoint, 2)) },
+                    { order: '3rd (cubic)', value: Math.abs(trueVal - taylorApproximation(testPoint, expansionPoint, 3)) }
+                ];
+                return errors;
+            };
+
+            const getTaylorFormula = (order) => {
+                const a = expansionPoint;
+                const derivatives = [];
+                for (let i = 0; i <= order; i++) {
+                    derivatives.push(currentFunc.derivative(a, i));
+                }
+
+                let formula = `T${order}(x) = `;
+                for (let i = 0; i <= order; i++) {
+                    if (i > 0 && derivatives[i] >= 0) formula += ' + ';
+                    if (i > 0 && derivatives[i] < 0) formula += ' - ';
+                    
+                    const absVal = Math.abs(derivatives[i] / factorial(i));
+                    if (i === 0) {
+                        formula += absVal.toFixed(4);
+                    } else if (i === 1) {
+                        formula += `${absVal.toFixed(4)}(x - ${a.toFixed(2)})`;
+                    } else {
+                        formula += `${absVal.toFixed(4)}(x - ${a.toFixed(2)})^${i}`;
+                    }
+                }
+                return formula;
+            };
+
+            const errors = computeErrors();
+
+            return (
+                <div className="container">
+                    <h1>📐 Taylor Series Approximation Comparator</h1>
+                    <p className="subtitle">
+                        Compare different orders of Taylor approximations to the original function
+                    </p>
+
+                    <div className="controls">
+                        <div className="control-group">
+                            <label>Function</label>
+                            <select value={functionType} onChange={(e) => setFunctionType(e.target.value)}>
+                                <option value="exp">Exponential (eˣ)</option>
+                                <option value="sin">Sine (sin x)</option>
+                                <option value="cos">Cosine (cos x)</option>
+                                <option value="poly">Polynomial (x³-2x²+x+1)</option>
+                                <option value="ln">Natural Log (ln x)</option>
+                            </select>
+                        </div>
+
+                        <div className="control-group">
+                            <label>Expansion Point a: {expansionPoint.toFixed(2)}</label>
+                            <input 
+                                type="range" 
+                                min={currentFunc.range.min} 
+                                max={currentFunc.range.max} 
+                                step="0.1" 
+                                value={expansionPoint} 
+                                onChange={(e) => setExpansionPoint(parseFloat(e.target.value))} 
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Test Point x: {testPoint.toFixed(2)}</label>
+                            <input 
+                                type="range" 
+                                min={currentFunc.range.min} 
+                                max={currentFunc.range.max} 
+                                step="0.1" 
+                                value={testPoint} 
+                                onChange={(e) => setTestPoint(parseFloat(e.target.value))} 
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label style={{marginBottom: '10px'}}>Show Approximations:</label>
+                            <label style={{fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showOriginal} 
+                                    onChange={(e) => setShowOriginal(e.target.checked)} 
+                                />
+                                Original Function
+                            </label>
+                            <label style={{fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showZeroth} 
+                                    onChange={(e) => setShowZeroth(e.target.checked)} 
+                                />
+                                0th Order
+                            </label>
+                            <label style={{fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showFirst} 
+                                    onChange={(e) => setShowFirst(e.target.checked)} 
+                                />
+                                1st Order (Linear)
+                            </label>
+                            <label style={{fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showSecond} 
+                                    onChange={(e) => setShowSecond(e.target.checked)} 
+                                />
+                                2nd Order (Quadratic)
+                            </label>
+                            <label style={{fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={showThird} 
+                                    onChange={(e) => setShowThird(e.target.checked)} 
+                                />
+                                3rd Order (Cubic)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="main-grid">
+                        <div className="canvas-container">
+                            <div className="canvas-title">Function and Approximations</div>
+                            <canvas ref={canvas1DRef} width={canvasWidth} height={canvasHeight} />
+                        </div>
+
+                        <div className="canvas-container">
+                            <div className="canvas-title">Error vs Distance from Expansion Point</div>
+                            <canvas ref={canvas2DRef} width={canvasWidth} height={canvasHeight} />
+                        </div>
+                    </div>
+
+                    <div className="equation-box">
+                        <h3>Taylor Series Formulas at x = {expansionPoint.toFixed(2)}</h3>
+                        <div className="formula">
+                            <strong>General Form:</strong><br/>
+                            T_n(x) = f(a) + f'(a)(x-a) + f''(a)(x-a)²/2! + f'''(a)(x-a)³/3! + ...
+                        </div>
+                        {showFirst && (
+                            <div className="formula">
+                                <strong>1st Order (Linear):</strong><br/>
+                                {getTaylorFormula(1)}
+                            </div>
+                        )}
+                        {showSecond && (
+                            <div className="formula">
+                                <strong>2nd Order (Quadratic):</strong><br/>
+                                {getTaylorFormula(2)}
+                            </div>
+                        )}
+                        {showThird && (
+                            <div className="formula">
+                                <strong>3rd Order (Cubic):</strong><br/>
+                                {getTaylorFormula(3)}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="equation-box">
+                        <h3>Approximation Errors at Test Point x = {testPoint.toFixed(2)}</h3>
+                        <p>True value: f({testPoint.toFixed(2)}) = {currentFunc.eval(testPoint).toFixed(6)}</p>
+                        <table className="error-table">
+                            <thead>
+                                <tr>
+                                    <th>Approximation Order</th>
+                                    <th>Approximated Value</th>
+                                    <th>Absolute Error</th>
+                                    <th>Relative Error (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {errors.map((error, idx) => {
+                                    const approxVal = taylorApproximation(testPoint, expansionPoint, idx);
+                                    const trueVal = currentFunc.eval(testPoint);
+                                    const relError = Math.abs((approxVal - trueVal) / trueVal * 100);
+                                    return (
+                                        <tr key={idx}>
+                                            <td>{error.order}</td>
+                                            <td>{approxVal.toFixed(6)}</td>
+                                            <td>{error.value.toFixed(6)}</td>
+                                            <td>{relError.toFixed(2)}%</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="legend">
+                        <div className="legend-item">
+                            <div className="legend-line" style={{background: '#000', height: '4px'}}></div>
+                            <span>Original Function</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-line" style={{background: '#9C27B0'}}></div>
+                            <span>0th Order (Constant)</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-line" style={{background: '#2196F3'}}></div>
+                            <span>1st Order (Linear/Tangent)</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-line" style={{background: '#4CAF50'}}></div>
+                            <span>2nd Order (Quadratic)</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-line" style={{background: '#FF5722'}}></div>
+                            <span>3rd Order (Cubic)</span>
+                        </div>
+                        <div className="legend-item">
+                            <div style={{width: '12px', height: '12px', borderRadius: '50%', background: '#FF9800'}}></div>
+                            <span>Expansion Point</span>
+                        </div>
+                        <div className="legend-item">
+                            <div style={{width: '10px', height: '10px', borderRadius: '50%', background: '#E91E63'}}></div>
+                            <span>Test Point</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TaylorSeriesComparator />, document.getElementById('root'));
+    </script>
+</body>
+</html>

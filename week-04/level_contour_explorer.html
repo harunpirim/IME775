@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Level Contour and Gradient Field Explorer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        .info-box {
+            padding: 20px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #1976D2;
+        }
+        .formula {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-symbol {
+            width: 30px;
+            height: 20px;
+            border: 2px solid #333;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function LevelContourExplorer() {
+            const canvasRef = useRef(null);
+            const [functionType, setFunctionType] = useState('sphere');
+            const [showContours, setShowContours] = useState(true);
+            const [showGradients, setShowGradients] = useState(true);
+            const [showLevelValues, setShowLevelValues] = useState(true);
+            const [gradientDensity, setGradientDensity] = useState(20);
+            const [mousePos, setMousePos] = useState(null);
+            const [a, setA] = useState(1);
+            const [b, setB] = useState(1);
+
+            const canvasWidth = 800;
+            const canvasHeight = 800;
+
+            const functions = {
+                sphere: {
+                    name: 'Sphere: L(w₀,w₁) = w₀² + w₁²',
+                    eval: (x, y) => x * x + y * y,
+                    gradX: (x, y) => 2 * x,
+                    gradY: (x, y) => 2 * y,
+                    levels: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100],
+                    description: 'Concentric circles - gradient points radially outward'
+                },
+                ellipse: {
+                    name: 'Ellipse: L = a·w₀² + b·w₁²',
+                    eval: (x, y, params) => params.a * x * x + params.b * y * y,
+                    gradX: (x, y, params) => 2 * params.a * x,
+                    gradY: (x, y, params) => 2 * params.b * y,
+                    levels: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100],
+                    description: 'Elliptical contours - gradient perpendicular to level curves',
+                    useParams: true
+                },
+                cylinder: {
+                    name: 'Cylinder: L = w₀²',
+                    eval: (x, y) => x * x,
+                    gradX: (x, y) => 2 * x,
+                    gradY: (x, y) => 0,
+                    levels: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100],
+                    description: 'Parallel lines - gradient points only in w₀ direction'
+                },
+                saddle: {
+                    name: 'Saddle: L = w₀² - w₁²',
+                    eval: (x, y) => x * x - y * y,
+                    gradX: (x, y) => 2 * x,
+                    gradY: (x, y) => -2 * y,
+                    levels: [-50, -25, -10, -5, -1, 0, 1, 5, 10, 25, 50],
+                    description: 'Hyperbolic contours - saddle point at origin'
+                },
+                rosenbrock: {
+                    name: 'Rosenbrock Valley: L = (1-w₀)² + 100(w₁-w₀²)²',
+                    eval: (x, y) => Math.pow(1 - x, 2) + 100 * Math.pow(y - x * x, 2),
+                    gradX: (x, y) => -2 * (1 - x) - 400 * x * (y - x * x),
+                    gradY: (x, y) => 200 * (y - x * x),
+                    levels: [0.1, 1, 5, 10, 20, 50, 100, 200, 500, 1000],
+                    description: 'Banana-shaped valley - challenging for optimization'
+                }
+            };
+
+            const currentFunc = functions[functionType];
+
+            const worldToCanvas = (worldX, worldY) => {
+                const scale = 40;
+                const canvasX = canvasWidth / 2 + worldX * scale;
+                const canvasY = canvasHeight / 2 - worldY * scale;
+                return { x: canvasX, y: canvasY };
+            };
+
+            const canvasToWorld = (canvasX, canvasY) => {
+                const scale = 40;
+                const worldX = (canvasX - canvasWidth / 2) / scale;
+                const worldY = -(canvasY - canvasHeight / 2) / scale;
+                return { x: worldX, y: worldY };
+            };
+
+            const handleMouseMove = (e) => {
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const canvasX = e.clientX - rect.left;
+                const canvasY = e.clientY - rect.top;
+                const world = canvasToWorld(canvasX, canvasY);
+                setMousePos({ canvas: { x: canvasX, y: canvasY }, world });
+            };
+
+            const handleMouseLeave = () => {
+                setMousePos(null);
+            };
+
+            useEffect(() => {
+                drawCanvas();
+            }, [functionType, showContours, showGradients, showLevelValues, gradientDensity, mousePos, a, b]);
+
+            const drawCanvas = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                const params = { a, b };
+
+                // Draw filled contour regions
+                if (showContours) {
+                    const imageData = ctx.createImageData(canvasWidth, canvasHeight);
+                    for (let px = 0; px < canvasWidth; px++) {
+                        for (let py = 0; py < canvasHeight; py++) {
+                            const world = canvasToWorld(px, py);
+                            const value = currentFunc.useParams 
+                                ? currentFunc.eval(world.x, world.y, params)
+                                : currentFunc.eval(world.x, world.y);
+                            
+                            const idx = (py * canvasWidth + px) * 4;
+                            
+                            // Color based on value
+                            let r, g, b;
+                            if (value < 0) {
+                                // Negative values - blue
+                                const intensity = Math.max(0, Math.min(200, -value * 2));
+                                r = 200 - intensity;
+                                g = 200 - intensity;
+                                b = 255;
+                            } else {
+                                // Positive values - warm colors
+                                const intensity = Math.min(Math.sqrt(value) * 10, 255);
+                                r = 255;
+                                g = Math.max(200, 255 - intensity);
+                                b = Math.max(200, 255 - intensity);
+                            }
+                            
+                            imageData.data[idx] = r;
+                            imageData.data[idx + 1] = g;
+                            imageData.data[idx + 2] = b;
+                            imageData.data[idx + 3] = 150; // Alpha
+                        }
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                }
+
+                // Draw contour lines
+                if (showContours) {
+                    currentFunc.levels.forEach((level, idx) => {
+                        ctx.strokeStyle = level === 0 ? '#000' : '#666';
+                        ctx.lineWidth = level === 0 ? 2 : 1;
+                        ctx.beginPath();
+                        
+                        let points = [];
+                        for (let wx = -10; wx <= 10; wx += 0.1) {
+                            for (let wy = -10; wy <= 10; wy += 0.1) {
+                                const value = currentFunc.useParams 
+                                    ? currentFunc.eval(wx, wy, params)
+                                    : currentFunc.eval(wx, wy);
+                                
+                                if (Math.abs(value - level) < 0.5) {
+                                    const canvas = worldToCanvas(wx, wy);
+                                    points.push(canvas);
+                                }
+                            }
+                        }
+                        
+                        if (points.length > 0) {
+                            ctx.moveTo(points[0].x, points[0].y);
+                            points.forEach(p => ctx.lineTo(p.x, p.y));
+                            ctx.stroke();
+                            
+                            // Draw level value label
+                            if (showLevelValues && points.length > 0 && idx % 2 === 0) {
+                                const labelPoint = points[Math.floor(points.length / 2)];
+                                ctx.fillStyle = '#333';
+                                ctx.font = 'bold 11px Arial';
+                                ctx.fillText(level.toString(), labelPoint.x + 5, labelPoint.y - 5);
+                            }
+                        }
+                    });
+                }
+
+                // Draw gradient field
+                if (showGradients) {
+                    const step = gradientDensity;
+                    for (let wx = -10; wx <= 10; wx += step / 4) {
+                        for (let wy = -10; wy <= 10; wy += step / 4) {
+                            const gradX = currentFunc.useParams 
+                                ? currentFunc.gradX(wx, wy, params)
+                                : currentFunc.gradX(wx, wy);
+                            const gradY = currentFunc.useParams 
+                                ? currentFunc.gradY(wx, wy, params)
+                                : currentFunc.gradY(wx, wy);
+                            const mag = Math.sqrt(gradX * gradX + gradY * gradY);
+                            
+                            if (mag > 0.01) {
+                                const canvas = worldToCanvas(wx, wy);
+                                const scale = Math.min(15, 100 / mag);
+                                const endX = canvas.x + gradX * scale;
+                                const endY = canvas.y - gradY * scale;
+                                
+                                ctx.strokeStyle = 'rgba(255, 87, 34, 0.6)';
+                                ctx.lineWidth = 1.5;
+                                ctx.beginPath();
+                                ctx.moveTo(canvas.x, canvas.y);
+                                ctx.lineTo(endX, endY);
+                                ctx.stroke();
+                                
+                                // Arrowhead
+                                const angle = Math.atan2(-(endY - canvas.y), endX - canvas.x);
+                                ctx.fillStyle = 'rgba(255, 87, 34, 0.6)';
+                                ctx.beginPath();
+                                ctx.moveTo(endX, endY);
+                                ctx.lineTo(endX - 6 * Math.cos(angle - Math.PI / 6), 
+                                         endY - 6 * Math.sin(angle - Math.PI / 6));
+                                ctx.lineTo(endX - 6 * Math.cos(angle + Math.PI / 6), 
+                                         endY - 6 * Math.sin(angle + Math.PI / 6));
+                                ctx.closePath();
+                                ctx.fill();
+                            }
+                        }
+                    }
+                }
+
+                // Draw axes
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(0, canvasHeight / 2);
+                ctx.lineTo(canvasWidth, canvasHeight / 2);
+                ctx.moveTo(canvasWidth / 2, 0);
+                ctx.lineTo(canvasWidth / 2, canvasHeight);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Draw axis labels
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('w₀', canvasWidth - 30, canvasHeight / 2 - 10);
+                ctx.fillText('w₁', canvasWidth / 2 + 10, 20);
+
+                // Draw tick marks
+                for (let i = -10; i <= 10; i += 2) {
+                    if (i !== 0) {
+                        const canvas = worldToCanvas(i, 0);
+                        ctx.strokeStyle = '#999';
+                        ctx.beginPath();
+                        ctx.moveTo(canvas.x, canvasHeight / 2 - 5);
+                        ctx.lineTo(canvas.x, canvasHeight / 2 + 5);
+                        ctx.stroke();
+                        ctx.fillStyle = '#666';
+                        ctx.font = '10px Arial';
+                        ctx.fillText(i.toString(), canvas.x - 5, canvasHeight / 2 + 20);
+                    }
+                }
+
+                for (let i = -10; i <= 10; i += 2) {
+                    if (i !== 0) {
+                        const canvas = worldToCanvas(0, i);
+                        ctx.strokeStyle = '#999';
+                        ctx.beginPath();
+                        ctx.moveTo(canvasWidth / 2 - 5, canvas.y);
+                        ctx.lineTo(canvasWidth / 2 + 5, canvas.y);
+                        ctx.stroke();
+                        ctx.fillStyle = '#666';
+                        ctx.font = '10px Arial';
+                        ctx.fillText(i.toString(), canvasWidth / 2 + 10, canvas.y + 4);
+                    }
+                }
+
+                // Draw mouse cursor info
+                if (mousePos) {
+                    const { world } = mousePos;
+                    const value = currentFunc.useParams 
+                        ? currentFunc.eval(world.x, world.y, params)
+                        : currentFunc.eval(world.x, world.y);
+                    const gradX = currentFunc.useParams 
+                        ? currentFunc.gradX(world.x, world.y, params)
+                        : currentFunc.gradX(world.x, world.y);
+                    const gradY = currentFunc.useParams 
+                        ? currentFunc.gradY(world.x, world.y, params)
+                        : currentFunc.gradY(world.x, world.y);
+                    
+                    // Draw point
+                    ctx.fillStyle = '#4CAF50';
+                    ctx.beginPath();
+                    ctx.arc(mousePos.canvas.x, mousePos.canvas.y, 6, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Draw gradient vector at cursor
+                    const mag = Math.sqrt(gradX * gradX + gradY * gradY);
+                    if (mag > 0.01) {
+                        const scale = Math.min(30, 150 / mag);
+                        const endX = mousePos.canvas.x + gradX * scale;
+                        const endY = mousePos.canvas.y - gradY * scale;
+                        
+                        ctx.strokeStyle = '#4CAF50';
+                        ctx.fillStyle = '#4CAF50';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(mousePos.canvas.x, mousePos.canvas.y);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+                        
+                        // Arrowhead
+                        const angle = Math.atan2(-(endY - mousePos.canvas.y), endX - mousePos.canvas.x);
+                        ctx.beginPath();
+                        ctx.moveTo(endX, endY);
+                        ctx.lineTo(endX - 10 * Math.cos(angle - Math.PI / 6), 
+                                 endY - 10 * Math.sin(angle - Math.PI / 6));
+                        ctx.lineTo(endX - 10 * Math.cos(angle + Math.PI / 6), 
+                                 endY - 10 * Math.sin(angle + Math.PI / 6));
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+
+                    // Draw info box
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.fillRect(10, 10, 280, 90);
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(10, 10, 280, 90);
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 13px Arial';
+                    ctx.fillText(`Position: (${world.x.toFixed(2)}, ${world.y.toFixed(2)})`, 20, 30);
+                    ctx.fillText(`L(w₀,w₁) = ${value.toFixed(4)}`, 20, 50);
+                    ctx.fillText(`∇L = [${gradX.toFixed(3)}, ${gradY.toFixed(3)}]`, 20, 70);
+                    ctx.fillText(`|∇L| = ${mag.toFixed(4)}`, 20, 90);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <h1>🗺️ Level Contour and Gradient Field Explorer</h1>
+                    <p className="subtitle">
+                        Explore how gradients relate to level surfaces for different functions
+                    </p>
+
+                    <div className="controls">
+                        <div className="control-group">
+                            <label>Function Type</label>
+                            <select value={functionType} onChange={(e) => setFunctionType(e.target.value)}>
+                                <option value="sphere">Sphere (Concentric Circles)</option>
+                                <option value="ellipse">Ellipse (Adjustable)</option>
+                                <option value="cylinder">Cylinder (Parallel Lines)</option>
+                                <option value="saddle">Saddle Point (Hyperbolas)</option>
+                                <option value="rosenbrock">Rosenbrock Valley</option>
+                            </select>
+                        </div>
+
+                        {functionType === 'ellipse' && (
+                            <>
+                                <div className="control-group">
+                                    <label>Parameter a: {a.toFixed(2)}</label>
+                                    <input 
+                                        type="range" 
+                                        min="0.1" 
+                                        max="3" 
+                                        step="0.1" 
+                                        value={a} 
+                                        onChange={(e) => setA(parseFloat(e.target.value))} 
+                                    />
+                                </div>
+                                <div className="control-group">
+                                    <label>Parameter b: {b.toFixed(2)}</label>
+                                    <input 
+                                        type="range" 
+                                        min="0.1" 
+                                        max="3" 
+                                        step="0.1" 
+                                        value={b} 
+                                        onChange={(e) => setB(parseFloat(e.target.value))} 
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        <div className="control-group">
+                            <label>Show Level Contours</label>
+                            <input 
+                                type="checkbox" 
+                                checked={showContours} 
+                                onChange={(e) => setShowContours(e.target.checked)} 
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Show Gradient Vectors</label>
+                            <input 
+                                type="checkbox" 
+                                checked={showGradients} 
+                                onChange={(e) => setShowGradients(e.target.checked)} 
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Show Level Values</label>
+                            <input 
+                                type="checkbox" 
+                                checked={showLevelValues} 
+                                onChange={(e) => setShowLevelValues(e.target.checked)} 
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Gradient Density: {gradientDensity}</label>
+                            <input 
+                                type="range" 
+                                min="10" 
+                                max="40" 
+                                step="5" 
+                                value={gradientDensity} 
+                                onChange={(e) => setGradientDensity(parseInt(e.target.value))} 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="canvas-container">
+                        <canvas 
+                            ref={canvasRef} 
+                            width={canvasWidth} 
+                            height={canvasHeight}
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={handleMouseLeave}
+                        />
+                    </div>
+
+                    <div className="info-box">
+                        <h3>{currentFunc.name}</h3>
+                        <p><strong>Key Property:</strong> {currentFunc.description}</p>
+                        <div className="formula">
+                            <strong>Gradient always perpendicular to level curves!</strong><br/>
+                            Moving along ∇L crosses level surfaces (changes L fastest)<br/>
+                            Moving perpendicular to ∇L stays on level surface (L constant)
+                        </div>
+                    </div>
+
+                    <div className="legend">
+                        <div className="legend-item">
+                            <div className="legend-symbol" style={{background: 'linear-gradient(to right, #ffc8c8, #ff8888)'}}></div>
+                            <span>High function values</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-symbol" style={{background: 'linear-gradient(to right, #c8c8ff, #8888ff)'}}></div>
+                            <span>Low/negative values</span>
+                        </div>
+                        <div className="legend-item">
+                            <div className="legend-symbol" style={{background: 'transparent', border: '2px solid #666'}}></div>
+                            <span>Level contours (L=constant)</span>
+                        </div>
+                        <div className="legend-item">
+                            <div style={{width: '30px', height: '0', borderTop: '3px solid rgba(255, 87, 34, 0.8)', position: 'relative'}}>
+                                <div style={{position: 'absolute', right: '-5px', top: '-4px', width: '0', height: '0', borderLeft: '5px solid rgba(255, 87, 34, 0.8)', borderTop: '4px solid transparent', borderBottom: '4px solid transparent'}}></div>
+                            </div>
+                            <span>Gradient vectors (∇L)</span>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<LevelContourExplorer />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Descent Path Animator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .canvas-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: crosshair;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        select, button {
+            padding: 10px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        button {
+            background: #f5576c;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background: #e14458;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .stat-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card p {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .path-info {
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function GradientDescentAnimator() {
+            const contourCanvasRef = useRef(null);
+            const surfaceCanvasRef = useRef(null);
+            const [lossFunction, setLossFunction] = useState('quadratic');
+            const [learningRate, setLearningRate] = useState(0.1);
+            const [startX, setStartX] = useState(-8);
+            const [startY, setStartY] = useState(8);
+            const [isAnimating, setIsAnimating] = useState(false);
+            const [currentStep, setCurrentStep] = useState(0);
+            const [path, setPath] = useState([]);
+            const animationRef = useRef(null);
+
+            const canvasWidth = 500;
+            const canvasHeight = 500;
+
+            const lossFunctions = {
+                quadratic: {
+                    name: 'Quadratic: L(w₀,w₁) = w₀² + w₁²',
+                    eval: (x, y) => x * x + y * y,
+                    gradX: (x, y) => 2 * x,
+                    gradY: (x, y) => 2 * y,
+                    minX: 0,
+                    minY: 0
+                },
+                rosenbrock: {
+                    name: 'Rosenbrock: L = (1-w₀)² + 100(w₁-w₀²)²',
+                    eval: (x, y) => Math.pow(1 - x, 2) + 100 * Math.pow(y - x * x, 2),
+                    gradX: (x, y) => -2 * (1 - x) - 400 * x * (y - x * x),
+                    gradY: (x, y) => 200 * (y - x * x),
+                    minX: 1,
+                    minY: 1
+                },
+                beale: {
+                    name: 'Beale: L = (1.5-w₀+w₀w₁)² + (2.25-w₀+w₀w₁²)² + ...',
+                    eval: (x, y) => {
+                        const a = 1.5 - x + x * y;
+                        const b = 2.25 - x + x * y * y;
+                        const c = 2.625 - x + x * y * y * y;
+                        return a * a + b * b + c * c;
+                    },
+                    gradX: (x, y) => {
+                        const a = 1.5 - x + x * y;
+                        const b = 2.25 - x + x * y * y;
+                        const c = 2.625 - x + x * y * y * y;
+                        return 2 * a * (y - 1) + 2 * b * (y * y - 1) + 2 * c * (y * y * y - 1);
+                    },
+                    gradY: (x, y) => {
+                        const a = 1.5 - x + x * y;
+                        const b = 2.25 - x + x * y * y;
+                        const c = 2.625 - x + x * y * y * y;
+                        return 2 * a * x + 2 * b * 2 * x * y + 2 * c * 3 * x * y * y;
+                    },
+                    minX: 3,
+                    minY: 0.5
+                },
+                himmelblau: {
+                    name: 'Himmelblau: L = (w₀²+w₁-11)² + (w₀+w₁²-7)²',
+                    eval: (x, y) => Math.pow(x * x + y - 11, 2) + Math.pow(x + y * y - 7, 2),
+                    gradX: (x, y) => 4 * x * (x * x + y - 11) + 2 * (x + y * y - 7),
+                    gradY: (x, y) => 2 * (x * x + y - 11) + 4 * y * (x + y * y - 7),
+                    minX: 3,
+                    minY: 2
+                }
+            };
+
+            const currentFunc = lossFunctions[lossFunction];
+
+            const worldToCanvas = (worldX, worldY) => {
+                const scale = 25;
+                const canvasX = canvasWidth / 2 + worldX * scale;
+                const canvasY = canvasHeight / 2 - worldY * scale;
+                return { x: canvasX, y: canvasY };
+            };
+
+            const canvasToWorld = (canvasX, canvasY) => {
+                const scale = 25;
+                const worldX = (canvasX - canvasWidth / 2) / scale;
+                const worldY = -(canvasY - canvasHeight / 2) / scale;
+                return { x: worldX, y: worldY };
+            };
+
+            const handleCanvasClick = (e) => {
+                if (isAnimating) return;
+                const canvas = contourCanvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const canvasX = e.clientX - rect.left;
+                const canvasY = e.clientY - rect.top;
+                const world = canvasToWorld(canvasX, canvasY);
+                setStartX(world.x);
+                setStartY(world.y);
+                setPath([{ x: world.x, y: world.y, loss: currentFunc.eval(world.x, world.y) }]);
+                setCurrentStep(0);
+            };
+
+            const startAnimation = () => {
+                setIsAnimating(true);
+                setPath([{ x: startX, y: startY, loss: currentFunc.eval(startX, startY) }]);
+                setCurrentStep(0);
+            };
+
+            const stopAnimation = () => {
+                setIsAnimating(false);
+                if (animationRef.current) {
+                    cancelAnimationFrame(animationRef.current);
+                }
+            };
+
+            const resetAnimation = () => {
+                stopAnimation();
+                setPath([{ x: startX, y: startY, loss: currentFunc.eval(startX, startY) }]);
+                setCurrentStep(0);
+            };
+
+            useEffect(() => {
+                if (isAnimating && currentStep < 200) {
+                    const animate = () => {
+                        setPath(prevPath => {
+                            const lastPoint = prevPath[prevPath.length - 1];
+                            const gradX = currentFunc.gradX(lastPoint.x, lastPoint.y);
+                            const gradY = currentFunc.gradY(lastPoint.x, lastPoint.y);
+                            
+                            const newX = lastPoint.x - learningRate * gradX;
+                            const newY = lastPoint.y - learningRate * gradY;
+                            const newLoss = currentFunc.eval(newX, newY);
+                            
+                            // Check for convergence
+                            const gradMag = Math.sqrt(gradX * gradX + gradY * gradY);
+                            if (gradMag < 0.01 || newLoss > 1e10) {
+                                setIsAnimating(false);
+                                return prevPath;
+                            }
+                            
+                            return [...prevPath, { x: newX, y: newY, loss: newLoss }];
+                        });
+                        
+                        setCurrentStep(prev => prev + 1);
+                        animationRef.current = requestAnimationFrame(animate);
+                    };
+                    
+                    animationRef.current = requestAnimationFrame(animate);
+                } else if (currentStep >= 200) {
+                    setIsAnimating(false);
+                }
+                
+                return () => {
+                    if (animationRef.current) {
+                        cancelAnimationFrame(animationRef.current);
+                    }
+                };
+            }, [isAnimating, currentStep, learningRate, lossFunction]);
+
+            useEffect(() => {
+                drawContourPlot();
+            }, [lossFunction, path]);
+
+            useEffect(() => {
+                drawSurfacePlot();
+            }, [lossFunction, path]);
+
+            const drawContourPlot = () => {
+                const canvas = contourCanvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Draw contour lines
+                const levels = [0.1, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500];
+                const colors = ['#e8f5e9', '#c8e6c9', '#a5d6a7', '#81c784', '#66bb6a', 
+                               '#4caf50', '#43a047', '#388e3c', '#2e7d32', '#1b5e20', '#0d3d10'];
+
+                // Draw filled contours
+                for (let i = levels.length - 1; i >= 0; i--) {
+                    ctx.fillStyle = colors[i];
+                    ctx.beginPath();
+                    let firstPoint = true;
+                    
+                    for (let wx = -10; wx <= 10; wx += 0.2) {
+                        for (let wy = -10; wy <= 10; wy += 0.2) {
+                            const loss = currentFunc.eval(wx, wy);
+                            if (loss <= levels[i]) {
+                                const canvas = worldToCanvas(wx, wy);
+                                if (firstPoint) {
+                                    ctx.moveTo(canvas.x, canvas.y);
+                                    firstPoint = false;
+                                } else {
+                                    ctx.lineTo(canvas.x, canvas.y);
+                                }
+                            }
+                        }
+                    }
+                    ctx.fill();
+                }
+
+                // Draw contour lines
+                levels.forEach(level => {
+                    ctx.strokeStyle = '#666';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    let started = false;
+                    
+                    for (let wx = -10; wx <= 10; wx += 0.1) {
+                        for (let wy = -10; wy <= 10; wy += 0.1) {
+                            const loss = currentFunc.eval(wx, wy);
+                            if (Math.abs(loss - level) < 0.5) {
+                                const canvas = worldToCanvas(wx, wy);
+                                if (!started) {
+                                    ctx.moveTo(canvas.x, canvas.y);
+                                    started = true;
+                                } else {
+                                    ctx.lineTo(canvas.x, canvas.y);
+                                }
+                            }
+                        }
+                    }
+                    ctx.stroke();
+                });
+                ctx.setLineDash([]);
+
+                // Draw axes
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, canvasHeight / 2);
+                ctx.lineTo(canvasWidth, canvasHeight / 2);
+                ctx.moveTo(canvasWidth / 2, 0);
+                ctx.lineTo(canvasWidth / 2, canvasHeight);
+                ctx.stroke();
+
+                // Draw minimum point
+                const minCanvas = worldToCanvas(currentFunc.minX, currentFunc.minY);
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(minCanvas.x, minCanvas.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw path
+                if (path.length > 0) {
+                    // Draw line
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    path.forEach((point, i) => {
+                        const canvas = worldToCanvas(point.x, point.y);
+                        if (i === 0) {
+                            ctx.moveTo(canvas.x, canvas.y);
+                        } else {
+                            ctx.lineTo(canvas.x, canvas.y);
+                        }
+                    });
+                    ctx.stroke();
+
+                    // Draw points
+                    path.forEach((point, i) => {
+                        const canvas = worldToCanvas(point.x, point.y);
+                        ctx.fillStyle = i === path.length - 1 ? '#4CAF50' : '#2196F3';
+                        ctx.beginPath();
+                        ctx.arc(canvas.x, canvas.y, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    });
+
+                    // Draw gradient arrow at current position
+                    if (path.length > 0) {
+                        const lastPoint = path[path.length - 1];
+                        const gradX = currentFunc.gradX(lastPoint.x, lastPoint.y);
+                        const gradY = currentFunc.gradY(lastPoint.x, lastPoint.y);
+                        const gradMag = Math.sqrt(gradX * gradX + gradY * gradY);
+                        
+                        if (gradMag > 0.01) {
+                            const canvas = worldToCanvas(lastPoint.x, lastPoint.y);
+                            const scale = 20 / gradMag;
+                            const endX = canvas.x - gradX * scale;
+                            const endY = canvas.y + gradY * scale;
+                            
+                            ctx.strokeStyle = '#FF5722';
+                            ctx.fillStyle = '#FF5722';
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.moveTo(canvas.x, canvas.y);
+                            ctx.lineTo(endX, endY);
+                            ctx.stroke();
+                            
+                            // Arrowhead
+                            const angle = Math.atan2(endY - canvas.y, endX - canvas.x);
+                            ctx.beginPath();
+                            ctx.moveTo(endX, endY);
+                            ctx.lineTo(endX - 10 * Math.cos(angle - Math.PI / 6), 
+                                     endY - 10 * Math.sin(angle - Math.PI / 6));
+                            ctx.lineTo(endX - 10 * Math.cos(angle + Math.PI / 6), 
+                                     endY - 10 * Math.sin(angle + Math.PI / 6));
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                    }
+                }
+            };
+
+            const drawSurfacePlot = () => {
+                const canvas = surfaceCanvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                // Simple 3D projection
+                const scale = 20;
+                const offsetX = canvasWidth / 2;
+                const offsetY = canvasHeight - 50;
+
+                // Draw surface
+                for (let wx = -10; wx <= 10; wx += 0.5) {
+                    for (let wy = -10; wy <= 10; wy += 0.5) {
+                        const loss = Math.min(currentFunc.eval(wx, wy), 50);
+                        
+                        const x1 = offsetX + wx * scale * 0.7 - wy * scale * 0.3;
+                        const y1 = offsetY - wx * scale * 0.3 - wy * scale * 0.3 - loss * scale * 0.2;
+                        
+                        const intensity = Math.max(0, Math.min(255, 255 - loss * 5));
+                        ctx.fillStyle = `rgb(${intensity}, ${intensity + 50}, 255)`;
+                        ctx.fillRect(x1 - 2, y1 - 2, 4, 4);
+                    }
+                }
+
+                // Draw path on surface
+                if (path.length > 1) {
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    
+                    path.forEach((point, i) => {
+                        const loss = Math.min(point.loss, 50);
+                        const x = offsetX + point.x * scale * 0.7 - point.y * scale * 0.3;
+                        const y = offsetY - point.x * scale * 0.3 - point.y * scale * 0.3 - loss * scale * 0.2;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    ctx.stroke();
+
+                    // Draw points
+                    path.forEach((point, i) => {
+                        const loss = Math.min(point.loss, 50);
+                        const x = offsetX + point.x * scale * 0.7 - point.y * scale * 0.3;
+                        const y = offsetY - point.x * scale * 0.3 - point.y * scale * 0.3 - loss * scale * 0.2;
+                        
+                        ctx.fillStyle = i === path.length - 1 ? '#4CAF50' : '#2196F3';
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                    });
+                }
+
+                // Draw axes labels
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.fillText('w₀', offsetX + 180, offsetY + 20);
+                ctx.fillText('w₁', offsetX - 180, offsetY + 20);
+                ctx.fillText('L', 20, 40);
+            };
+
+            const currentPoint = path.length > 0 ? path[path.length - 1] : null;
+            const gradX = currentPoint ? currentFunc.gradX(currentPoint.x, currentPoint.y) : 0;
+            const gradY = currentPoint ? currentFunc.gradY(currentPoint.x, currentPoint.y) : 0;
+            const gradMag = Math.sqrt(gradX * gradX + gradY * gradY);
+
+            return (
+                <div className="container">
+                    <h1>📉 Gradient Descent Path Animator</h1>
+                    <p className="subtitle">
+                        Watch optimization in real-time on different loss surfaces
+                    </p>
+
+                    <div className="controls">
+                        <div className="control-group">
+                            <label>Loss Function</label>
+                            <select value={lossFunction} onChange={(e) => {
+                                setLossFunction(e.target.value);
+                                resetAnimation();
+                            }}>
+                                <option value="quadratic">Quadratic (Convex)</option>
+                                <option value="rosenbrock">Rosenbrock Valley</option>
+                                <option value="beale">Beale Function</option>
+                                <option value="himmelblau">Himmelblau Function</option>
+                            </select>
+                        </div>
+
+                        <div className="control-group">
+                            <label>Learning Rate η: {learningRate.toFixed(3)}</label>
+                            <input 
+                                type="range" 
+                                min="0.001" 
+                                max="0.5" 
+                                step="0.001" 
+                                value={learningRate} 
+                                onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+                                disabled={isAnimating}
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Start w₀: {startX.toFixed(2)}</label>
+                            <input 
+                                type="range" 
+                                min="-10" 
+                                max="10" 
+                                step="0.1" 
+                                value={startX} 
+                                onChange={(e) => {
+                                    setStartX(parseFloat(e.target.value));
+                                    resetAnimation();
+                                }}
+                                disabled={isAnimating}
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Start w₁: {startY.toFixed(2)}</label>
+                            <input 
+                                type="range" 
+                                min="-10" 
+                                max="10" 
+                                step="0.1" 
+                                value={startY} 
+                                onChange={(e) => {
+                                    setStartY(parseFloat(e.target.value));
+                                    resetAnimation();
+                                }}
+                                disabled={isAnimating}
+                            />
+                        </div>
+
+                        <div className="control-group">
+                            <label>Animation Control</label>
+                            <div className="button-group">
+                                <button onClick={startAnimation} disabled={isAnimating}>
+                                    ▶ Start
+                                </button>
+                                <button onClick={stopAnimation} disabled={!isAnimating}>
+                                    ⏸ Pause
+                                </button>
+                                <button onClick={resetAnimation}>
+                                    ↺ Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="main-grid">
+                        <div className="canvas-container">
+                            <div className="canvas-title">Contour Plot (Top View)</div>
+                            <canvas 
+                                ref={contourCanvasRef} 
+                                width={canvasWidth} 
+                                height={canvasHeight}
+                                onClick={handleCanvasClick}
+                            />
+                            <p style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
+                                Click to set starting point
+                            </p>
+                        </div>
+
+                        <div className="canvas-container">
+                            <div className="canvas-title">3D Surface Plot</div>
+                            <canvas 
+                                ref={surfaceCanvasRef} 
+                                width={canvasWidth} 
+                                height={canvasHeight}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <h3>Current Step</h3>
+                            <p>{path.length - 1}</p>
+                        </div>
+                        <div className="stat-card">
+                            <h3>Current Loss</h3>
+                            <p>{currentPoint ? currentPoint.loss.toFixed(4) : 'N/A'}</p>
+                        </div>
+                        <div className="stat-card">
+                            <h3>Position w₀</h3>
+                            <p>{currentPoint ? currentPoint.x.toFixed(4) : 'N/A'}</p>
+                        </div>
+                        <div className="stat-card">
+                            <h3>Position w₁</h3>
+                            <p>{currentPoint ? currentPoint.y.toFixed(4) : 'N/A'}</p>
+                        </div>
+                        <div className="stat-card">
+                            <h3>Gradient Magnitude</h3>
+                            <p>{gradMag.toFixed(4)}</p>
+                        </div>
+                        <div className="stat-card">
+                            <h3>Distance to Minimum</h3>
+                            <p>{currentPoint ? Math.sqrt(
+                                Math.pow(currentPoint.x - currentFunc.minX, 2) + 
+                                Math.pow(currentPoint.y - currentFunc.minY, 2)
+                            ).toFixed(4) : 'N/A'}</p>
+                        </div>
+                    </div>
+
+                    {path.length > 0 && (
+                        <div className="path-info">
+                            <strong>📍 Current Status:</strong> {' '}
+                            {isAnimating ? 'Optimizing...' : gradMag < 0.1 ? 'Converged!' : 'Paused'}
+                            <br/>
+                            <strong>Function:</strong> {currentFunc.name}
+                            <br/>
+                            <strong>Gradient:</strong> ∇L = [{gradX.toFixed(4)}, {gradY.toFixed(4)}]
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<GradientDescentAnimator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
