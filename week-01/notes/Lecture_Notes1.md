@@ -215,7 +215,7 @@ A model maps points from input (feature) space to an output space where it is ea
 - Output: 2D planar space where classes can be discriminated with a simple linear separator
 <p style="text-align: center;">
   <strong>Unit circle with angles and values</strong><br>
-  <img src="unit_circle.png" width="50%" alt="Unit circle with angles and values" />
+  <img src="../assets/unit_circle.png" width="50%" alt="Unit circle with angles and values" />
 </p>
 ---
 
