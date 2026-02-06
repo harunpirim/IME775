@@ -56,21 +56,20 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
-| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/notes/Lecture_Notes1.md) \| [📄 PDF](week-01/notes/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/code/cat_brain_marimo.py) |
-| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes](week-02-03/notes/Lecture_Notes2.md) \| [📄 PDF](week-02-03/notes/Lecture_Notes2.pdf) \| [📝 Lecture 4](week-02-03/notes/IME775_Lecture4.md) \| [📄 Lecture 4 PDF](week-02-03/notes/Lecture_Notes4.pdf) \| [📝 Hyperplanes](week-02-03/notes/lecture_notes_hyperplanes_ml.md) \| [📄 Hyperplanes PDF](week-02-03/notes/lecture_notes_hyperplanes_ml.pdf) \| [📓 Notebooks](week-02-03/code/) |
-| 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Notes](week-02-03/notes/IME775_Lecture3-4_Notes.md) \| [📄 PDF](week-02-03/notes/Lecture_Notes3.pdf) \| [📓 Notebooks](week-02-03/code/) |
-| 04 | Probability Distributions for Machine Learning | Ch. 5 | [📝 Notes](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [💻 Demos](week-04/code/demos/) |
-| 05 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
-| 06 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
-| 07 | Forward Propagation and Backpropagation | Ch. 8 | 🔒 Coming Soon |
+| 01 | Machine Learning Overview | Ch. 1 | [📝 Notes](week-01/notes/Lecture_Notes1.md) \| [📄 PDF](week-01/notes/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/code/cat_brain_marimo.py) |
+| 02-03 | Vectors, Matrices, Tensors & Linear Algebra | Ch. 2 | [📝 Notes (Ch 2)](week-02-03/notes/IME775_Lecture3-4_Notes.md) \| [📝 Lecture 3](week-02-03/notes/Lecture_Notes2.md) \| [📝 Lecture 4](week-02-03/notes/IME775_Lecture4.md) \| [📓 Notebooks](week-02-03/code/) |
+| 04 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes (Ch 3)](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [💻 Demos](week-04/code/demos/) |
+| 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
+| 06 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
+| 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
 | 08 | Midterm Exam | — | 🔒 Coming Soon |
-| 09 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | 🔒 Coming Soon |
-| 10 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | 🔒 Coming Soon |
-| 11 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
-| 12 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
-| 13 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
-| 14 | Student Project Presentations | — | 🔒 Coming Soon |
-| 15 | Student Project Presentations | — | 🔒 Coming Soon |
+| 09 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
+| 10 | Forward Propagation and Backpropagation | Ch. 8 | 🔒 Coming Soon |
+| 11 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | 🔒 Coming Soon |
+| 12 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | 🔒 Coming Soon |
+| 13 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
+| 14 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
+| 15 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
 
 ---
 
