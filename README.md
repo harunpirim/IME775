@@ -29,8 +29,7 @@
 
 > **Watt, J., Borhani, R., & Katsaggelos, A. K. (2020).** *Machine Learning Refined: Foundations, Algorithms, and Applications* (2nd ed.). Cambridge University Press.
 
-Chapter PDFs available in the `2nd_ed/` folder.
-
+Chapter PDFs available in the `resources/textbooks/` folder.
 
 
 ## 🎯 Learning Outcomes
@@ -57,10 +56,10 @@ Chapter PDFs available in the `2nd_ed/` folder.
 
 | Week | Topic | Reference | Materials |
 |:----:|-------|-----------|-----------|
-| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/Lecture_Notes1.md) \| [📄 PDF](week-01/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/cat_brain_marimo.py) |
-| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes](week-02/Lecture_Notes2.md) \| [📄 PDF](week-02/Lecture_Notes2.pdf) \| [📝 Lecture 4](week-02/IME775_Lecture4.md) \| [📄 Lecture 4 PDF](week-02/IME775_Lecture4.pdf) \| [📝 Hyperplanes](week-02/lecture_notes_hyperplanes_ml.md) \| [📄 Hyperplanes PDF](week-02/lecture_notes_hyperplanes_ml.pdf) \| [📓 Notebooks](week-02/) |
-| 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
-| 04 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
+| 01 | Machine Learning Overview & Vectors, Matrices, Tensors | Ch. 1-2 | [📝 Notes](week-01/notes/Lecture_Notes1.md) \| [📄 PDF](week-01/notes/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/code/cat_brain_marimo.py) |
+| 02 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes](week-02-03/notes/Lecture_Notes2.md) \| [📄 PDF](week-02-03/notes/Lecture_Notes2.pdf) \| [📝 Lecture 4](week-02-03/notes/IME775_Lecture4.md) \| [📄 Lecture 4 PDF](week-02-03/notes/Lecture_Notes4.pdf) \| [📝 Hyperplanes](week-02-03/notes/lecture_notes_hyperplanes_ml.md) \| [📄 Hyperplanes PDF](week-02-03/notes/lecture_notes_hyperplanes_ml.pdf) \| [📓 Notebooks](week-02-03/code/) |
+| 03 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Notes](week-02-03/notes/IME775_Lecture3-4_Notes.md) \| [📄 PDF](week-02-03/notes/Lecture_Notes3.pdf) \| [📓 Notebooks](week-02-03/code/) |
+| 04 | Probability Distributions for Machine Learning | Ch. 5 | [📝 Notes](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [💻 Demos](week-04/code/demos/) |
 | 05 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
 | 06 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
 | 07 | Forward Propagation and Backpropagation | Ch. 8 | 🔒 Coming Soon |
@@ -96,7 +95,7 @@ Each week's folder contains:
 - **Python Scripts** (`.py`) - Standalone implementations
 - **Marimo Notebooks** (`*_marimo.py`) - Interactive demos with widgets
 
-> **Note:** Course materials are released progressively. Currently, Week 1 and Week 2 materials are available. Additional weeks will be released as the semester progresses.
+> **Note:** Course materials are released progressively.
 
 ## 📁 Repository Structure
 
@@ -104,26 +103,26 @@ Each week's folder contains:
 IME775/
 ├── README.md
 ├── requirements.txt
-├── 2nd_ed/                      # ML Refined chapters (supplementary)
-│   ├── chapter_1.pdf
-│   └── ...
+├── resources/
+│   └── textbooks/               # ML Refined chapters (supplementary)
+│       ├── chapter_1.pdf
+│       └── ...
 ├── week-01/                     # ✅ Released
-│   ├── Lecture_Notes1.md        # Lecture notes (Markdown)
-│   ├── Lecture_Notes1.pdf       # Lecture notes (PDF)
-│   ├── cat_brain_pytorch.py     # Cat Brain model (standalone script)
-│   └── cat_brain_marimo.py      # Cat Brain model (interactive notebook)
-└── week-02/                     # ✅ Released
-    ├── Lecture_Notes2.md        # Lecture notes (Markdown)
-    ├── Lecture_Notes2.pdf       # Lecture notes (PDF)
-    ├── IME775_Lecture4.md       # Lecture 4 notes (Markdown)
-    ├── IME775_Lecture4.pdf      # Lecture 4 notes (PDF)
-    ├── lecture_notes_hyperplanes_ml.md  # Hyperplanes notes (Markdown)
-    ├── lecture_notes_hyperplanes_ml.pdf  # Hyperplanes notes (PDF)
-    ├── IME775_Lecture3-4_Notes.md
-    ├── IME775_Lecture3-4_Problems.md
-    └── *.py                     # Marimo notebooks and Python scripts
+│   ├── notes/                   # Lecture notes (Markdown & PDF)
+│   ├── code/                    # Python scripts & Marimo notebooks
+│   ├── assets/                  # Images and auxiliary files
+│   └── assignments/             # Problem sets & solutions
+├── week-02-03/                  # ✅ Released
+│   ├── notes/                   # Lecture notes
+│   ├── code/                    # Notebooks & scripts
+│   ├── assets/
+│   └── assignments/
+└── week-04/                     # ✅ Released
+    ├── notes/
+    ├── code/
+    └── assignments/
 
-Note: Additional weekly materials (week-03 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-05 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
@@ -143,7 +142,7 @@ This course includes interactive notebooks built with [Marimo](https://marimo.io
 
 ### Week 1: Cat Brain Model
 
-The Cat Brain demo (`week-01/cat_brain_marimo.py`) implements the threat estimator from Chapter 1 with interactive widgets:
+The Cat Brain demo (`week-01/code/cat_brain_marimo.py`) implements the threat estimator from Chapter 1 with interactive widgets:
 
 **Features:**
 - 🎲 Adjust random seed, sample sizes, and noise levels
@@ -158,10 +157,10 @@ The Cat Brain demo (`week-01/cat_brain_marimo.py`) implements the threat estimat
 source venv/bin/activate
 
 # Run in edit mode (see code + output)
-marimo edit week-01/cat_brain_marimo.py
+marimo edit week-01/code/cat_brain_marimo.py
 
 # Or run in app mode (output only)
-marimo run week-01/cat_brain_marimo.py
+marimo run week-01/code/cat_brain_marimo.py
 ```
 
 ---
