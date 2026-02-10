@@ -59,7 +59,7 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 01 | Machine Learning Overview | Ch. 1 | [📝 Notes](week-01/notes/Lecture_Notes1.md) \| [📄 PDF](week-01/notes/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/code/cat_brain_marimo.py) |
 | 02-03 | Vectors, Matrices, Tensors & Linear Algebra | Ch. 2 | [📝 Notes (Ch 2)](week-02-03/notes/IME775_Lecture3-4_Notes.md) \| [📝 Lecture 3](week-02-03/notes/Lecture_Notes2.md) \| [📝 Lecture 4](week-02-03/notes/IME775_Lecture4.md) \| [📓 Notebooks](week-02-03/code/) |
 | 04 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes (Ch 3)](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [💻 Demos](week-04/code/demos/) |
-| 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | 🔒 Coming Soon |
+| 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Lecture 5](week-05/IME775_Lecture5.md) \| [📝 Lecture 6](week-05/IME775_Lecture6.md) \| [📓 Notebooks](week-05/) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 06 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
 | 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
 | 08 | Midterm Exam | — | 🔒 Coming Soon |
@@ -70,6 +70,21 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 13 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
 | 14 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
 | 15 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
+
+---
+
+## 🎮 Interactive Visualizations
+
+Explore mathematical concepts through browser-based interactive demos:
+
+**🔗 [Launch Visualizations](https://harunpirim.github.io/IME775/)**
+
+| Week | Visualizations |
+|:----:|----------------|
+| 04 | Gradient Descent Animator • Taylor Series • Level Contours • Convexity |
+| 05 | Quadratic Forms • Positive Definiteness • Matrix Norms • PCA • SVD • LSA |
+
+> *No installation required — runs directly in your browser!*
 
 ---
 
