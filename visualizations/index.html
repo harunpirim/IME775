@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IME 775 - Interactive Visualizations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .card:hover { transform: translateY(-4px); }
+        .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen">
+    <div class="max-w-6xl mx-auto px-4 py-12">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-white mb-2">IME 775</h1>
+            <p class="text-xl text-blue-400">Mathematical Foundations of Deep Learning</p>
+            <p class="text-gray-400 mt-2">Interactive Visualizations & Learning Tools</p>
+        </header>
+
+        <!-- Chapter Navigation -->
+        <nav class="flex justify-center gap-4 mb-10 flex-wrap">
+            <a href="#ch2" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition">Chapter 2</a>
+            <a href="#ch4" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition">Chapter 4</a>
+        </nav>
+
+        <!-- Chapter 4: Linear Algebraic Tools -->
+        <section id="ch4" class="mb-16">
+            <h2 class="text-2xl font-bold text-white mb-6 border-b border-slate-600 pb-2">
+                📐 Chapter 4: Linear Algebraic Tools in ML
+            </h2>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1: Quadratic Forms -->
+                <a href="quadratic-forms.html" class="card block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl">
+                    <div class="h-32 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                        <span class="text-6xl">📊</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">Quadratic Form Level Sets</h3>
+                        <p class="text-gray-600 text-sm mt-1">Visualize Q(x) = xᵀAx for diagonal matrices. Explore how eigenvalues shape ellipses.</p>
+                        <span class="inline-block mt-3 text-blue-600 text-sm font-medium">Interactive →</span>
+                    </div>
+                </a>
+
+                <!-- Card 2: PCA -->
+                <a href="pca-demo.html" class="card block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl">
+                    <div class="h-32 bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
+                        <span class="text-6xl">🎯</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">PCA Visualization</h3>
+                        <p class="text-gray-600 text-sm mt-1">See principal components, variance explained, and dimensionality reduction in action.</p>
+                        <span class="inline-block mt-3 text-green-600 text-sm font-medium">Interactive →</span>
+                    </div>
+                </a>
+
+                <!-- Card 3: SVD -->
+                <a href="svd-demo.html" class="card block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl">
+                    <div class="h-32 bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
+                        <span class="text-6xl">🔢</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">SVD & Low-Rank Approximation</h3>
+                        <p class="text-gray-600 text-sm mt-1">Explore singular value decomposition and matrix compression.</p>
+                        <span class="inline-block mt-3 text-purple-600 text-sm font-medium">Interactive →</span>
+                    </div>
+                </a>
+
+                <!-- Card 4: Matrix Norms -->
+                <a href="matrix-norms.html" class="card block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl">
+                    <div class="h-32 bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center">
+                        <span class="text-6xl">📏</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">Matrix Norms Comparison</h3>
+                        <p class="text-gray-600 text-sm mt-1">Compare spectral norm vs Frobenius norm visually.</p>
+                        <span class="inline-block mt-3 text-orange-600 text-sm font-medium">Interactive →</span>
+                    </div>
+                </a>
+
+                <!-- Card 5: Positive Definiteness -->
+                <a href="positive-definite.html" class="card block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl">
+                    <div class="h-32 bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+                        <span class="text-6xl">✅</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">Positive Definiteness</h3>
+                        <p class="text-gray-600 text-sm mt-1">Test matrices for positive definiteness and visualize eigenvalue conditions.</p>
+                        <span class="inline-block mt-3 text-red-600 text-sm font-medium">Interactive →</span>
+                    </div>
+                </a>
+
+                <!-- Card 6: Document Retrieval -->
+                <a href="lsa-demo.html" class="card block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl">
+                    <div class="h-32 bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center">
+                        <span class="text-6xl">📄</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">LSA & Document Similarity</h3>
+                        <p class="text-gray-600 text-sm mt-1">TF-IDF, cosine similarity, and latent semantic analysis demo.</p>
+                        <span class="inline-block mt-3 text-teal-600 text-sm font-medium">Interactive →</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Chapter 2: Vectors, Matrices, Tensors -->
+        <section id="ch2" class="mb-16">
+            <h2 class="text-2xl font-bold text-white mb-6 border-b border-slate-600 pb-2">
+                📚 Chapter 2: Vectors, Matrices, Tensors
+            </h2>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Placeholder cards -->
+                <div class="card block bg-slate-700 rounded-xl overflow-hidden shadow-lg opacity-60">
+                    <div class="h-32 bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
+                        <span class="text-6xl">🔜</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-300">Vector Operations</h3>
+                        <p class="text-gray-400 text-sm mt-1">Coming soon...</p>
+                    </div>
+                </div>
+
+                <div class="card block bg-slate-700 rounded-xl overflow-hidden shadow-lg opacity-60">
+                    <div class="h-32 bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
+                        <span class="text-6xl">🔜</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-300">Dot Product Proof</h3>
+                        <p class="text-gray-400 text-sm mt-1">Coming soon...</p>
+                    </div>
+                </div>
+
+                <div class="card block bg-slate-700 rounded-xl overflow-hidden shadow-lg opacity-60">
+                    <div class="h-32 bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
+                        <span class="text-6xl">🔜</span>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-300">Line & Plane Equations</h3>
+                        <p class="text-gray-400 text-sm mt-1">Coming soon...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Resources Section -->
+        <section class="bg-slate-700 rounded-xl p-6 mb-8">
+            <h2 class="text-xl font-bold text-white mb-4">📖 Course Resources</h2>
+            <div class="grid md:grid-cols-3 gap-4">
+                <a href="materials/lecture-notes.pdf" class="flex items-center gap-3 p-3 bg-slate-600 rounded-lg hover:bg-slate-500 transition">
+                    <span class="text-2xl">📝</span>
+                    <span class="text-white">Lecture Notes</span>
+                </a>
+                <a href="materials/problems.pdf" class="flex items-center gap-3 p-3 bg-slate-600 rounded-lg hover:bg-slate-500 transition">
+                    <span class="text-2xl">✏️</span>
+                    <span class="text-white">Problem Sets</span>
+                </a>
+                <a href="materials/solutions.pdf" class="flex items-center gap-3 p-3 bg-slate-600 rounded-lg hover:bg-slate-500 transition">
+                    <span class="text-2xl">✅</span>
+                    <span class="text-white">Solutions</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm">
+            <p>IME 775 - Mathematical Foundations of Deep Learning</p>
+            <p class="mt-1">Based on Chaudhury, K. <em>Math and Architectures of Deep Learning</em></p>
+        </footer>
+    </div>
+</body>
+</html>

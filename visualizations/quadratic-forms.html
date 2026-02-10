@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadratic Form Level Sets - IME 775</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function QuadraticFormLevelSets() {
+            const [a11, setA11] = useState(4);
+            const [a22, setA22] = useState(1);
+            const [levelValue, setLevelValue] = useState(1);
+
+            const width = 400;
+            const height = 400;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const scale = 80;
+
+            const semiAxisX = a11 > 0 ? Math.sqrt(levelValue / a11) : 0;
+            const semiAxisY = a22 > 0 ? Math.sqrt(levelValue / a22) : 0;
+
+            const ellipsePoints = [];
+            if (a11 > 0 && a22 > 0) {
+                for (let theta = 0; theta <= 2 * Math.PI; theta += 0.02) {
+                    const x = semiAxisX * Math.cos(theta);
+                    const y = semiAxisY * Math.sin(theta);
+                    ellipsePoints.push({ x, y });
+                }
+            }
+
+            const toSvgX = (x) => centerX + x * scale;
+            const toSvgY = (y) => centerY - y * scale;
+
+            const pathData = ellipsePoints.length > 0
+                ? `M ${toSvgX(ellipsePoints[0].x)} ${toSvgY(ellipsePoints[0].y)} ` +
+                  ellipsePoints.slice(1).map(p => `L ${toSvgX(p.x)} ${toSvgY(p.y)}`).join(' ') + ' Z'
+                : '';
+
+            return (
+                <div className="p-6 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+                    <h1 className="text-2xl font-bold text-center mb-1 text-gray-800">
+                        Quadratic Form Level Sets
+                    </h1>
+                    <p className="text-center text-sm text-gray-500 mb-3">IME 775 - Mathematical Foundations of Deep Learning</p>
+
+                    <div className="text-center text-lg mb-4 bg-gray-50 py-2 rounded">
+                        <span className="font-mono">Q(x) = x<sup>T</sup>Ax = </span>
+                        <span className="text-blue-600 font-bold">{a11}</span>
+                        <span className="font-mono">x₁² + </span>
+                        <span className="text-green-600 font-bold">{a22}</span>
+                        <span className="font-mono">x₂² = {levelValue}</span>
+                    </div>
+
+                    {/* Matrix Display */}
+                    <div className="flex justify-center mb-4">
+                        <div className="text-xl flex items-center">
+                            <span className="mr-2">A =</span>
+                            <div className="border-l-2 border-r-2 border-gray-700 px-3 py-1">
+                                <div className="flex gap-6">
+                                    <span className="w-8 text-center text-blue-600 font-bold">{a11}</span>
+                                    <span className="w-8 text-center text-gray-400">0</span>
+                                </div>
+                                <div className="flex gap-6">
+                                    <span className="w-8 text-center text-gray-400">0</span>
+                                    <span className="w-8 text-center text-green-600 font-bold">{a22}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* SVG Visualization */}
+                    <div className="flex justify-center mb-4">
+                        <svg width={width} height={height} className="border border-gray-300 bg-white rounded shadow-inner">
+                            {/* Grid */}
+                            {[-2, -1, 0, 1, 2].map(i => (
+                                <React.Fragment key={`grid-${i}`}>
+                                    <line x1={toSvgX(i)} y1={0} x2={toSvgX(i)} y2={height} stroke="#e5e5e5" strokeWidth="1" />
+                                    <line x1={0} y1={toSvgY(i)} x2={width} y2={toSvgY(i)} stroke="#e5e5e5" strokeWidth="1" />
+                                </React.Fragment>
+                            ))}
+
+                            {/* Axes */}
+                            <line x1={0} y1={centerY} x2={width} y2={centerY} stroke="#333" strokeWidth="2" />
+                            <line x1={centerX} y1={0} x2={centerX} y2={height} stroke="#333" strokeWidth="2" />
+
+                            {/* Arrows */}
+                            <polygon points={`${width-10},${centerY-5} ${width},${centerY} ${width-10},${centerY+5}`} fill="#333" />
+                            <polygon points={`${centerX-5},10 ${centerX},0 ${centerX+5},10`} fill="#333" />
+
+                            {/* Axis labels */}
+                            <text x={width - 25} y={centerY - 12} fontSize="16" fill="#333" fontWeight="bold">x₁</text>
+                            <text x={centerX + 12} y={22} fontSize="16" fill="#333" fontWeight="bold">x₂</text>
+
+                            {/* Tick marks */}
+                            {[-2, -1, 1, 2].map(i => (
+                                <React.Fragment key={`tick-${i}`}>
+                                    <line x1={toSvgX(i)} y1={centerY-5} x2={toSvgX(i)} y2={centerY+5} stroke="#333" strokeWidth="1" />
+                                    <text x={toSvgX(i) - 5} y={centerY + 20} fontSize="12" fill="#666">{i}</text>
+                                    <line x1={centerX-5} y1={toSvgY(i)} x2={centerX+5} y2={toSvgY(i)} stroke="#333" strokeWidth="1" />
+                                    <text x={centerX + 10} y={toSvgY(i) + 4} fontSize="12" fill="#666">{i}</text>
+                                </React.Fragment>
+                            ))}
+
+                            {/* Ellipse (level set) */}
+                            {pathData && (
+                                <path d={pathData} fill="rgba(59, 130, 246, 0.2)" stroke="#3b82f6" strokeWidth="3" />
+                            )}
+
+                            {/* Semi-axes visualization */}
+                            {a11 > 0 && a22 > 0 && (
+                                <>
+                                    {/* Horizontal semi-axis */}
+                                    <line x1={centerX} y1={centerY} x2={toSvgX(semiAxisX)} y2={centerY}
+                                        stroke="#dc2626" strokeWidth="2" strokeDasharray="6,4" />
+                                    <circle cx={toSvgX(semiAxisX)} cy={centerY} r="6" fill="#dc2626" />
+                                    <text x={toSvgX(semiAxisX/2)} y={centerY - 12} fontSize="13" fill="#dc2626" fontWeight="bold" textAnchor="middle">
+                                        a = {semiAxisX.toFixed(2)}
+                                    </text>
+
+                                    {/* Vertical semi-axis */}
+                                    <line x1={centerX} y1={centerY} x2={centerX} y2={toSvgY(semiAxisY)}
+                                        stroke="#16a34a" strokeWidth="2" strokeDasharray="6,4" />
+                                    <circle cx={centerX} cy={toSvgY(semiAxisY)} r="6" fill="#16a34a" />
+                                    <text x={centerX + 12} y={toSvgY(semiAxisY/2)} fontSize="13" fill="#16a34a" fontWeight="bold">
+                                        b = {semiAxisY.toFixed(2)}
+                                    </text>
+                                </>
+                            )}
+
+                            {/* Origin */}
+                            <circle cx={centerX} cy={centerY} r="5" fill="#333" />
+                            <text x={centerX - 15} y={centerY + 18} fontSize="12" fill="#333">O</text>
+                        </svg>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="space-y-4 bg-gray-50 p-4 rounded-lg border mb-4">
+                        <h3 className="font-semibold text-gray-700 mb-2">Interactive Controls</h3>
+                        <div>
+                            <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>λ₁ = a₁₁ (eigenvalue along x₁):</span>
+                                <span className="text-blue-600 font-bold text-lg">{a11}</span>
+                            </label>
+                            <input type="range" min="0.5" max="10" step="0.5" value={a11}
+                                onChange={(e) => setA11(parseFloat(e.target.value))}
+                                className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer" />
+                        </div>
+
+                        <div>
+                            <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>λ₂ = a₂₂ (eigenvalue along x₂):</span>
+                                <span className="text-green-600 font-bold text-lg">{a22}</span>
+                            </label>
+                            <input type="range" min="0.5" max="10" step="0.5" value={a22}
+                                onChange={(e) => setA22(parseFloat(e.target.value))}
+                                className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer" />
+                        </div>
+
+                        <div>
+                            <label className="flex justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>Level value c:</span>
+                                <span className="text-purple-600 font-bold text-lg">{levelValue}</span>
+                            </label>
+                            <input type="range" min="0.5" max="4" step="0.5" value={levelValue}
+                                onChange={(e) => setLevelValue(parseFloat(e.target.value))}
+                                className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer" />
+                        </div>
+                    </div>
+
+                    {/* Formulas */}
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                        <h3 className="font-semibold text-gray-800 mb-2">📐 Key Relationships</h3>
+                        <div className="text-sm text-gray-700 space-y-2">
+                            <p><strong>Ellipse equation:</strong>
+                                <span className="font-mono ml-2">x₁²/{(levelValue/a11).toFixed(2)} + x₂²/{(levelValue/a22).toFixed(2)} = 1</span>
+                            </p>
+                            <p><strong>Semi-axis a</strong> (along x₁) = √(c/λ₁) = √({levelValue}/{a11}) =
+                                <span className="text-red-600 font-bold ml-1">{semiAxisX.toFixed(3)}</span>
+                            </p>
+                            <p><strong>Semi-axis b</strong> (along x₂) = √(c/λ₂) = √({levelValue}/{a22}) =
+                                <span className="text-green-600 font-bold ml-1">{semiAxisY.toFixed(3)}</span>
+                            </p>
+                            <p><strong>Condition number:</strong> κ = λ_max/λ_min = {Math.max(a11, a22)}/{Math.min(a11, a22)} =
+                                <span className="font-bold ml-1">{(Math.max(a11, a22) / Math.min(a11, a22)).toFixed(2)}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Insight */}
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <h3 className="font-semibold text-gray-800 mb-2">💡 Optimization Insight</h3>
+                        <p className="text-sm text-gray-700">
+                            {a11 === a22
+                                ? "✅ When λ₁ = λ₂, the level set is a circle (κ = 1). Gradient descent converges in one step for quadratic objectives!"
+                                : `⚠️ Condition number κ = ${(Math.max(a11, a22) / Math.min(a11, a22)).toFixed(1)} causes elongated ellipses. Gradient descent will zig-zag, requiring more iterations. The larger κ, the slower convergence.`
+                            }
+                        </p>
+                    </div>
+
+                    <p className="text-center text-xs text-gray-400 mt-4">
+                        IME 775 - Chapter 4: Linear Algebraic Tools in Machine Learning
+                    </p>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<QuadraticFormLevelSets />, document.getElementById('root'));
+    </script>
+</body>
+</html>
