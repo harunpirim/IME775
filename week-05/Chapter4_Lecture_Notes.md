@@ -3,7 +3,7 @@
 
 ---
 
-## 1. Chapter 4: Finding Structure in Data
+## Chapter 4: Finding Structure in Data
 
 **Core Challenge:** High-dimensional data often lies near lower-dimensional subspaces.
 
@@ -15,7 +15,7 @@
 
 ---
 
-## 2. Quadratic Forms: Definition
+## Quadratic Forms: Definition
 
 **Definition:** For symmetric matrix $A$, the quadratic form is:
 
@@ -31,15 +31,15 @@ $$Q = ax_0^2 + 2bx_0x_1 + cx_1^2$$
 
 *Workout:* Expand $Q$ for $A = \begin{bmatrix} 3 & 1 \\ 1 & 2 \end{bmatrix}$:
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+Using $Q = ax_0^2 + 2bx_0x_1 + cx_1^2$ with $a=3$, $b=1$, $c=2$:
 
-&nbsp;
+$$Q(\vec{x}) = \begin{bmatrix} x_0 & x_1 \end{bmatrix} \begin{bmatrix} 3 & 1 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} x_0 \\ x_1 \end{bmatrix} = 3x_0^2 + 2x_0x_1 + 2x_1^2$$
 
 ---
 
-## 3. Geometric Meaning: Conic Sections
+## Geometric Meaning: Conic Sections
 
 Quadratic forms describe **conic sections**:
 
@@ -58,7 +58,7 @@ Quadratic forms describe **conic sections**:
 
 ---
 
-## 4. Quadratic Forms in ML
+## Quadratic Forms in ML
 
 **Where quadratic forms appear:**
 
@@ -72,7 +72,7 @@ Quadratic forms describe **conic sections**:
 
 ---
 
-## 5. Extrema on the Unit Sphere
+## Extrema on the Unit Sphere
 
 **Question:** For unit vectors $\hat{x}$ (with $\|\hat{x}\| = 1$), what are the max/min of $Q$?
 
@@ -88,7 +88,7 @@ where $\hat{y} = S^T \hat{x}$ is also a unit vector.
 
 ---
 
-## 6. Theorem: Eigenvalues = Extrema
+## Theorem: Eigenvalues = Extrema
 
 Since $\sum_i y_i^2 = 1$ and $y_i^2 \geq 0$:
 
@@ -107,13 +107,17 @@ is a **weighted average** of eigenvalues.
 
 *Workout:* If $\lambda_1 = 5, \lambda_2 = 2$, what are max/min of $Q$ on unit circle?
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+By the extrema theorem, on the unit sphere the quadratic form $Q = \sum_i \lambda_i y_i^2$ is maximized when all weight is on the largest eigenvalue and minimized when all weight is on the smallest:
+
+$$Q_{max} = \lambda_1 = 5 \quad \text{(achieved at eigenvector } \vec{e}_1\text{)}$$
+
+$$Q_{min} = \lambda_2 = 2 \quad \text{(achieved at eigenvector } \vec{e}_2\text{)}$$
 
 ---
 
-## 7. Positive Definite Matrices
+## Positive Definite Matrices
 
 **Definition:** Symmetric $A$ is:
 
@@ -131,7 +135,7 @@ $$A \text{ is PSD} \iff \text{all } \lambda_i \geq 0$$
 
 ---
 
-## 8. Why Positive Definiteness Matters
+## Why Positive Definiteness Matters
 
 **ML Applications:**
 
@@ -143,17 +147,19 @@ $$A \text{ is PSD} \iff \text{all } \lambda_i \geq 0$$
 
 *Workout:* Is $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ positive definite? (Find eigenvalues)
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+Characteristic equation: $\det(A - \lambda I) = (2-\lambda)^2 - 1 = 0$
 
-&nbsp;
+$$\lambda^2 - 4\lambda + 3 = 0 \implies (\lambda - 3)(\lambda - 1) = 0$$
 
-&nbsp;
+$$\lambda_1 = 3, \quad \lambda_2 = 1$$
+
+Both eigenvalues are strictly positive, so **$A$ is positive definite**.
 
 ---
 
-## 9. Indefinite Matrices: Saddle Points
+## Indefinite Matrices: Saddle Points
 
 If $A$ has both positive and negative eigenvalues:
 
@@ -167,15 +173,17 @@ If $A$ has both positive and negative eigenvalues:
 
 Eigenvalues: $\det(A - \lambda I) = 0$
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+$$(1-\lambda)^2 - 4 = 0 \implies \lambda^2 - 2\lambda - 3 = 0 \implies (\lambda - 3)(\lambda + 1) = 0$$
 
-&nbsp;
+$$\lambda_1 = 3 > 0, \quad \lambda_2 = -1 < 0$$
+
+One positive and one negative eigenvalue → **$A$ is indefinite**. The critical point of $Q(\vec{x}) = \vec{x}^T A \vec{x}$ is a **saddle point**, and the level sets are hyperbolas.
 
 ---
 
-## 10. Condition Number
+## Condition Number
 
 **Definition:** For positive definite $A$:
 
@@ -195,7 +203,7 @@ $$\kappa(A) = \frac{\lambda_{max}}{\lambda_{min}}$$
 
 ---
 
-## 11. Spectral Norm
+## Spectral Norm
 
 **Definition:** Maximum amplification by matrix $A$:
 
@@ -215,7 +223,7 @@ $$\|A\|_2 = \sigma_1 = \sqrt{\lambda_{max}(A^T A)}$$
 
 ---
 
-## 12. Computing Spectral Norm
+## Computing Spectral Norm
 
 For unit vector $\hat{x}$:
 
@@ -231,13 +239,17 @@ This is a quadratic form in $A^T A$!
 
 *Workout:* Find $\|A\|_2$ for $A = \begin{bmatrix} 3 & 0 \\ 0 & 2 \end{bmatrix}$:
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+$A$ is diagonal, so its singular values equal the absolute values of its diagonal entries: $\sigma_1 = 3$, $\sigma_2 = 2$.
+
+$$\|A\|_2 = \sigma_1 = 3$$
+
+Equivalently: $A^T A = \begin{bmatrix} 9 & 0 \\ 0 & 4 \end{bmatrix}$, so $\lambda_{max}(A^T A) = 9$ and $\|A\|_2 = \sqrt{9} = 3$.
 
 ---
 
-## 13. Frobenius Norm
+## Frobenius Norm
 
 **Definition:** "Size" of a matrix (like L2 for vectors):
 
@@ -257,13 +269,13 @@ $$\|A\|_F = \sqrt{\sum_i \sigma_i^2} = \sqrt{\text{trace}(A^T A)}$$
 
 *Workout:* Compute $\|A\|_F$ for $A = \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}$:
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+$$\|A\|_F = \sqrt{\sum_{i,j} |a_{ij}|^2} = \sqrt{1^2 + 2^2 + 3^2 + 4^2} = \sqrt{1 + 4 + 9 + 16} = \sqrt{30} \approx 5.477$$
 
 ---
 
-## 14. Norm Comparison
+## Norm Comparison
 
 **Always:** $\|A\|_2 \leq \|A\|_F$
 
@@ -280,7 +292,7 @@ $$\|A\|_F = \sqrt{\sum_i \sigma_i^2} = \sqrt{\text{trace}(A^T A)}$$
 
 ---
 
-## 15. Unit Circle Transformation
+## Unit Circle Transformation
 
 When $A$ acts on unit circle:
 
@@ -292,19 +304,19 @@ When $A$ acts on unit circle:
 
 *Workout:* Sketch how $A = \begin{bmatrix} 2 & 0 \\ 0 & 1 \end{bmatrix}$ transforms unit circle:
 
-&nbsp;
+**Solution:**
 
-&nbsp;
+$A$ is diagonal with singular values $\sigma_1 = 2$, $\sigma_2 = 1$.
 
-&nbsp;
+The unit circle $x_0^2 + x_1^2 = 1$ maps to an **ellipse** with semi-axis length 2 along $x_0$ and semi-axis length 1 along $x_1$:
 
-&nbsp;
+$$\frac{x_0^2}{4} + x_1^2 = 1$$
 
-&nbsp;
+The $x_0$ direction is stretched by factor 2, while the $x_1$ direction is unchanged. The spectral norm is $\|A\|_2 = 2$ (the longest semi-axis).
 
 ---
 
-## 16. Summary: Key Formulas
+## Summary: Key Formulas
 
 | Concept | Formula |
 |---------|---------|
