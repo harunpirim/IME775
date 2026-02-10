@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Norms Comparison - IME 775</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        function MatrixNormsVisualization() {
+            const [matrix, setMatrix] = React.useState([
+                [3, 0],
+                [4, 0]
+            ]);
+
+            const updateMatrix = (i, j, val) => {
+                const newMatrix = matrix.map(row => [...row]);
+                newMatrix[i][j] = parseFloat(val) || 0;
+                setMatrix(newMatrix);
+            };
+
+            const computeNorms = () => {
+                const A = matrix;
+
+                // Frobenius norm
+                let frobSum = 0;
+                for (let i = 0; i < 2; i++) {
+                    for (let j = 0; j < 2; j++) {
+                        frobSum += A[i][j] * A[i][j];
+                    }
+                }
+                const frob = Math.sqrt(frobSum);
+
+                // Compute A^T A
+                const AtA = [
+                    [A[0][0]*A[0][0] + A[1][0]*A[1][0], A[0][0]*A[0][1] + A[1][0]*A[1][1]],
+                    [A[0][1]*A[0][0] + A[1][1]*A[1][0], A[0][1]*A[0][1] + A[1][1]*A[1][1]]
+                ];
+
+                // Eigenvalues of AtA
+                const trace = AtA[0][0] + AtA[1][1];
+                const det = AtA[0][0] * AtA[1][1] - AtA[0][1] * AtA[1][0];
+                const disc = Math.sqrt(Math.max(0, trace*trace/4 - det));
+                const lambda1 = trace/2 + disc;
+                const lambda2 = Math.max(0, trace/2 - disc);
+
+                const sigma1 = Math.sqrt(Math.max(0, lambda1));
+                const sigma2 = Math.sqrt(Math.max(0, lambda2));
+
+                // Eigenvector for largest eigenvalue
+                let v1 = [1, 0];
+                if (Math.abs(AtA[0][1]) > 0.0001) {
+                    const diff = lambda1 - AtA[1][1];
+                    v1 = [diff, AtA[0][1]];
+                    const norm = Math.sqrt(v1[0]*v1[0] + v1[1]*v1[1]);
+                    v1 = [v1[0]/norm, v1[1]/norm];
+                } else if (AtA[0][0] < AtA[1][1]) {
+                    v1 = [0, 1];
+                }
+
+                // Stretched vector
+                const Av1 = [
+                    A[0][0]*v1[0] + A[0][1]*v1[1],
+                    A[1][0]*v1[0] + A[1][1]*v1[1]
+                ];
+
+                return { frob, sigma1, sigma2, v1, Av1 };
+            };
+
+            const { frob, sigma1, sigma2, v1, Av1 } = computeNorms();
+
+            const width = 350, height = 350;
+            const center = width / 2;
+            const scale = 40;
+            const toX = (x) => center + x * scale;
+            const toY = (y) => center - y * scale;
+
+            // Circle and ellipse points
+            const circlePoints = [];
+            const ellipsePoints = [];
+            for (let t = 0; t <= 2*Math.PI; t += 0.05) {
+                const cx = Math.cos(t), cy = Math.sin(t);
+                circlePoints.push([toX(cx), toY(cy)]);
+                ellipsePoints.push([
+                    toX(matrix[0][0]*cx + matrix[0][1]*cy),
+                    toY(matrix[1][0]*cx + matrix[1][1]*cy)
+                ]);
+            }
+
+            const circlePath = "M " + circlePoints.map(p => p.join(",")).join(" L ") + " Z";
+            const ellipsePath = "M " + ellipsePoints.map(p => p.join(",")).join(" L ") + " Z";
+
+            return (
+                <div className="p-6 max-w-5xl mx-auto bg-white rounded-lg shadow-lg">
+                    <div className="mb-2">
+                        <a href="../../index.html" className="text-blue-600 hover:text-blue-800">← Back to Home</a>
+                    </div>
+
+                    <h1 className="text-2xl font-bold text-center mb-1">Matrix Norms Comparison</h1>
+                    <p className="text-center text-sm text-gray-500 mb-4">Spectral Norm vs Frobenius Norm</p>
+
+                    <div className="grid lg:grid-cols-2 gap-6">
+                        <div>
+                            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                                <h3 className="font-semibold text-gray-700 mb-3 text-center">Matrix A (editable)</h3>
+                                <div className="flex justify-center">
+                                    <div className="inline-block border-l-2 border-r-2 border-gray-600 px-3 py-2">
+                                        {matrix.map((row, i) => (
+                                            <div key={i} className="flex gap-2 mb-1">
+                                                {row.map((val, j) => (
+                                                    <input key={j} type="number" value={val}
+                                                        onChange={(e) => updateMatrix(i, j, e.target.value)}
+                                                        className="w-16 text-center border rounded p-1 font-mono" />
+                                                ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <svg width={width} height={height} className="border border-gray-300 bg-white rounded mx-auto block">
+                                {[-4,-3,-2,-1,0,1,2,3,4].map(i => (
+                                    <React.Fragment key={i}>
+                                        <line x1={toX(i)} y1={0} x2={toX(i)} y2={height} stroke="#f0f0f0" />
+                                        <line x1={0} y1={toY(i)} x2={width} y2={toY(i)} stroke="#f0f0f0" />
+                                    </React.Fragment>
+                                ))}
+                                <line x1={0} y1={center} x2={width} y2={center} stroke="#999" />
+                                <line x1={center} y1={0} x2={center} y2={height} stroke="#999" />
+
+                                <path d={circlePath} fill="rgba(59,130,246,0.1)" stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5" />
+                                <path d={ellipsePath} fill="rgba(220,38,38,0.2)" stroke="#dc2626" strokeWidth="3" />
+
+                                <line x1={center} y1={center} x2={toX(v1[0])} y2={toY(v1[1])} stroke="#3b82f6" strokeWidth="2" />
+                                <circle cx={toX(v1[0])} cy={toY(v1[1])} r="5" fill="#3b82f6" />
+
+                                <line x1={center} y1={center} x2={toX(Av1[0])} y2={toY(Av1[1])} stroke="#dc2626" strokeWidth="3" />
+                                <circle cx={toX(Av1[0])} cy={toY(Av1[1])} r="6" fill="#dc2626" />
+                            </svg>
+                            <p className="text-center text-sm text-gray-500 mt-2">Blue: unit circle | Red: image under A</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-gradient-to-r from-blue-50 to-red-50 p-4 rounded-lg border">
+                                <h3 className="font-semibold text-gray-700 mb-4 text-center">Norm Comparison</h3>
+                                <div className="space-y-4">
+                                    <div className="bg-white p-3 rounded-lg shadow">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-medium text-red-600">Spectral Norm ||A||_2</span>
+                                            <span className="text-2xl font-bold text-red-600">{sigma1.toFixed(4)}</span>
+                                        </div>
+                                        <div className="text-sm text-gray-500 mt-1">= sigma_max = max stretch factor</div>
+                                        <div className="h-3 bg-gray-200 rounded mt-2">
+                                            <div className="h-3 bg-red-500 rounded" style={{width: `${Math.min(100, sigma1/Math.max(sigma1,frob)*100)}%`}} />
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-3 rounded-lg shadow">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-medium text-purple-600">Frobenius Norm ||A||_F</span>
+                                            <span className="text-2xl font-bold text-purple-600">{frob.toFixed(4)}</span>
+                                        </div>
+                                        <div className="text-sm text-gray-500 mt-1">= sqrt(sum of squares)</div>
+                                        <div className="h-3 bg-gray-200 rounded mt-2">
+                                            <div className="h-3 bg-purple-500 rounded" style={{width: `${Math.min(100, frob/Math.max(sigma1,frob)*100)}%`}} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="mt-4 text-center p-3 bg-yellow-50 rounded-lg">
+                                    <span className="font-mono text-lg">||A||_2 &le; ||A||_F</span>
+                                    <br />
+                                    <span className="text-sm text-gray-600">{sigma1.toFixed(3)} &le; {frob.toFixed(3)} ✓</span>
+                                </div>
+                            </div>
+
+                            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                                <h3 className="font-semibold text-gray-700 mb-2">Singular Values</h3>
+                                <div className="flex gap-4 justify-center">
+                                    <div className="text-center">
+                                        <div className="text-xl font-bold text-purple-600">sigma_1 = {sigma1.toFixed(3)}</div>
+                                        <div className="text-xs text-gray-500">largest</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xl font-bold text-purple-400">sigma_2 = {sigma2.toFixed(3)}</div>
+                                        <div className="text-xs text-gray-500">smallest</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <h3 className="font-semibold text-gray-700 mb-2">Key Formulas</h3>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                    <li><strong>Spectral norm:</strong> ||A||_2 = max stretch = sigma_max</li>
+                                    <li><strong>Frobenius norm:</strong> ||A||_F = sqrt(sum of sigma_i^2)</li>
+                                    <li><strong>Relationship:</strong> ||A||_2 &le; ||A||_F &le; sqrt(r) ||A||_2</li>
+                                </ul>
+                            </div>
+
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <h3 className="font-semibold text-gray-700 mb-2">Insight</h3>
+                                <p className="text-sm text-gray-700">
+                                    {sigma2 < 0.01
+                                        ? "This matrix is nearly rank-1! One singular value dominates."
+                                        : sigma1/sigma2 > 5
+                                            ? "Large condition number (kappa = " + (sigma1/sigma2).toFixed(1) + "). Matrix is ill-conditioned."
+                                            : "Both singular values are significant. Matrix is well-conditioned."
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MatrixNormsVisualization />);
+    </script>
+</body>
+</html>
