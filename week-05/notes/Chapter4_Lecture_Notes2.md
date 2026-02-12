@@ -1,4 +1,4 @@
-# IME 775 — Lecture 6
+# IME 775 — Lecture 7
 ## PCA, SVD, and Document Retrieval
 
 ---
@@ -28,11 +28,10 @@ For data $\{x^{(0)}, x^{(1)}, \ldots, x^{(n)}\}$:
 
 *Workout:* Compute mean and variance for $\{1, 2, 3, 4, 5\}$:
 
-&nbsp;
-
-&nbsp;
-
-&nbsp;
+**Solution:**
+- **Mean:** $\mu = \frac{1+2+3+4+5}{5} = \frac{15}{5} = 3$
+- **Variance:** $\sigma^2 = \frac{1}{5}[(1-3)^2 + (2-3)^2 + (3-3)^2 + (4-3)^2 + (5-3)^2]$
+  $= \frac{1}{5}[4 + 1 + 0 + 1 + 4] = \frac{10}{5} = 2$
 
 ---
 
@@ -84,9 +83,12 @@ $$C = \begin{bmatrix} \sigma_{00} & \sigma_{01} \\ \sigma_{10} & \sigma_{11} \en
 
 *Workout:* Is covariance matrix always symmetric? Why?
 
-&nbsp;
+**Solution:** Yes! The covariance matrix is always symmetric because:
+- $C_{ij} = \text{Cov}(X_i, X_j) = \frac{1}{n}\sum_k (x_i^{(k)} - \mu_i)(x_j^{(k)} - \mu_j)$
+- $C_{ji} = \text{Cov}(X_j, X_i) = \frac{1}{n}\sum_k (x_j^{(k)} - \mu_j)(x_i^{(k)} - \mu_i)$
+- Since multiplication is commutative: $C_{ij} = C_{ji}$
 
-&nbsp;
+Also, from the matrix formula: $C = \frac{1}{n}X^TX$, and $(X^TX)^T = X^TX$, so $C = C^T$.
 
 ---
 
@@ -150,9 +152,10 @@ $$\frac{\lambda_i}{\sum_j \lambda_j} \times 100\%$$
 
 *Workout:* If $\lambda_1 = 8, \lambda_2 = 2$, what % does PC1 explain?
 
-&nbsp;
+**Solution:**
+$$\text{Variance explained by PC1} = \frac{\lambda_1}{\lambda_1 + \lambda_2} = \frac{8}{8+2} = \frac{8}{10} = 80\%$$
 
-&nbsp;
+PC1 explains **80%** of the total variance.
 
 ---
 
@@ -184,9 +187,11 @@ $$\text{Error} = \sum_{i=k+1}^{n} \lambda_i$$
 
 *Workout:* With $\lambda_1 = 10, \lambda_2 = 5, \lambda_3 = 1$, what's error keeping 2 PCs?
 
-&nbsp;
+**Solution:**
+Reconstruction error = sum of discarded eigenvalues = $\lambda_3 = 1$
 
-&nbsp;
+Alternatively, as a percentage of total variance:
+$$\text{Error \%} = \frac{\lambda_3}{\lambda_1 + \lambda_2 + \lambda_3} = \frac{1}{10+5+1} = \frac{1}{16} = 6.25\%$$
 
 ---
 
@@ -204,13 +209,31 @@ If data follows a curve:
 
 *Workout:* Sketch 2D data where PCA fails:
 
-&nbsp;
+**Solution:** PCA fails when data has **nonlinear structure**. Examples:
 
-&nbsp;
+1. **Spiral/Swiss Roll:** Data winds in a spiral; PCA projects to a line, destroying the structure.
+   ```
+      *  *
+    *      *
+   *   **   *
+    *      *
+      *  *
+   ```
 
-&nbsp;
+2. **Concentric Circles:** Two classes form rings; PCA cannot separate them.
+   ```
+       ***
+     *     *
+    *  ***  *
+    * *   * *
+    *  ***  *
+     *     *
+       ***
+   ```
 
-&nbsp;
+3. **XOR Pattern:** Four clusters at corners; no single linear direction captures the structure.
+
+For these cases, use **nonlinear methods** like kernel PCA, t-SNE, or UMAP.
 
 ---
 
@@ -305,9 +328,11 @@ $$A_r = \sum_{i=1}^{r} \sigma_i \vec{u}_i \vec{v}_i^T$$
 
 *Workout:* If $\sigma_1 = 10, \sigma_2 = 3, \sigma_3 = 1$, what's rank-2 approx error?
 
-&nbsp;
+**Solution:**
+Using the Frobenius norm error formula:
+$$\|A - A_2\|_F = \sqrt{\sum_{i=3}^{p} \sigma_i^2} = \sqrt{\sigma_3^2} = \sqrt{1^2} = 1$$
 
-&nbsp;
+The rank-2 approximation error is **1**.
 
 ---
 
@@ -402,20 +427,7 @@ sim = cosine_similarity(X_topics[i], X_topics[j])
 | Low-rank error | $\sqrt{\sum_{i>r} \sigma_i^2}$ |
 | Cosine similarity | $\frac{\vec{a}^T\vec{b}}{\|\vec{a}\|\|\vec{b}\|}$ |
 
----
 
-## Exercises for iPad Workout
 
-1. Compute covariance matrix for points $(0,0), (1,1), (2,2)$
 
-2. If $C = \begin{bmatrix} 4 & 2 \\ 2 & 3 \end{bmatrix}$, find direction of max variance
 
-3. Data has $\lambda_1=50, \lambda_2=30, \lambda_3=15, \lambda_4=5$. How many PCs for 90%?
-
-4. Given $\sigma_1=8, \sigma_2=4, \sigma_3=2$, compute $\|A\|_F$
-
-5. Why does LSA find similarity between docs with no shared terms?
-
----
-
-*IME 775 — Mathematical Foundations of Deep Learning*

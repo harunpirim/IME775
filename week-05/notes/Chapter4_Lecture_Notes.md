@@ -1,4 +1,4 @@
-# IME 775 — Lecture 5
+# IME 775 — Lecture 6
 ## Quadratic Forms, Positive Definiteness, and Matrix Norms
 
 ---

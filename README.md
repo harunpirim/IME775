@@ -58,8 +58,8 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 |:----:|-------|-----------|-----------|
 | 01 | Machine Learning Overview | Ch. 1 | [📝 Notes](week-01/notes/Lecture_Notes1.md) \| [📄 PDF](week-01/notes/Lecture_Notes1.pdf) \| [🐱 Cat Brain Demo](week-01/code/cat_brain_marimo.py) |
 | 02-03 | Vectors, Matrices, Tensors & Linear Algebra | Ch. 2 | [📝 Notes (Ch 2)](week-02-03/notes/IME775_Lecture3-4_Notes.md) \| [📝 Lecture 3](week-02-03/notes/Lecture_Notes2.md) \| [📝 Lecture 4](week-02-03/notes/IME775_Lecture4.md) \| [📓 Notebooks](week-02-03/code/) |
-| 04 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes (Ch 3)](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [💻 Demos](week-04/code/demos/) |
-| 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Lecture 5](week-05/IME775_Lecture5.md) \| [📝 Lecture 6](week-05/IME775_Lecture6.md) \| [📓 Notebooks](week-05/) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
+| 04 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes (Ch 3)](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [🎮 Visualizations](week-04/visualizations/) |
+| 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Notes (Ch 4)](week-05/notes/Chapter4_Lecture_Notes.md) \| [📝 Notes (Ch 4 pt 2)](week-05/notes/Chapter4_Lecture_Notes2.md) \| [📄 PDF](week-05/notes/Chapter4_Lecture_Notes.pdf) \| [📓 Notebooks](week-05/code/) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 06 | Probability Distributions for Machine Learning | Ch. 5 | 🔒 Coming Soon |
 | 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
 | 08 | Midterm Exam | — | 🔒 Coming Soon |
@@ -116,6 +116,7 @@ Each week's folder contains:
 ```
 IME775/
 ├── README.md
+├── index.html                   # Interactive visualizations landing page
 ├── requirements.txt
 ├── resources/
 │   └── textbooks/               # ML Refined chapters (supplementary)
@@ -129,14 +130,17 @@ IME775/
 ├── week-02-03/                  # ✅ Released
 │   ├── notes/                   # Lecture notes
 │   ├── code/                    # Notebooks & scripts
-│   ├── assets/
 │   └── assignments/
-└── week-04/                     # ✅ Released
-    ├── notes/
-    ├── code/
-    └── assignments/
+├── week-04/                     # ✅ Released
+│   ├── notes/                   # Lecture notes
+│   ├── assignments/
+│   └── visualizations/         # Interactive HTML demos
+└── week-05/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 4)
+    ├── code/                    # Python notebooks (Quadratic Forms, PCA/SVD)
+    └── visualizations/          # Interactive HTML demos
 
-Note: Additional weekly materials (week-05 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-06 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
