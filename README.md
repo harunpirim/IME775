@@ -60,7 +60,7 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 02-03 | Vectors, Matrices, Tensors & Linear Algebra | Ch. 2 | [📝 Notes (Ch 2)](week-02-03/notes/IME775_Lecture3-4_Notes.md) \| [📝 Lecture 3](week-02-03/notes/Lecture_Notes2.md) \| [📝 Lecture 4](week-02-03/notes/IME775_Lecture4.md) \| [📓 Notebooks](week-02-03/code/) |
 | 04 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes (Ch 3)](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [🎮 Visualizations](week-04/visualizations/) |
 | 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Notes (Ch 4)](week-05/notes/Chapter4_Lecture_Notes.md) \| [📝 Notes (Ch 4 pt 2)](week-05/notes/Chapter4_Lecture_Notes2.md) \| [📄 PDF](week-05/notes/Chapter4_Lecture_Notes.pdf) \| [📓 Notebooks](week-05/code/) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
-| 06 | Probability Distributions for Machine Learning | Ch. 5 | [📝 Lecture 8](week-06/notes/Chapter5_Lecture_Notes.md) \| [📝 Lecture 9](week-06/notes/Chapter5_Lecture_Notes2.md) \| [📝 Problems](week-06/notes/Chapter5_Problems.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
+| 06 | Probability Distributions for Machine Learning | Ch. 5 | [📝 Lecture 8](week-06/notes/Chapter5_Lecture_Notes.md) \| [📝 Lecture 9](week-06/notes/Chapter5_Lecture_Notes2.md) \| [📝 Problems](assignments/ch5-practice/Chapter5_Problems.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
 | 08 | Midterm Exam | — | 🔒 Coming Soon |
 | 09 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
@@ -123,25 +123,27 @@ IME775/
 │   └── textbooks/               # ML Refined chapters (supplementary)
 │       ├── chapter_1.pdf
 │       └── ...
+├── assignments/                 # All assignments, quizzes, and solutions
+│   ├── assignment-01/           # Ch. 1 problem set
+│   ├── assignment-02/           # Ch. 3 problems & solutions
+│   ├── quiz-01/                 # Quiz 1 solutions
+│   └── ch5-practice/            # Ch. 5 practice problems & solutions
 ├── week-01/                     # ✅ Released
 │   ├── notes/                   # Lecture notes (Markdown & PDF)
 │   ├── code/                    # Python scripts & Marimo notebooks
-│   ├── assets/                  # Images and auxiliary files
-│   └── assignments/             # Problem sets & solutions
+│   └── assets/                  # Images and auxiliary files
 ├── week-02-03/                  # ✅ Released
 │   ├── notes/                   # Lecture notes
-│   ├── code/                    # Notebooks & scripts
-│   └── assignments/
+│   └── code/                    # Notebooks & scripts
 ├── week-04/                     # ✅ Released
 │   ├── notes/                   # Lecture notes
-│   ├── assignments/
 │   └── visualizations/         # Interactive HTML demos
 ├── week-05/                     # ✅ Released
 │   ├── notes/                   # Lecture notes (Ch 4)
 │   ├── code/                    # Python notebooks (Quadratic Forms, PCA/SVD)
 │   └── visualizations/          # Interactive HTML demos
 └── week-06/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 5), Problem set
+    ├── notes/                   # Lecture notes (Ch 5)
     ├── code/                    # Python notebooks
     └── visualizations/          # Interactive HTML demos
 
