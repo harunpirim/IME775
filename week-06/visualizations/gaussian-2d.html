@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Bivariate Gaussian Distribution - IME 775</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Use React.useState, React.useEffect, React.useRef directly (no destructuring)
+
+        // Mathematical utilities
+        const math = {
+            // Eigenvalue decomposition for 2x2 symmetric matrix
+            eigen2x2: function(a, b, c, d) {
+                // Matrix: [[a, b], [b, d]]
+                const trace = a + d;
+                const det = a * d - b * b;
+                const discriminant = trace * trace - 4 * det;
+
+                const lambda1 = (trace + Math.sqrt(discriminant)) / 2;
+                const lambda2 = (trace - Math.sqrt(discriminant)) / 2;
+
+                let v1, v2;
+
+                if (Math.abs(b) > 1e-10) {
+                    v1 = [b, lambda1 - a];
+                    v2 = [b, lambda2 - a];
+                } else if (Math.abs(lambda1 - a) > 1e-10) {
+                    v1 = [1, 0];
+                    v2 = [0, 1];
+                } else {
+                    v1 = [1, 0];
+                    v2 = [0, 1];
+                }
+
+                const norm1 = Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1]);
+                const norm2 = Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1]);
+
+                v1 = [v1[0] / norm1, v1[1] / norm1];
+                v2 = [v2[0] / norm2, v2[1] / norm2];
+
+                return {
+                    eigenvalues: [lambda1, lambda2],
+                    eigenvectors: [v1, v2]
+                };
+            },
+
+            // Matrix determinant
+            det: function(sigma) {
+                return sigma[0][0] * sigma[1][1] - sigma[0][1] * sigma[1][0];
+            },
+
+            // Create covariance matrix from parameters
+            covarianceMatrix: function(sigma1Sq, sigma2Sq, rho) {
+                const sigma1 = Math.sqrt(sigma1Sq);
+                const sigma2 = Math.sqrt(sigma2Sq);
+                const cov = rho * sigma1 * sigma2;
+
+                return [
+                    [sigma1Sq, cov],
+                    [cov, sigma2Sq]
+                ];
+            }
+        };
+
+        function GaussianVisualizer() {
+            const state = React.useState({
+                sigma1Sq: 2,
+                sigma2Sq: 2,
+                rho: 0,
+                canvasWidth: 800,
+                canvasHeight: 800
+            });
+            const params = state[0];
+            const setParams = state[1];
+
+            const canvasRef = React.useRef(null);
+
+            // Build covariance matrix
+            const sigma = math.covarianceMatrix(params.sigma1Sq, params.sigma2Sq, params.rho);
+            const eigenData = math.eigen2x2(sigma[0][0], sigma[0][1], sigma[1][0], sigma[1][1]);
+            const eigenvalues = eigenData.eigenvalues;
+            const eigenvectors = eigenData.eigenvectors;
+
+            // Determine shape type
+            const getShapeType = () => {
+                const diff = Math.abs(params.sigma1Sq - params.sigma2Sq);
+                const maxVar = Math.max(params.sigma1Sq, params.sigma2Sq);
+
+                if (diff < 0.1 && Math.abs(params.rho) < 0.05) {
+                    return "circle";
+                } else if (Math.abs(params.rho) < 0.05) {
+                    return "axis-aligned ellipse";
+                } else {
+                    return "rotated ellipse";
+                }
+            };
+
+            // Draw visualization
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const scale = 80; // pixels per unit
+
+                // Clear canvas
+                ctx.fillStyle = '#1f2937';
+                ctx.fillRect(0, 0, w, h);
+
+                // Draw grid
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 1;
+                for (let i = -3; i <= 3; i++) {
+                    // Vertical lines
+                    ctx.beginPath();
+                    ctx.moveTo(centerX + i * scale, 0);
+                    ctx.lineTo(centerX + i * scale, h);
+                    ctx.stroke();
+
+                    // Horizontal lines
+                    ctx.beginPath();
+                    ctx.moveTo(0, centerY + i * scale);
+                    ctx.lineTo(w, centerY + i * scale);
+                    ctx.stroke();
+                }
+
+                // Draw axes
+                ctx.strokeStyle = '#6b7280';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(w, centerY);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(centerX, 0);
+                ctx.lineTo(centerX, h);
+                ctx.stroke();
+
+                // Draw contour ellipses at 1σ, 2σ, 3σ
+                const colors = ['#60a5fa', '#34d399', '#fbbf24'];
+                const sigmaLevels = [1, 2, 3];
+
+                sigmaLevels.forEach((sigmaLevel, idx) => {
+                    ctx.strokeStyle = colors[idx];
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.7;
+
+                    // Draw ellipse
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+
+                    // Get ellipse parameters from eigenvalues/eigenvectors
+                    const lambda1 = eigenvalues[0];
+                    const lambda2 = eigenvalues[1];
+                    const a = Math.sqrt(lambda1) * sigmaLevel * scale;
+                    const b = Math.sqrt(lambda2) * sigmaLevel * scale;
+                    const angle = Math.atan2(eigenvectors[0][1], eigenvectors[0][0]);
+
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, a, b, 0, 0, 2 * Math.PI);
+                    ctx.stroke();
+
+                    ctx.restore();
+                });
+
+                ctx.globalAlpha = 1.0;
+
+                // Draw eigenvectors (principal directions) as arrows
+                ctx.save();
+                ctx.translate(centerX, centerY);
+
+                for (let i = 0; i < 2; i++) {
+                    const ev = eigenvectors[i];
+                    const lambda = eigenvalues[i];
+                    const length = Math.sqrt(lambda) * scale * 2;
+
+                    ctx.strokeStyle = i === 0 ? '#f87171' : '#a78bfa';
+                    ctx.fillStyle = i === 0 ? '#f87171' : '#a78bfa';
+                    ctx.lineWidth = 2;
+
+                    // Draw line
+                    ctx.beginPath();
+                    ctx.moveTo(-ev[0] * length, -ev[1] * length);
+                    ctx.lineTo(ev[0] * length, ev[1] * length);
+                    ctx.stroke();
+
+                    // Draw arrowhead
+                    const arrowLen = 15;
+                    const angle = Math.atan2(ev[1], ev[0]);
+                    const endX = ev[0] * length;
+                    const endY = ev[1] * length;
+
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(endX - arrowLen * Math.cos(angle - Math.PI / 6), endY - arrowLen * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(endX - arrowLen * Math.cos(angle + Math.PI / 6), endY - arrowLen * Math.sin(angle + Math.PI / 6));
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                ctx.restore();
+
+                // Draw labels
+                ctx.fillStyle = '#d1d5db';
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'right';
+                for (let i = -3; i <= 3; i++) {
+                    if (i !== 0) {
+                        ctx.fillText(i, centerX - 10, centerY + i * scale + 4);
+                    }
+                }
+                ctx.textAlign = 'center';
+                for (let i = -3; i <= 3; i++) {
+                    if (i !== 0) {
+                        ctx.fillText(i, centerX + i * scale, centerY + 20);
+                    }
+                }
+
+            }, [params.sigma1Sq, params.sigma2Sq, params.rho]);
+
+            const handleSliderChange = (param, value) => {
+                setParams({
+                    ...params,
+                    [param]: value
+                });
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white py-6 px-8 shadow-lg">
+                        <div className="max-w-7xl mx-auto flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-bold">2D Bivariate Gaussian Distribution</h1>
+                                <p className="text-gray-300 mt-2">Interactive Covariance Matrix Visualization - IME 775</p>
+                            </div>
+                            <a href="../../index.html" className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold transition">
+                                ← Back
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto p-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Canvas */}
+                            <div className="lg:col-span-2">
+                                <div className="bg-gray-800 p-4 rounded-lg shadow-lg">
+                                    <h2 className="text-xl font-bold text-white mb-4">Contour Ellipses</h2>
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={params.canvasWidth}
+                                        height={params.canvasHeight}
+                                        className="border-2 border-gray-600 rounded bg-gray-900 w-full"
+                                    />
+                                    <div className="mt-4 text-sm text-gray-300">
+                                        <p className="font-semibold text-blue-300">1σ (Blue)</p>
+                                        <p className="font-semibold text-green-300">2σ (Green)</p>
+                                        <p className="font-semibold text-yellow-300">3σ (Yellow)</p>
+                                        <p className="font-semibold text-red-300 mt-2">Primary Eigenvector (Red)</p>
+                                        <p className="font-semibold text-purple-300">Secondary Eigenvector (Purple)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Controls and Info */}
+                            <div className="lg:col-span-1">
+                                {/* Parameters */}
+                                <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                                    <h3 className="text-lg font-bold text-white mb-6">Parameters</h3>
+
+                                    {/* σ₁² */}
+                                    <div className="mb-6">
+                                        <label className="block text-gray-300 font-semibold mb-2">
+                                            σ₁² (Variance X₁): {params.sigma1Sq.toFixed(2)}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0.5"
+                                            max="5"
+                                            step="0.1"
+                                            value={params.sigma1Sq}
+                                            onChange={(e) => handleSliderChange('sigma1Sq', parseFloat(e.target.value))}
+                                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                        <div className="text-xs text-gray-400 mt-1">0.5 - 5.0</div>
+                                    </div>
+
+                                    {/* σ₂² */}
+                                    <div className="mb-6">
+                                        <label className="block text-gray-300 font-semibold mb-2">
+                                            σ₂² (Variance X₂): {params.sigma2Sq.toFixed(2)}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0.5"
+                                            max="5"
+                                            step="0.1"
+                                            value={params.sigma2Sq}
+                                            onChange={(e) => handleSliderChange('sigma2Sq', parseFloat(e.target.value))}
+                                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                        <div className="text-xs text-gray-400 mt-1">0.5 - 5.0</div>
+                                    </div>
+
+                                    {/* ρ */}
+                                    <div className="mb-6">
+                                        <label className="block text-gray-300 font-semibold mb-2">
+                                            ρ (Correlation): {params.rho.toFixed(2)}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="-0.95"
+                                            max="0.95"
+                                            step="0.05"
+                                            value={params.rho}
+                                            onChange={(e) => handleSliderChange('rho', parseFloat(e.target.value))}
+                                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                        <div className="text-xs text-gray-400 mt-1">-0.95 - 0.95</div>
+                                    </div>
+                                </div>
+
+                                {/* Covariance Matrix */}
+                                <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                                    <h3 className="text-lg font-bold text-white mb-4">Covariance Matrix Σ</h3>
+                                    <div className="bg-gray-900 p-4 rounded font-mono text-sm text-gray-200">
+                                        <div className="flex justify-center gap-4">
+                                            <div>
+                                                <div>σ₁₁ = {sigma[0][0].toFixed(3)}</div>
+                                                <div>σ₂₁ = {sigma[1][0].toFixed(3)}</div>
+                                            </div>
+                                            <div>
+                                                <div>σ₁₂ = {sigma[0][1].toFixed(3)}</div>
+                                                <div>σ₂₂ = {sigma[1][1].toFixed(3)}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Eigenvalues and Eigenvectors */}
+                                <div className="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                                    <h3 className="text-lg font-bold text-white mb-4">Eigen Decomposition</h3>
+                                    <div className="space-y-3 text-sm">
+                                        <div>
+                                            <div className="text-gray-400">λ₁ (Primary):</div>
+                                            <div className="text-blue-300 font-mono">{eigenvalues[0].toFixed(4)}</div>
+                                            <div className="text-gray-400 text-xs mt-1">v₁: [{eigenvectors[0][0].toFixed(3)}, {eigenvectors[0][1].toFixed(3)}]</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-gray-400">λ₂ (Secondary):</div>
+                                            <div className="text-purple-300 font-mono">{eigenvalues[1].toFixed(4)}</div>
+                                            <div className="text-gray-400 text-xs mt-1">v₂: [{eigenvectors[1][0].toFixed(3)}, {eigenvectors[1][1].toFixed(3)}]</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Shape Classification */}
+                                <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                    <h3 className="text-lg font-bold text-white mb-3">Shape Classification</h3>
+                                    <div className="bg-gradient-to-r from-amber-600 to-orange-600 p-3 rounded text-white font-semibold">
+                                        {getShapeType()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Information Section */}
+                        <div className="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+                            <h3 className="text-lg font-bold text-white mb-4">About This Visualization</h3>
+                            <div className="text-gray-300 space-y-3 text-sm">
+                                <p>
+                                    This interactive visualization demonstrates how the covariance matrix controls the shape of a
+                                    2D bivariate Gaussian distribution. The ellipse contours represent regions of constant probability density.
+                                </p>
+                                <p>
+                                    <strong>Parameters:</strong> Adjust σ₁² and σ₂² to control the spread along each axis, and ρ to control
+                                    the correlation between variables. The eigenvectors (principal directions) indicate the axes of the ellipse.
+                                </p>
+                                <p>
+                                    <strong>Contour Levels:</strong> Blue, green, and yellow ellipses show 1σ, 2σ, and 3σ confidence regions
+                                    (containing approximately 68%, 95%, and 99.7% of the probability mass, respectively).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<GaussianVisualizer />);
+    </script>
+</body>
+</html>

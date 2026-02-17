@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1D Gaussian Distribution Visualization - IME 775</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const App = () => {
+            const [mu, setMu] = React.useState(0);
+            const [sigma, setSigma] = React.useState(1);
+            const [showRegions, setShowRegions] = React.useState(true);
+            const canvasRef = React.useRef(null);
+
+            // Gaussian PDF function
+            const gaussian = (x, mu, sigma) => {
+                const coeff = 1 / (sigma * Math.sqrt(2 * Math.PI));
+                const exponent = -0.5 * Math.pow((x - mu) / sigma, 2);
+                return coeff * Math.exp(exponent);
+            };
+
+            // Peak height calculation
+            const peakHeight = 1 / (sigma * Math.sqrt(2 * Math.PI));
+
+            // Draw the visualization
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                const padding = 50;
+
+                // Clear canvas
+                ctx.fillStyle = '#f9fafb';
+                ctx.fillRect(0, 0, width, height);
+
+                // Calculate plot area
+                const plotLeft = padding;
+                const plotRight = width - padding;
+                const plotTop = padding;
+                const plotBottom = height - padding;
+                const plotWidth = plotRight - plotLeft;
+                const plotHeight = plotBottom - plotTop;
+
+                // Define x-axis range (centered around mu, extended to ±4σ)
+                const xMin = mu - 4 * sigma;
+                const xMax = mu + 4 * sigma;
+                const xRange = xMax - xMin;
+
+                // Function to convert data coordinates to canvas coordinates
+                const dataToCanvas = (x, y) => {
+                    const canvasX = plotLeft + ((x - xMin) / xRange) * plotWidth;
+                    const canvasY = plotBottom - (y / peakHeight) * plotHeight;
+                    return { x: canvasX, y: canvasY };
+                };
+
+                // Draw shaded regions for 1σ, 2σ, 3σ if enabled
+                if (showRegions) {
+                    // 3σ region (lightest)
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.05)';
+                    ctx.fillRect(
+                        dataToCanvas(mu - 3 * sigma, 0).x,
+                        plotTop,
+                        dataToCanvas(mu + 3 * sigma, 0).x - dataToCanvas(mu - 3 * sigma, 0).x,
+                        plotHeight
+                    );
+
+                    // 2σ region
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+                    ctx.fillRect(
+                        dataToCanvas(mu - 2 * sigma, 0).x,
+                        plotTop,
+                        dataToCanvas(mu + 2 * sigma, 0).x - dataToCanvas(mu - 2 * sigma, 0).x,
+                        plotHeight
+                    );
+
+                    // 1σ region (darkest)
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+                    ctx.fillRect(
+                        dataToCanvas(mu - sigma, 0).x,
+                        plotTop,
+                        dataToCanvas(mu + sigma, 0).x - dataToCanvas(mu - sigma, 0).x,
+                        plotHeight
+                    );
+                }
+
+                // Draw axes
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(plotLeft, plotBottom);
+                ctx.lineTo(plotRight, plotBottom);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(plotLeft, plotTop);
+                ctx.lineTo(plotLeft, plotBottom);
+                ctx.stroke();
+
+                // Draw axis labels and ticks
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+
+                const numXTicks = 9;
+                for (let i = 0; i <= numXTicks; i++) {
+                    const x = xMin + (i / numXTicks) * xRange;
+                    const canvasPos = dataToCanvas(x, 0);
+
+                    ctx.beginPath();
+                    ctx.moveTo(canvasPos.x, plotBottom);
+                    ctx.lineTo(canvasPos.x, plotBottom + 5);
+                    ctx.stroke();
+
+                    ctx.fillText(x.toFixed(1), canvasPos.x, plotBottom + 20);
+                }
+
+                // Y-axis labels
+                ctx.textAlign = 'right';
+                const yTicks = 5;
+                for (let i = 0; i <= yTicks; i++) {
+                    const y = (i / yTicks) * peakHeight;
+                    const canvasPos = dataToCanvas(0, y);
+
+                    ctx.beginPath();
+                    ctx.moveTo(plotLeft - 5, canvasPos.y);
+                    ctx.lineTo(plotLeft, canvasPos.y);
+                    ctx.stroke();
+
+                    ctx.fillText(y.toFixed(3), plotLeft - 10, canvasPos.y + 4);
+                }
+
+                // Draw the Gaussian curve
+                ctx.strokeStyle = '#1e40af';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+
+                const numPoints = 1000;
+                for (let i = 0; i <= numPoints; i++) {
+                    const x = xMin + (i / numPoints) * xRange;
+                    const y = gaussian(x, mu, sigma);
+                    const canvasPos = dataToCanvas(x, y);
+
+                    if (i === 0) {
+                        ctx.moveTo(canvasPos.x, canvasPos.y);
+                    } else {
+                        ctx.lineTo(canvasPos.x, canvasPos.y);
+                    }
+                }
+                ctx.stroke();
+
+                // Draw vertical lines for μ, μ±σ, μ±2σ, μ±3σ
+                ctx.strokeStyle = '#9ca3af';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+
+                const sigmaLines = [1, 2, 3];
+                sigmaLines.forEach(n => {
+                    [mu - n * sigma, mu + n * sigma].forEach(x => {
+                        const canvasX = dataToCanvas(x, 0).x;
+                        ctx.beginPath();
+                        ctx.moveTo(canvasX, plotTop);
+                        ctx.lineTo(canvasX, plotBottom);
+                        ctx.stroke();
+                    });
+                });
+
+                // Mean line (solid)
+                ctx.setLineDash([]);
+                ctx.strokeStyle = '#dc2626';
+                ctx.lineWidth = 2;
+                const muCanvasX = dataToCanvas(mu, 0).x;
+                ctx.beginPath();
+                ctx.moveTo(muCanvasX, plotTop);
+                ctx.lineTo(muCanvasX, plotBottom);
+                ctx.stroke();
+
+                // Axis titles
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('x', plotRight - 20, plotBottom + 40);
+
+                ctx.textAlign = 'left';
+                ctx.save();
+                ctx.translate(20, plotTop + plotHeight / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Probability Density', 0, 0);
+                ctx.restore();
+            }, [mu, sigma, showRegions]);
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <div className="bg-gray-900 text-white shadow-lg">
+                        <div className="max-w-7xl mx-auto px-6 py-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-3xl font-bold">1D Gaussian Distribution</h1>
+                                    <p className="text-gray-300 text-sm mt-1">IME 775 - Mathematical Foundations of Deep Learning</p>
+                                </div>
+                                <a
+                                    href="../../index.html"
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+                                >
+                                    Back to Index
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                        <div className="bg-white rounded-lg shadow-md p-8">
+                            {/* Controls */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                                {/* Mean Slider */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Mean (μ): <span className="text-blue-600">{mu.toFixed(2)}</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="-5"
+                                        max="5"
+                                        step="0.1"
+                                        value={mu}
+                                        onChange={(e) => setMu(parseFloat(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <div className="text-xs text-gray-500 mt-1">Range: -5 to 5</div>
+                                </div>
+
+                                {/* Standard Deviation Slider */}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Std Dev (σ): <span className="text-blue-600">{sigma.toFixed(2)}</span>
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0.5"
+                                        max="3"
+                                        step="0.1"
+                                        value={sigma}
+                                        onChange={(e) => setSigma(parseFloat(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <div className="text-xs text-gray-500 mt-1">Range: 0.5 to 3</div>
+                                </div>
+
+                                {/* Toggle Regions */}
+                                <div className="flex items-end">
+                                    <button
+                                        onClick={() => setShowRegions(!showRegions)}
+                                        className={`w-full px-4 py-2 rounded-lg font-medium transition ${
+                                            showRegions
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                                        }`}
+                                    >
+                                        {showRegions ? 'Hide' : 'Show'} σ Regions
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Canvas */}
+                            <div className="mb-8 border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                                <canvas
+                                    ref={canvasRef}
+                                    width={900}
+                                    height={500}
+                                    className="w-full"
+                                />
+                            </div>
+
+                            {/* Information Panels */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* PDF Formula */}
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4">Probability Density Function</h3>
+                                    <div className="bg-white rounded p-4 font-mono text-sm text-gray-700 mb-4">
+                                        f(x) = (1 / (σ√(2π))) × exp(-(x - μ)² / (2σ²))
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                        <div><span className="font-semibold text-gray-700">μ (mean):</span> <span className="text-blue-600">{mu.toFixed(2)}</span></div>
+                                        <div><span className="font-semibold text-gray-700">σ (std dev):</span> <span className="text-blue-600">{sigma.toFixed(2)}</span></div>
+                                    </div>
+                                </div>
+
+                                {/* Statistics */}
+                                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4">Distribution Statistics</h3>
+                                    <div className="space-y-3">
+                                        <div className="bg-white rounded p-3">
+                                            <div className="text-xs text-gray-500 font-semibold">Peak Height (at x = μ)</div>
+                                            <div className="text-lg font-bold text-green-600">{peakHeight.toFixed(4)}</div>
+                                            <div className="text-xs text-gray-600 mt-1">f(μ) = 1/(σ√(2π))</div>
+                                        </div>
+                                        <div className="bg-white rounded p-3">
+                                            <div className="text-xs text-gray-500 font-semibold">Variance</div>
+                                            <div className="text-lg font-bold text-green-600">{(sigma * sigma).toFixed(4)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 68-95-99.7 Rule */}
+                            <div className="mt-8 bg-amber-50 border border-amber-200 rounded-lg p-6">
+                                <h3 className="text-lg font-bold text-gray-800 mb-4">Empirical Rule (68-95-99.7)</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-white rounded p-4 border-l-4 border-blue-400">
+                                        <div className="text-sm font-semibold text-gray-600">1σ Region</div>
+                                        <div className="text-2xl font-bold text-blue-600 mt-1">68%</div>
+                                        <div className="text-xs text-gray-600 mt-2">
+                                            [{(mu - sigma).toFixed(2)}, {(mu + sigma).toFixed(2)}]
+                                        </div>
+                                    </div>
+                                    <div className="bg-white rounded p-4 border-l-4 border-blue-500">
+                                        <div className="text-sm font-semibold text-gray-600">2σ Region</div>
+                                        <div className="text-2xl font-bold text-blue-600 mt-1">95%</div>
+                                        <div className="text-xs text-gray-600 mt-2">
+                                            [{(mu - 2 * sigma).toFixed(2)}, {(mu + 2 * sigma).toFixed(2)}]
+                                        </div>
+                                    </div>
+                                    <div className="bg-white rounded p-4 border-l-4 border-blue-600">
+                                        <div className="text-sm font-semibold text-gray-600">3σ Region</div>
+                                        <div className="text-2xl font-bold text-blue-600 mt-1">99.7%</div>
+                                        <div className="text-xs text-gray-600 mt-2">
+                                            [{(mu - 3 * sigma).toFixed(2)}, {(mu + 3 * sigma).toFixed(2)}]
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Legend */}
+                            <div className="mt-8 pt-6 border-t border-gray-300">
+                                <h4 className="font-semibold text-gray-700 mb-3">Legend</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-4 h-4 bg-blue-600 rounded"></div>
+                                        <span className="text-sm text-gray-700">Gaussian Curve</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-4 h-1 bg-red-600 rounded"></div>
+                                        <span className="text-sm text-gray-700">Mean (μ)</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 bg-blue-400/20 border border-gray-300 rounded"></div>
+                                        <span className="text-sm text-gray-700">1σ Region (68%)</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 bg-blue-400/10 border border-gray-300 rounded"></div>
+                                        <span className="text-sm text-gray-700">3σ Region (99.7%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

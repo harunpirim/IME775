@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discrete Distributions Explorer - IME 775</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas {
+            border: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+        }
+        .distribution-tab {
+            transition: all 0.2s ease;
+        }
+        .distribution-tab.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #1f2937;
+        }
+        .distribution-tab:not(.active) {
+            color: #6b7280;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const e = React.createElement;
+
+        // Utility functions for distributions
+        const distributions = {
+            bernoulli: {
+                pmf: (x, theta) => {
+                    if (x === 0) return 1 - theta;
+                    if (x === 1) return theta;
+                    return 0;
+                },
+                mean: (theta) => theta,
+                variance: (theta) => theta * (1 - theta),
+            },
+            binomial: {
+                pmf: (x, n, theta) => {
+                    if (x < 0 || x > n || !Number.isInteger(x)) return 0;
+                    const binom = (n, k) => {
+                        let result = 1;
+                        for (let i = 0; i < k; i++) {
+                            result *= (n - i) / (i + 1);
+                        }
+                        return result;
+                    };
+                    return binom(n, x) * Math.pow(theta, x) * Math.pow(1 - theta, n - x);
+                },
+                mean: (n, theta) => n * theta,
+                variance: (n, theta) => n * theta * (1 - theta),
+            },
+            categorical: {
+                pmf: (x, probs) => {
+                    if (x < 0 || x >= probs.length) return 0;
+                    return probs[x];
+                },
+            },
+            multinomial: {
+                pmf: (counts, probs, n) => {
+                    // This returns the expected value, not full PMF
+                    let result = [];
+                    for (let i = 0; i < probs.length; i++) {
+                        result.push(n * probs[i]);
+                    }
+                    return result;
+                },
+                variance: (counts, probs, n) => {
+                    let result = [];
+                    for (let i = 0; i < probs.length; i++) {
+                        result.push(n * probs[i] * (1 - probs[i]));
+                    }
+                    return result;
+                },
+            },
+        };
+
+        function BarChart({ data, labels, title, xLabel, yLabel }) {
+            const canvasRef = React.useRef(null);
+
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                const padding = 50;
+
+                // Clear canvas
+                ctx.fillStyle = '#f9fafb';
+                ctx.fillRect(0, 0, width, height);
+
+                // Find max for scaling
+                const maxValue = Math.max(...data);
+                const scale = maxValue > 0 ? (height - 2 * padding) / maxValue : height - 2 * padding;
+
+                // Draw axes
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(padding, padding);
+                ctx.lineTo(padding, height - padding);
+                ctx.lineTo(width - padding, height - padding);
+                ctx.stroke();
+
+                // Draw labels
+                ctx.fillStyle = '#374151';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(xLabel, width / 2, height - 10);
+
+                ctx.save();
+                ctx.translate(10, height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'center';
+                ctx.fillText(yLabel, 0, 0);
+                ctx.restore();
+
+                // Draw bars
+                const barWidth = (width - 2 * padding) / data.length;
+                const spacing = barWidth * 0.1;
+                const actualBarWidth = barWidth - spacing;
+
+                data.forEach((value, index) => {
+                    const x = padding + index * barWidth + spacing / 2;
+                    const barHeight = value * scale;
+                    const y = height - padding - barHeight;
+
+                    // Draw bar
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(x, y, actualBarWidth, barHeight);
+
+                    // Draw label
+                    ctx.fillStyle = '#374151';
+                    ctx.font = '12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(labels[index], x + actualBarWidth / 2, height - padding + 20);
+
+                    // Draw value on bar
+                    ctx.fillStyle = '#1f2937';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(value.toFixed(3), x + actualBarWidth / 2, y - 5);
+                });
+
+                // Draw title
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(title, width / 2, 25);
+            }, [data, labels, title]);
+
+            return e('canvas', {
+                ref: canvasRef,
+                width: 600,
+                height: 350,
+                className: 'border border-gray-300 bg-gray-50 rounded',
+            });
+        }
+
+        function BernoulliTab() {
+            const state = React.useState(0.5);
+            const theta = state[0];
+            const setTheta = state[1];
+
+            const p0 = distributions.bernoulli.pmf(0, theta);
+            const p1 = distributions.bernoulli.pmf(1, theta);
+            const mean = distributions.bernoulli.mean(theta);
+            const variance = distributions.bernoulli.variance(theta);
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: 'bg-white p-6 rounded-lg shadow' },
+                    e('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Bernoulli Distribution'),
+                    e('div', { className: 'space-y-4' },
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `θ (probability): ${theta.toFixed(3)}`),
+                            e('input', {
+                                type: 'range',
+                                min: '0',
+                                max: '1',
+                                step: '0.01',
+                                value: theta,
+                                onChange: (evt) => setTheta(parseFloat(evt.target.value)),
+                                className: 'w-full'
+                            })
+                        )
+                    )
+                ),
+                e(BarChart, {
+                    data: [p0, p1],
+                    labels: ['X=0', 'X=1'],
+                    title: 'Probability Mass Function',
+                    xLabel: 'Outcome',
+                    yLabel: 'Probability'
+                }),
+                e('div', { className: 'grid grid-cols-2 gap-4' },
+                    e('div', { className: 'bg-blue-50 p-4 rounded border-l-4 border-blue-500' },
+                        e('p', { className: 'text-sm font-medium text-gray-700' }, 'Expected Value (E[X])'),
+                        e('p', { className: 'text-2xl font-bold text-blue-600' }, mean.toFixed(4))
+                    ),
+                    e('div', { className: 'bg-green-50 p-4 rounded border-l-4 border-green-500' },
+                        e('p', { className: 'text-sm font-medium text-gray-700' }, 'Variance (Var[X])'),
+                        e('p', { className: 'text-2xl font-bold text-green-600' }, variance.toFixed(4))
+                    )
+                )
+            );
+        }
+
+        function BinomialTab() {
+            const nState = React.useState(10);
+            const n = nState[0];
+            const setN = nState[1];
+
+            const thetaState = React.useState(0.5);
+            const theta = thetaState[0];
+            const setTheta = thetaState[1];
+
+            const data = [];
+            const labels = [];
+            for (let x = 0; x <= n; x++) {
+                data.push(distributions.binomial.pmf(x, n, theta));
+                labels.push(x.toString());
+            }
+
+            const mean = distributions.binomial.mean(n, theta);
+            const variance = distributions.binomial.variance(n, theta);
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: 'bg-white p-6 rounded-lg shadow' },
+                    e('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Binomial Distribution'),
+                    e('div', { className: 'space-y-4' },
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `n (trials): ${n}`),
+                            e('input', {
+                                type: 'range',
+                                min: '1',
+                                max: '30',
+                                step: '1',
+                                value: n,
+                                onChange: (evt) => setN(parseInt(evt.target.value)),
+                                className: 'w-full'
+                            })
+                        ),
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `θ (probability): ${theta.toFixed(3)}`),
+                            e('input', {
+                                type: 'range',
+                                min: '0',
+                                max: '1',
+                                step: '0.01',
+                                value: theta,
+                                onChange: (evt) => setTheta(parseFloat(evt.target.value)),
+                                className: 'w-full'
+                            })
+                        )
+                    )
+                ),
+                e(BarChart, {
+                    data: data,
+                    labels: labels,
+                    title: 'Probability Mass Function',
+                    xLabel: 'Number of Successes',
+                    yLabel: 'Probability'
+                }),
+                e('div', { className: 'grid grid-cols-2 gap-4' },
+                    e('div', { className: 'bg-blue-50 p-4 rounded border-l-4 border-blue-500' },
+                        e('p', { className: 'text-sm font-medium text-gray-700' }, 'Expected Value (E[X])'),
+                        e('p', { className: 'text-2xl font-bold text-blue-600' }, mean.toFixed(4))
+                    ),
+                    e('div', { className: 'bg-green-50 p-4 rounded border-l-4 border-green-500' },
+                        e('p', { className: 'text-sm font-medium text-gray-700' }, 'Variance (Var[X])'),
+                        e('p', { className: 'text-2xl font-bold text-green-600' }, variance.toFixed(4))
+                    )
+                )
+            );
+        }
+
+        function CategoricalTab() {
+            const p1State = React.useState(0.33);
+            const p1 = p1State[0];
+            const setP1 = p1State[1];
+
+            const p2State = React.useState(0.33);
+            const p2 = p2State[0];
+            const setP2 = p2State[1];
+
+            // p3 is constrained to sum to 1
+            const p3 = Math.max(0, 1 - p1 - p2);
+
+            const handleP1Change = (val) => {
+                const newP1 = parseFloat(val);
+                if (newP1 + p2 <= 1) {
+                    setP1(newP1);
+                }
+            };
+
+            const handleP2Change = (val) => {
+                const newP2 = parseFloat(val);
+                if (p1 + newP2 <= 1) {
+                    setP2(newP2);
+                }
+            };
+
+            const probs = [p1, p2, p3];
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: 'bg-white p-6 rounded-lg shadow' },
+                    e('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Categorical Distribution (K=3)'),
+                    e('div', { className: 'space-y-4' },
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `p₁ (Category 1): ${p1.toFixed(3)}`),
+                            e('input', {
+                                type: 'range',
+                                min: '0',
+                                max: '1',
+                                step: '0.01',
+                                value: p1,
+                                onChange: (evt) => handleP1Change(evt.target.value),
+                                className: 'w-full'
+                            })
+                        ),
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `p₂ (Category 2): ${p2.toFixed(3)}`),
+                            e('input', {
+                                type: 'range',
+                                min: '0',
+                                max: 1 - p1,
+                                step: '0.01',
+                                value: p2,
+                                onChange: (evt) => handleP2Change(evt.target.value),
+                                className: 'w-full'
+                            })
+                        ),
+                        e('div', { className: 'bg-gray-50 p-3 rounded border border-gray-200' },
+                            e('p', { className: 'text-sm font-medium text-gray-700' }, `p₃ (Category 3): ${p3.toFixed(3)} (auto-constrained)`),
+                            e('p', { className: 'text-xs text-gray-500 mt-1' }, 'Sum of probabilities: ' + (p1 + p2 + p3).toFixed(3))
+                        )
+                    )
+                ),
+                e(BarChart, {
+                    data: probs,
+                    labels: ['Category 1', 'Category 2', 'Category 3'],
+                    title: 'Probability Mass Function',
+                    xLabel: 'Category',
+                    yLabel: 'Probability'
+                })
+            );
+        }
+
+        function MultinomialTab() {
+            const nState = React.useState(20);
+            const n = nState[0];
+            const setN = nState[1];
+
+            const p1State = React.useState(0.33);
+            const p1 = p1State[0];
+            const setP1 = p1State[1];
+
+            const p2State = React.useState(0.33);
+            const p2 = p2State[0];
+            const setP2 = p2State[1];
+
+            const p3 = Math.max(0, 1 - p1 - p2);
+
+            const handleP1Change = (val) => {
+                const newP1 = parseFloat(val);
+                if (newP1 + p2 <= 1) {
+                    setP1(newP1);
+                }
+            };
+
+            const handleP2Change = (val) => {
+                const newP2 = parseFloat(val);
+                if (p1 + newP2 <= 1) {
+                    setP2(newP2);
+                }
+            };
+
+            const probs = [p1, p2, p3];
+
+            // Expected counts
+            const expectedCounts = distributions.multinomial.pmf([0, 0, 0], probs, n);
+            const variances = distributions.multinomial.variance([0, 0, 0], probs, n);
+            const stdDevs = variances.map(v => Math.sqrt(v));
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: 'bg-white p-6 rounded-lg shadow' },
+                    e('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'Multinomial Distribution (K=3)'),
+                    e('div', { className: 'space-y-4' },
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `n (total trials): ${n}`),
+                            e('input', {
+                                type: 'range',
+                                min: '1',
+                                max: '100',
+                                step: '1',
+                                value: n,
+                                onChange: (evt) => setN(parseInt(evt.target.value)),
+                                className: 'w-full'
+                            })
+                        ),
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `p₁: ${p1.toFixed(3)}`),
+                            e('input', {
+                                type: 'range',
+                                min: '0',
+                                max: '1',
+                                step: '0.01',
+                                value: p1,
+                                onChange: (evt) => handleP1Change(evt.target.value),
+                                className: 'w-full'
+                            })
+                        ),
+                        e('div', null,
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, `p₂: ${p2.toFixed(3)}`),
+                            e('input', {
+                                type: 'range',
+                                min: '0',
+                                max: 1 - p1,
+                                step: '0.01',
+                                value: p2,
+                                onChange: (evt) => handleP2Change(evt.target.value),
+                                className: 'w-full'
+                            })
+                        ),
+                        e('div', { className: 'bg-gray-50 p-3 rounded border border-gray-200' },
+                            e('p', { className: 'text-sm font-medium text-gray-700' }, `p₃: ${p3.toFixed(3)} (auto-constrained)`)
+                        )
+                    )
+                ),
+                e(BarChartWithErrorBars, {
+                    data: expectedCounts,
+                    errors: stdDevs,
+                    labels: ['Category 1', 'Category 2', 'Category 3'],
+                    title: 'Expected Counts with ±1 Std Dev',
+                    xLabel: 'Category',
+                    yLabel: 'Expected Count'
+                }),
+                e('div', { className: 'grid grid-cols-3 gap-3' },
+                    e('div', { className: 'bg-blue-50 p-3 rounded border-l-4 border-blue-500' },
+                        e('p', { className: 'text-xs font-medium text-gray-700' }, 'E[X₁]'),
+                        e('p', { className: 'text-lg font-bold text-blue-600' }, expectedCounts[0].toFixed(2))
+                    ),
+                    e('div', { className: 'bg-purple-50 p-3 rounded border-l-4 border-purple-500' },
+                        e('p', { className: 'text-xs font-medium text-gray-700' }, 'E[X₂]'),
+                        e('p', { className: 'text-lg font-bold text-purple-600' }, expectedCounts[1].toFixed(2))
+                    ),
+                    e('div', { className: 'bg-pink-50 p-3 rounded border-l-4 border-pink-500' },
+                        e('p', { className: 'text-xs font-medium text-gray-700' }, 'E[X₃]'),
+                        e('p', { className: 'text-lg font-bold text-pink-600' }, expectedCounts[2].toFixed(2))
+                    )
+                )
+            );
+        }
+
+        function BarChartWithErrorBars({ data, errors, labels, title, xLabel, yLabel }) {
+            const canvasRef = React.useRef(null);
+
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                const padding = 50;
+
+                // Clear canvas
+                ctx.fillStyle = '#f9fafb';
+                ctx.fillRect(0, 0, width, height);
+
+                // Find max for scaling
+                const maxValue = Math.max(...data.map((d, i) => d + errors[i]));
+                const scale = maxValue > 0 ? (height - 2 * padding) / maxValue : height - 2 * padding;
+
+                // Draw axes
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(padding, padding);
+                ctx.lineTo(padding, height - padding);
+                ctx.lineTo(width - padding, height - padding);
+                ctx.stroke();
+
+                // Draw labels
+                ctx.fillStyle = '#374151';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(xLabel, width / 2, height - 10);
+
+                ctx.save();
+                ctx.translate(10, height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.textAlign = 'center';
+                ctx.fillText(yLabel, 0, 0);
+                ctx.restore();
+
+                // Draw bars with error bars
+                const barWidth = (width - 2 * padding) / data.length;
+                const spacing = barWidth * 0.1;
+                const actualBarWidth = barWidth - spacing;
+
+                const colors = ['#3b82f6', '#a855f7', '#ec4899'];
+
+                data.forEach((value, index) => {
+                    const x = padding + index * barWidth + spacing / 2;
+                    const barHeight = value * scale;
+                    const errorHeight = errors[index] * scale;
+                    const y = height - padding - barHeight;
+
+                    // Draw error bar
+                    ctx.strokeStyle = '#9ca3af';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x + actualBarWidth / 2, y - errorHeight);
+                    ctx.lineTo(x + actualBarWidth / 2, y + errorHeight);
+                    ctx.stroke();
+
+                    // Draw error bar caps
+                    const capWidth = actualBarWidth * 0.4;
+                    ctx.beginPath();
+                    ctx.moveTo(x + actualBarWidth / 2 - capWidth / 2, y - errorHeight);
+                    ctx.lineTo(x + actualBarWidth / 2 + capWidth / 2, y - errorHeight);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(x + actualBarWidth / 2 - capWidth / 2, y + errorHeight);
+                    ctx.lineTo(x + actualBarWidth / 2 + capWidth / 2, y + errorHeight);
+                    ctx.stroke();
+
+                    // Draw bar
+                    ctx.fillStyle = colors[index];
+                    ctx.fillRect(x, y, actualBarWidth, barHeight);
+
+                    // Draw label
+                    ctx.fillStyle = '#374151';
+                    ctx.font = '12px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(labels[index], x + actualBarWidth / 2, height - padding + 20);
+
+                    // Draw value on bar
+                    ctx.fillStyle = '#1f2937';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(value.toFixed(1), x + actualBarWidth / 2, y - 5);
+                });
+
+                // Draw title
+                ctx.fillStyle = '#1f2937';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(title, width / 2, 25);
+            }, [data, errors, labels, title]);
+
+            return e('canvas', {
+                ref: canvasRef,
+                width: 600,
+                height: 350,
+                className: 'border border-gray-300 bg-gray-50 rounded',
+            });
+        }
+
+        function DistributionsExplorer() {
+            const tabState = React.useState('bernoulli');
+            const activeTab = tabState[0];
+            const setActiveTab = tabState[1];
+
+            const tabs = ['bernoulli', 'binomial', 'categorical', 'multinomial'];
+            const tabLabels = {
+                bernoulli: 'Bernoulli',
+                binomial: 'Binomial',
+                categorical: 'Categorical',
+                multinomial: 'Multinomial'
+            };
+
+            return e('div', { className: 'min-h-screen bg-gray-50' },
+                e('header', { className: 'bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg' },
+                    e('div', { className: 'max-w-7xl mx-auto px-6 py-6' },
+                        e('div', { className: 'flex items-center justify-between' },
+                            e('div', null,
+                                e('h1', { className: 'text-3xl font-bold' }, 'Discrete Distributions Explorer'),
+                                e('p', { className: 'text-gray-300 text-sm mt-1' }, 'IME 775: Mathematical Foundations of Deep Learning')
+                            ),
+                            e('a', {
+                                href: '../../index.html',
+                                className: 'text-gray-300 hover:text-white transition-colors'
+                            }, '← Back to Index')
+                        )
+                    )
+                ),
+                e('main', { className: 'max-w-7xl mx-auto px-6 py-8' },
+                    e('div', { className: 'bg-white rounded-lg shadow-md overflow-hidden mb-8' },
+                        e('div', { className: 'flex border-b border-gray-200' },
+                            tabs.map(tab =>
+                                e('button', {
+                                    key: tab,
+                                    onClick: () => setActiveTab(tab),
+                                    className: `distribution-tab flex-1 py-4 px-6 font-medium text-sm transition-colors ${activeTab === tab ? 'active border-b-4 border-blue-500 text-gray-900' : 'text-gray-600 hover:text-gray-900'}`
+                                }, tabLabels[tab])
+                            )
+                        ),
+                        e('div', { className: 'p-8' },
+                            activeTab === 'bernoulli' && e(BernoulliTab),
+                            activeTab === 'binomial' && e(BinomialTab),
+                            activeTab === 'categorical' && e(CategoricalTab),
+                            activeTab === 'multinomial' && e(MultinomialTab)
+                        )
+                    ),
+                    e('div', { className: 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900' },
+                        e('p', { className: 'font-semibold mb-2' }, 'About these distributions:'),
+                        e('ul', { className: 'list-disc list-inside space-y-1' },
+                            e('li', null, 'Bernoulli: Binary outcome (success/failure)'),
+                            e('li', null, 'Binomial: Number of successes in n independent Bernoulli trials'),
+                            e('li', null, 'Categorical: Single draw from K categories with given probabilities'),
+                            e('li', null, 'Multinomial: Counts for K categories in n trials (multivariate generalization of Binomial)')
+                        )
+                    )
+                )
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            e(DistributionsExplorer)
+        );
+    </script>
+</body>
+</html>

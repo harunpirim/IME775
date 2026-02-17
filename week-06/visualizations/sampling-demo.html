@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sampling & Law of Large Numbers Demo - IME 775</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f3f4f6; color: #1f2937; }
+        .header { background: linear-gradient(to right, #334155, #0f172a); color: white; padding: 32px 24px; }
+        .header a { color: #cbd5e1; text-decoration: none; font-size: 14px; }
+        .header a:hover { color: white; }
+        .header h1 { font-size: 28px; margin: 12px 0 4px; }
+        .header p { color: #94a3b8; font-size: 16px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+        .panel { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; position: sticky; top: 24px; align-self: start; }
+        .panel label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .panel select, .panel input[type=range] { width: 100%; margin-bottom: 4px; }
+        .panel select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; background: white; }
+        .param-value { text-align: right; font-size: 13px; font-family: 'Courier New', monospace; color: #2563eb; margin-bottom: 16px; }
+        .quick-btns { display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0 16px; }
+        .quick-btn { padding: 4px 8px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 4px; background: white; cursor: pointer; color: #374151; }
+        .quick-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+        .divider { border-top: 1px solid #d1d5db; margin: 16px 0; padding-top: 16px; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; color: white; cursor: pointer; margin-bottom: 8px; transition: background 0.15s; }
+        .btn:disabled { background: #9ca3af !important; cursor: not-allowed; }
+        .btn-blue { background: #2563eb; } .btn-blue:hover:not(:disabled) { background: #1d4ed8; }
+        .btn-green { background: #16a34a; } .btn-green:hover:not(:disabled) { background: #15803d; }
+        .btn-gray { background: #4b5563; } .btn-gray:hover:not(:disabled) { background: #374151; }
+        .stats { margin-top: 20px; padding-top: 16px; border-top: 1px solid #d1d5db; }
+        .stats h3 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+        .stat-box { background: #f3f4f6; border-left: 4px solid #3b82f6; padding: 10px 12px; border-radius: 4px; margin-bottom: 8px; }
+        .stat-box.orange { background: #fff7ed; border-color: #f97316; }
+        .stat-label { font-size: 12px; color: #6b7280; font-weight: 600; }
+        .stat-value { font-size: 16px; font-weight: 700; font-family: 'Courier New', monospace; }
+        .viz-area { display: flex; flex-direction: column; gap: 24px; }
+        .card { background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+        canvas { border: 1px solid #e5e7eb; background: white; width: 100%; height: auto; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="../../index.html">&larr; Back to Home</a>
+        <h1>Sampling &amp; Law of Large Numbers</h1>
+        <p>Interactive Visualization for IME 775: Mathematical Foundations of Deep Learning</p>
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="panel" id="controlPanel">
+            <label>Distribution</label>
+            <select id="distSelect">
+                <option value="gaussian">Gaussian</option>
+                <option value="uniform">Uniform</option>
+                <option value="bernoulli">Bernoulli</option>
+            </select>
+            <div style="height:16px"></div>
+
+            <div id="paramControls"></div>
+
+            <div class="divider">
+                <label id="nLabel">Number of Samples: 100</label>
+                <input type="range" id="nSlider" min="10" max="5000" step="10" value="100">
+                <div class="quick-btns" id="quickBtns"></div>
+            </div>
+
+            <button class="btn btn-blue" id="btnSample">Sample</button>
+            <button class="btn btn-green" id="btnAnimate">Animate</button>
+            <button class="btn btn-gray" id="btnClear">Clear</button>
+
+            <div class="stats">
+                <h3>Statistics</h3>
+                <div class="stat-box"><div class="stat-label">Sample Mean</div><div class="stat-value" id="statSampleMean">0.0000</div></div>
+                <div class="stat-box"><div class="stat-label">True Mean</div><div class="stat-value" id="statTrueMean">0.0000</div></div>
+                <div class="stat-box"><div class="stat-label">Sample Variance</div><div class="stat-value" id="statSampleVar">0.0000</div></div>
+                <div class="stat-box"><div class="stat-label">True Variance</div><div class="stat-value" id="statTrueVar">0.0000</div></div>
+                <div class="stat-box orange"><div class="stat-label">Sample Count</div><div class="stat-value" id="statCount">0</div></div>
+            </div>
+        </div>
+
+        <!-- Visualization Area -->
+        <div class="viz-area">
+            <div class="card">
+                <h2>Histogram of Samples</h2>
+                <canvas id="histCanvas" width="700" height="400"></canvas>
+            </div>
+            <div class="card">
+                <h2>Convergence of Sample Mean (Law of Large Numbers)</h2>
+                <canvas id="convCanvas" width="700" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // v4 — Pure vanilla JS, zero CDN dependencies
+    (function() {
+        "use strict";
+
+        // ═══════════════════════════════════════════
+        // Distribution definitions
+        // ═══════════════════════════════════════════
+        var distributions = {
+            gaussian: {
+                name: "Gaussian",
+                params: [
+                    { key: "mu",    label: "Mean (\u03BC)",     min: -5,  max: 5, step: 0.1, defaultVal: 0 },
+                    { key: "sigma", label: "Std Dev (\u03C3)",  min: 0.1, max: 3, step: 0.1, defaultVal: 1 }
+                ],
+                sample: function(p) {
+                    var u1 = Math.random(), u2 = Math.random();
+                    var z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                    return p.mu + p.sigma * z;
+                },
+                pdf: function(x, p) {
+                    var d = x - p.mu;
+                    return (1 / (p.sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-d * d / (2 * p.sigma * p.sigma));
+                },
+                pmf: null,
+                mean: function(p) { return p.mu; },
+                variance: function(p) { return p.sigma * p.sigma; },
+                range: function(p) { return [p.mu - 4 * p.sigma, p.mu + 4 * p.sigma]; }
+            },
+            uniform: {
+                name: "Uniform",
+                params: [
+                    { key: "a", label: "Lower bound (a)", min: -10, max: 0,  step: 0.1, defaultVal: 0 },
+                    { key: "b", label: "Upper bound (b)", min: 0,   max: 10, step: 0.1, defaultVal: 1 }
+                ],
+                sample: function(p) { return p.a + Math.random() * (p.b - p.a); },
+                pdf: function(x, p) { return (x >= p.a && x <= p.b) ? 1 / (p.b - p.a) : 0; },
+                pmf: null,
+                mean: function(p) { return (p.a + p.b) / 2; },
+                variance: function(p) { var d = p.b - p.a; return d * d / 12; },
+                range: function(p) { return [p.a - 0.5, p.b + 0.5]; }
+            },
+            bernoulli: {
+                name: "Bernoulli",
+                params: [
+                    { key: "theta", label: "Probability (\u03B8)", min: 0, max: 1, step: 0.01, defaultVal: 0.5 }
+                ],
+                sample: function(p) { return Math.random() < p.theta ? 1 : 0; },
+                pdf: null,
+                pmf: function(x, p) {
+                    if (x === 0) return 1 - p.theta;
+                    if (x === 1) return p.theta;
+                    return 0;
+                },
+                mean: function(p) { return p.theta; },
+                variance: function(p) { return p.theta * (1 - p.theta); },
+                range: function() { return [-0.5, 1.5]; }
+            }
+        };
+
+        // ═══════════════════════════════════════════
+        // State
+        // ═══════════════════════════════════════════
+        var state = {
+            distribution: "gaussian",
+            params: { mu: 0, sigma: 1, a: 0, b: 1, theta: 0.5 },
+            n: 100,
+            samples: [],
+            convergenceData: [],
+            animating: false,
+            animTimer: null
+        };
+
+        // ═══════════════════════════════════════════
+        // DOM refs
+        // ═══════════════════════════════════════════
+        var distSelect   = document.getElementById("distSelect");
+        var paramDiv     = document.getElementById("paramControls");
+        var nSlider      = document.getElementById("nSlider");
+        var nLabel       = document.getElementById("nLabel");
+        var quickBtnsDiv = document.getElementById("quickBtns");
+        var btnSample    = document.getElementById("btnSample");
+        var btnAnimate   = document.getElementById("btnAnimate");
+        var btnClear     = document.getElementById("btnClear");
+        var histCanvas   = document.getElementById("histCanvas");
+        var convCanvas   = document.getElementById("convCanvas");
+
+        // ═══════════════════════════════════════════
+        // Helpers
+        // ═══════════════════════════════════════════
+        function getDist() { return distributions[state.distribution]; }
+        function getParams() {
+            var dist = getDist();
+            var p = {};
+            for (var i = 0; i < dist.params.length; i++) {
+                p[dist.params[i].key] = state.params[dist.params[i].key];
+            }
+            return p;
+        }
+
+        // ═══════════════════════════════════════════
+        // Build parameter sliders
+        // ═══════════════════════════════════════════
+        function buildParamControls() {
+            paramDiv.innerHTML = "";
+            var dist = getDist();
+            for (var i = 0; i < dist.params.length; i++) {
+                var pd = dist.params[i];
+                var wrap = document.createElement("div");
+
+                var lbl = document.createElement("label");
+                lbl.textContent = pd.label;
+                wrap.appendChild(lbl);
+
+                var slider = document.createElement("input");
+                slider.type = "range";
+                slider.min = pd.min;
+                slider.max = pd.max;
+                slider.step = pd.step;
+                slider.value = state.params[pd.key];
+                slider.setAttribute("data-key", pd.key);
+                slider.style.width = "100%";
+                slider.addEventListener("input", onParamChange);
+                wrap.appendChild(slider);
+
+                var valDiv = document.createElement("div");
+                valDiv.className = "param-value";
+                valDiv.id = "pval_" + pd.key;
+                valDiv.textContent = Number(state.params[pd.key]).toFixed(2);
+                wrap.appendChild(valDiv);
+
+                paramDiv.appendChild(wrap);
+            }
+        }
+
+        function onParamChange(evt) {
+            var key = evt.target.getAttribute("data-key");
+            state.params[key] = parseFloat(evt.target.value);
+            var valDiv = document.getElementById("pval_" + key);
+            if (valDiv) valDiv.textContent = state.params[key].toFixed(2);
+            updateStats();
+        }
+
+        // ═══════════════════════════════════════════
+        // Quick N buttons
+        // ═══════════════════════════════════════════
+        function buildQuickBtns() {
+            quickBtnsDiv.innerHTML = "";
+            var vals = [10, 50, 100, 500, 1000, 5000];
+            for (var i = 0; i < vals.length; i++) {
+                var b = document.createElement("button");
+                b.className = "quick-btn" + (state.n === vals[i] ? " active" : "");
+                b.textContent = vals[i];
+                b.setAttribute("data-val", vals[i]);
+                b.addEventListener("click", function(e) {
+                    state.n = parseInt(e.target.getAttribute("data-val"));
+                    nSlider.value = state.n;
+                    nLabel.textContent = "Number of Samples: " + state.n;
+                    buildQuickBtns();
+                });
+                quickBtnsDiv.appendChild(b);
+            }
+        }
+
+        // ═══════════════════════════════════════════
+        // Statistics display
+        // ═══════════════════════════════════════════
+        function updateStats() {
+            var dist = getDist();
+            var p = getParams();
+            var trueMean = dist.mean(p);
+            var trueVar  = dist.variance(p);
+
+            document.getElementById("statTrueMean").textContent = trueMean.toFixed(4);
+            document.getElementById("statTrueVar").textContent  = trueVar.toFixed(4);
+
+            if (state.samples.length > 0) {
+                var sum = 0;
+                for (var i = 0; i < state.samples.length; i++) sum += state.samples[i];
+                var mean = sum / state.samples.length;
+                var vsum = 0;
+                for (var j = 0; j < state.samples.length; j++) {
+                    var d = state.samples[j] - mean;
+                    vsum += d * d;
+                }
+                var variance = vsum / state.samples.length;
+                document.getElementById("statSampleMean").textContent = mean.toFixed(4);
+                document.getElementById("statSampleVar").textContent  = variance.toFixed(4);
+            } else {
+                document.getElementById("statSampleMean").textContent = "0.0000";
+                document.getElementById("statSampleVar").textContent  = "0.0000";
+            }
+            document.getElementById("statCount").textContent = state.samples.length;
+        }
+
+        // ═══════════════════════════════════════════
+        // SAMPLE button
+        // ═══════════════════════════════════════════
+        function handleSample() {
+            var dist = getDist();
+            var p = getParams();
+            var arr = [];
+            for (var i = 0; i < state.n; i++) {
+                arr.push(dist.sample(p));
+            }
+            state.samples = arr;
+            state.convergenceData = buildConvergence(arr);
+            updateStats();
+            drawHistogram();
+            drawConvergence();
+        }
+
+        // ═══════════════════════════════════════════
+        // Convergence data builder
+        // ═══════════════════════════════════════════
+        function buildConvergence(samples) {
+            var conv = [];
+            var sum = 0;
+            var dist = getDist();
+            var p = getParams();
+            var trueMean = dist.mean(p);
+            for (var i = 0; i < samples.length; i++) {
+                sum += samples[i];
+                conv.push({ count: i + 1, sampleMean: sum / (i + 1), trueMean: trueMean });
+            }
+            return conv;
+        }
+
+        // ═══════════════════════════════════════════
+        // ANIMATE button
+        // ═══════════════════════════════════════════
+        function handleAnimate() {
+            if (state.animating) return;
+
+            var dist = getDist();
+            var p = getParams();
+            var trueMean = dist.mean(p);
+
+            // Pre-generate all samples
+            var allSamples = [];
+            var allConv = [];
+            var sum = 0;
+            for (var i = 0; i < state.n; i++) {
+                allSamples.push(dist.sample(p));
+                sum += allSamples[i];
+                allConv.push({ count: i + 1, sampleMean: sum / (i + 1), trueMean: trueMean });
+            }
+
+            // Reveal progressively in ~100 visual steps
+            var totalSteps = Math.min(state.n, 100);
+            var step = 0;
+            state.animating = true;
+            setAnimatingUI(true);
+
+            function reveal() {
+                step++;
+                if (step > totalSteps) {
+                    state.samples = allSamples;
+                    state.convergenceData = allConv;
+                    state.animating = false;
+                    state.animTimer = null;
+                    setAnimatingUI(false);
+                    updateStats();
+                    drawHistogram();
+                    drawConvergence();
+                    return;
+                }
+                var idx = Math.round((step / totalSteps) * state.n);
+                if (idx > state.n) idx = state.n;
+                state.samples = allSamples.slice(0, idx);
+                state.convergenceData = allConv.slice(0, idx);
+                updateStats();
+                drawHistogram();
+                drawConvergence();
+                state.animTimer = setTimeout(reveal, 30);
+            }
+
+            reveal();
+        }
+
+        function setAnimatingUI(on) {
+            btnSample.disabled = on;
+            btnAnimate.disabled = on;
+            btnAnimate.textContent = on ? "Animating..." : "Animate";
+        }
+
+        // ═══════════════════════════════════════════
+        // CLEAR button
+        // ═══════════════════════════════════════════
+        function handleClear() {
+            if (state.animTimer) {
+                clearTimeout(state.animTimer);
+                state.animTimer = null;
+            }
+            state.animating = false;
+            state.samples = [];
+            state.convergenceData = [];
+            setAnimatingUI(false);
+            updateStats();
+            drawHistogram();
+            drawConvergence();
+        }
+
+        // ═══════════════════════════════════════════
+        // HISTOGRAM drawing
+        // ═══════════════════════════════════════════
+        function drawHistogram() {
+            var canvas = histCanvas;
+            var ctx = canvas.getContext("2d");
+            var W = canvas.width, H = canvas.height;
+            var pad = 50;
+            var pW = W - 2 * pad, pH = H - 2 * pad;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, W, H);
+
+            if (state.samples.length === 0) {
+                ctx.fillStyle = "#999";
+                ctx.font = "14px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("No samples yet. Click \"Sample\" or \"Animate\" to begin.", W / 2, H / 2);
+                return;
+            }
+
+            var dist = getDist();
+            var p = getParams();
+            var isDiscrete = !!dist.pmf;
+            var v, bi, si;
+
+            if (isDiscrete) {
+                // ── DISCRETE (Bernoulli) ──
+                var counts = [0, 0];
+                for (si = 0; si < state.samples.length; si++) {
+                    if (state.samples[si] === 0) counts[0]++;
+                    else counts[1]++;
+                }
+                var props = [counts[0] / state.samples.length, counts[1] / state.samples.length];
+
+                var yMax = 0;
+                for (v = 0; v <= 1; v++) {
+                    var pmfVal = dist.pmf(v, p);
+                    if (props[v] > yMax) yMax = props[v];
+                    if (pmfVal > yMax) yMax = pmfVal;
+                }
+                yMax *= 1.15;
+
+                drawAxes(ctx, W, H, pad, "Value", "Probability");
+
+                var barW = pW * 0.15;
+                for (v = 0; v <= 1; v++) {
+                    var xc = pad + ((v + 0.5) / 2) * pW;
+                    var barH = (props[v] / yMax) * pH;
+
+                    ctx.fillStyle = "rgba(59,130,246,0.6)";
+                    ctx.fillRect(xc - barW / 2, H - pad - barH, barW, barH);
+                    ctx.strokeStyle = "#1f2937"; ctx.lineWidth = 1;
+                    ctx.strokeRect(xc - barW / 2, H - pad - barH, barW, barH);
+
+                    ctx.fillStyle = "#333"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+                    ctx.fillText(props[v].toFixed(3), xc, H - pad - barH - 5);
+                    ctx.fillText(String(v), xc, H - pad + 15);
+                }
+
+                // PMF markers
+                ctx.fillStyle = "#ef4444"; ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 2;
+                for (v = 0; v <= 1; v++) {
+                    var pmf = dist.pmf(v, p);
+                    var xc2 = pad + ((v + 0.5) / 2) * pW;
+                    var yp = H - pad - (pmf / yMax) * pH;
+                    ctx.beginPath(); ctx.moveTo(xc2 - barW * 0.7, yp); ctx.lineTo(xc2 + barW * 0.7, yp); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(xc2, yp, 5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+                }
+
+                drawYTicks(ctx, W, H, pad, pH, yMax);
+
+            } else {
+                // ── CONTINUOUS (Gaussian, Uniform) ──
+                var numBins = Math.round(Math.min(50, Math.max(10, Math.sqrt(state.samples.length))));
+                var range = dist.range(p);
+                var min = range[0], max = range[1];
+                for (si = 0; si < state.samples.length; si++) {
+                    if (state.samples[si] < min) min = state.samples[si];
+                    if (state.samples[si] > max) max = state.samples[si];
+                }
+                var binWidth = (max - min) / numBins;
+
+                var bins = [];
+                for (bi = 0; bi < numBins; bi++) bins.push(0);
+                for (si = 0; si < state.samples.length; si++) {
+                    var idx = Math.floor((state.samples[si] - min) / binWidth);
+                    if (idx >= numBins) idx = numBins - 1;
+                    if (idx >= 0 && idx < numBins) bins[idx]++;
+                }
+
+                var density = [];
+                var maxDens = 0;
+                for (bi = 0; bi < numBins; bi++) {
+                    var dd = bins[bi] / (state.samples.length * binWidth);
+                    density.push(dd);
+                    if (dd > maxDens) maxDens = dd;
+                }
+
+                var maxPdf = 0;
+                for (var pi = 0; pi <= 200; pi++) {
+                    var xv = min + (pi / 200) * (max - min);
+                    var pv = dist.pdf(xv, p);
+                    if (pv > maxPdf) maxPdf = pv;
+                }
+                var yMax2 = Math.max(maxDens, maxPdf) * 1.1;
+
+                drawAxes(ctx, W, H, pad, "Value", "Density");
+
+                // Histogram bars
+                ctx.fillStyle = "rgba(59,130,246,0.6)";
+                ctx.strokeStyle = "#1f2937"; ctx.lineWidth = 1;
+                for (bi = 0; bi < numBins; bi++) {
+                    var bx = pad + (bi / numBins) * pW;
+                    var bh = (density[bi] / yMax2) * pH;
+                    var bw = pW / numBins - 1;
+                    ctx.fillRect(bx, H - pad - bh, bw, bh);
+                    ctx.strokeRect(bx, H - pad - bh, bw, bh);
+                }
+
+                // PDF curve
+                ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (var ci = 0; ci <= 200; ci++) {
+                    var cx = min + (ci / 200) * (max - min);
+                    var cp = dist.pdf(cx, p);
+                    var cxp = pad + ((cx - min) / (max - min)) * pW;
+                    var cyp = H - pad - (cp / yMax2) * pH;
+                    if (ci === 0) ctx.moveTo(cxp, cyp); else ctx.lineTo(cxp, cyp);
+                }
+                ctx.stroke();
+
+                // X ticks
+                ctx.fillStyle = "#666"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+                for (var xi = 0; xi <= 5; xi++) {
+                    var xtv = min + (xi / 5) * (max - min);
+                    var xtp = pad + (xi / 5) * pW;
+                    ctx.fillText(xtv.toFixed(1), xtp, H - pad + 15);
+                }
+
+                drawYTicks(ctx, W, H, pad, pH, yMax2);
+            }
+
+            // Legend
+            ctx.fillStyle = "rgba(59,130,246,0.6)";
+            ctx.fillRect(W - 200, pad + 10, 15, 15);
+            ctx.fillStyle = "#333"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+            ctx.fillText(isDiscrete ? "Sample Proportion" : "Sample Histogram", W - 180, pad + 22);
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(W - 200, pad + 40); ctx.lineTo(W - 185, pad + 40); ctx.stroke();
+            ctx.fillText("True PDF/PMF", W - 180, pad + 45);
+        }
+
+        // ═══════════════════════════════════════════
+        // CONVERGENCE drawing
+        // ═══════════════════════════════════════════
+        function drawConvergence() {
+            var canvas = convCanvas;
+            var ctx = canvas.getContext("2d");
+            var W = canvas.width, H = canvas.height;
+            var pad = 50;
+            var pW = W - 2 * pad, pH = H - 2 * pad;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, W, H);
+
+            var data = state.convergenceData;
+            if (data.length === 0) {
+                ctx.fillStyle = "#999"; ctx.font = "14px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("No convergence data yet. Click \"Sample\" or \"Animate\" to begin.", W / 2, H / 2);
+                return;
+            }
+
+            var trueMean = data[0].trueMean;
+            var maxCount = 0, minMean = trueMean, maxMean = trueMean;
+            for (var i = 0; i < data.length; i++) {
+                if (data[i].count > maxCount) maxCount = data[i].count;
+                if (data[i].sampleMean < minMean) minMean = data[i].sampleMean;
+                if (data[i].sampleMean > maxMean) maxMean = data[i].sampleMean;
+            }
+            minMean -= 0.1; maxMean += 0.1;
+            var meanRange = maxMean - minMean;
+            if (meanRange === 0) meanRange = 1;
+
+            drawAxes(ctx, W, H, pad, "Number of Samples", "Sample Mean");
+
+            // Grid
+            ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
+            for (i = 1; i < 5; i++) {
+                var gy = H - pad - (i / 5) * pH;
+                ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(W - pad, gy); ctx.stroke();
+            }
+
+            // True mean line (dashed)
+            ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+            var tmY = H - pad - ((trueMean - minMean) / meanRange) * pH;
+            ctx.beginPath(); ctx.moveTo(pad, tmY); ctx.lineTo(W - pad, tmY); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Sample mean line
+            ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (i = 0; i < data.length; i++) {
+                var x = pad + (data[i].count / maxCount) * pW;
+                var y = H - pad - ((data[i].sampleMean - minMean) / meanRange) * pH;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Data points (skip if too many)
+            if (data.length <= 500) {
+                ctx.fillStyle = "rgba(59,130,246,0.5)";
+                for (i = 0; i < data.length; i++) {
+                    var dx = pad + (data[i].count / maxCount) * pW;
+                    var dy = H - pad - ((data[i].sampleMean - minMean) / meanRange) * pH;
+                    ctx.beginPath(); ctx.arc(dx, dy, 3, 0, 2 * Math.PI); ctx.fill();
+                }
+            }
+
+            // Y ticks
+            ctx.fillStyle = "#666"; ctx.font = "10px sans-serif"; ctx.textAlign = "right";
+            for (i = 0; i <= 5; i++) {
+                var tv = minMean + (i / 5) * meanRange;
+                var ty = H - pad - (i / 5) * pH;
+                ctx.fillText(tv.toFixed(2), pad - 5, ty + 3);
+            }
+
+            // X ticks
+            ctx.textAlign = "center";
+            for (i = 0; i <= 5; i++) {
+                var cv = Math.round((i / 5) * maxCount);
+                var cx2 = pad + (i / 5) * pW;
+                ctx.fillText(String(cv), cx2, H - pad + 15);
+            }
+
+            // Legend
+            ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(W - 200, pad + 10); ctx.lineTo(W - 185, pad + 10); ctx.stroke();
+            ctx.fillStyle = "#333"; ctx.font = "12px sans-serif"; ctx.textAlign = "left";
+            ctx.fillText("Sample Mean", W - 180, pad + 15);
+            ctx.strokeStyle = "#ef4444"; ctx.setLineDash([5, 5]);
+            ctx.beginPath(); ctx.moveTo(W - 200, pad + 35); ctx.lineTo(W - 185, pad + 35); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillText("True Mean", W - 180, pad + 40);
+        }
+
+        // ═══════════════════════════════════════════
+        // Shared drawing helpers
+        // ═══════════════════════════════════════════
+        function drawAxes(ctx, W, H, pad, xLabel, yLabel) {
+            ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad, pad); ctx.lineTo(pad, H - pad); ctx.stroke();
+            ctx.fillStyle = "#333"; ctx.font = "12px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(xLabel, W / 2, H - 10);
+            ctx.save(); ctx.translate(15, H / 2); ctx.rotate(-Math.PI / 2);
+            ctx.fillText(yLabel, 0, 0); ctx.restore();
+        }
+
+        function drawYTicks(ctx, W, H, pad, pH, yMax) {
+            ctx.fillStyle = "#666"; ctx.font = "10px sans-serif"; ctx.textAlign = "right";
+            for (var i = 0; i <= 4; i++) {
+                var tv = (i / 4) * yMax;
+                var ty = H - pad - (i / 4) * pH;
+                ctx.fillText(tv.toFixed(2), pad - 5, ty + 3);
+                ctx.strokeStyle = "#e5e7eb"; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(pad, ty); ctx.lineTo(W - pad, ty); ctx.stroke();
+            }
+        }
+
+        // ═══════════════════════════════════════════
+        // Event listeners
+        // ═══════════════════════════════════════════
+        distSelect.addEventListener("change", function() {
+            state.distribution = distSelect.value;
+            state.samples = [];
+            state.convergenceData = [];
+            buildParamControls();
+            updateStats();
+            drawHistogram();
+            drawConvergence();
+        });
+
+        nSlider.addEventListener("input", function() {
+            state.n = parseInt(nSlider.value);
+            nLabel.textContent = "Number of Samples: " + state.n;
+            buildQuickBtns();
+        });
+
+        btnSample.addEventListener("click", handleSample);
+        btnAnimate.addEventListener("click", handleAnimate);
+        btnClear.addEventListener("click", handleClear);
+
+        // ═══════════════════════════════════════════
+        // Initialize
+        // ═══════════════════════════════════════════
+        buildParamControls();
+        buildQuickBtns();
+        updateStats();
+        drawHistogram();
+        drawConvergence();
+
+    })();
+    </script>
+</body>
+</html>
