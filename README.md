@@ -73,6 +73,20 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 
 ---
 
+## 📋 Assignments & Quizzes
+
+All graded work and practice problems are in the [`assignments/`](assignments/) folder.
+
+| # | Type | Topic | Files |
+|---|------|-------|-------|
+| 1 | Assignment | Ch. 1 — ML Overview | [📄 Problem Set](assignments/assignment-01/Ch1_Problem_Set.pdf) |
+| 2 | Assignment | Ch. 2 — Linear Algebra | [📝 Problems](assignments/assignment-02/IME775_Lecture3-4_Problems.md) |
+| 2 | Assignment | Ch. 3 — Classifiers & Calculus | [📝 Solutions](assignments/assignment-02/Assignment2_Solutions.md) |
+| 1 | Quiz | Ch. 3 — Classifiers & Calculus | [📄 Solutions](assignments/quiz-01/Q1_Solutions.pdf) |
+| — | Practice | Ch. 5 — Probability | [📝 Problems & Solutions](assignments/ch5-practice/Chapter5_Problems.md) |
+
+---
+
 ## 🎮 Interactive Visualizations
 
 Explore mathematical concepts through browser-based interactive demos:
