@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KL Divergence Explorer - IME 775</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas { border: 1px solid #e5e7eb; background-color: #f9fafb; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Gaussian PDF
+        function gaussPdf(x, mu, sigma) {
+            const z = (x - mu) / sigma;
+            return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+        }
+
+        // KL(N(mu1,s1^2) || N(mu2,s2^2)) - closed form
+        function klGaussian(mu1, s1, mu2, s2) {
+            return Math.log(s2 / s1) + (s1 * s1 + (mu1 - mu2) ** 2) / (2 * s2 * s2) - 0.5;
+        }
+
+        function drawGaussians(canvas, mu1, s1, mu2, s2) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const pad = { top: 40, bottom: 40, left: 50, right: 20 };
+            const plotW = W - pad.left - pad.right;
+            const plotH = H - pad.top - pad.bottom;
+
+            ctx.clearRect(0, 0, W, H);
+
+            ctx.fillStyle = '#1f2937'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+            ctx.fillText('Gaussian Distributions p (blue) vs q (orange)', W / 2, 24);
+
+            // Axes
+            ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.stroke();
+
+            // X range
+            const allSigma = Math.max(s1, s2);
+            const xMin = Math.min(mu1, mu2) - 4 * allSigma;
+            const xMax = Math.max(mu1, mu2) + 4 * allSigma;
+            const N = 300;
+            const dx = (xMax - xMin) / N;
+
+            // Find max Y
+            let maxY = 0;
+            for (let i = 0; i <= N; i++) {
+                const x = xMin + i * dx;
+                maxY = Math.max(maxY, gaussPdf(x, mu1, s1), gaussPdf(x, mu2, s2));
+            }
+            maxY *= 1.15;
+
+            // Draw filled area showing KL contribution
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#8b5cf6';
+            ctx.beginPath();
+            const toCanvasX = (x) => pad.left + ((x - xMin) / (xMax - xMin)) * plotW;
+            const toCanvasY = (y) => H - pad.bottom - (y / maxY) * plotH;
+            ctx.moveTo(toCanvasX(xMin), toCanvasY(0));
+            for (let i = 0; i <= N; i++) {
+                const x = xMin + i * dx;
+                const px = gaussPdf(x, mu1, s1);
+                const qx = gaussPdf(x, mu2, s2);
+                const contrib = px > 1e-10 && qx > 1e-10 ? px * Math.log(px / qx) : 0;
+                ctx.lineTo(toCanvasX(x), toCanvasY(Math.max(0, contrib)));
+            }
+            ctx.lineTo(toCanvasX(xMax), toCanvasY(0));
+            ctx.closePath(); ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            // Draw p
+            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i <= N; i++) {
+                const x = xMin + i * dx;
+                const y = gaussPdf(x, mu1, s1);
+                const cx = toCanvasX(x), cy = toCanvasY(y);
+                i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+
+            // Draw q
+            ctx.strokeStyle = '#f97316'; ctx.lineWidth = 2.5;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            for (let i = 0; i <= N; i++) {
+                const x = xMin + i * dx;
+                const y = gaussPdf(x, mu2, s2);
+                const cx = toCanvasX(x), cy = toCanvasY(y);
+                i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // X axis labels
+            ctx.fillStyle = '#6b7280'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+            const step = (xMax - xMin) / 8;
+            for (let i = 0; i <= 8; i++) {
+                const x = xMin + i * step;
+                ctx.fillText(x.toFixed(1), toCanvasX(x), H - pad.bottom + 16);
+            }
+
+            // Legend
+            ctx.fillStyle = '#3b82f6'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(pad.left + 10, pad.top + 10); ctx.lineTo(pad.left + 30, pad.top + 10); ctx.stroke();
+            ctx.fillText(`p ~ N(${mu1.toFixed(1)}, ${(s1*s1).toFixed(1)})`, pad.left + 35, pad.top + 14);
+
+            ctx.strokeStyle = '#f97316'; ctx.setLineDash([6, 4]);
+            ctx.beginPath(); ctx.moveTo(pad.left + 10, pad.top + 28); ctx.lineTo(pad.left + 30, pad.top + 28); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#f97316';
+            ctx.fillText(`q ~ N(${mu2.toFixed(1)}, ${(s2*s2).toFixed(1)})`, pad.left + 35, pad.top + 32);
+        }
+
+        function KLExplorer() {
+            const [mu1, setMu1] = useState(0);
+            const [s1, setS1] = useState(1);
+            const [mu2, setMu2] = useState(1);
+            const [s2, setS2] = useState(2);
+            const [mode, setMode] = useState('gaussian');
+            const canvasRef = useRef(null);
+
+            // Discrete mode
+            const [pDisc, setPDisc] = useState([0.25, 0.25, 0.25, 0.25]);
+            const [qDisc, setQDisc] = useState([0.4, 0.3, 0.2, 0.1]);
+            const canvasDiscRef = useRef(null);
+
+            const klForward = klGaussian(mu1, s1, mu2, s2);
+            const klReverse = klGaussian(mu2, s2, mu1, s1);
+
+            useEffect(() => {
+                if (mode === 'gaussian') drawGaussians(canvasRef.current, mu1, s1, mu2, s2);
+            }, [mu1, s1, mu2, s2, mode]);
+
+            // Discrete KL
+            const log2 = (x) => x <= 1e-15 ? -50 : Math.log2(x);
+            const klDiscrete = (p, q) => p.reduce((s, pi, i) => s + (pi > 1e-10 ? pi * log2(pi / Math.max(q[i], 1e-15)) : 0), 0);
+            const klFwdDisc = klDiscrete(pDisc, qDisc);
+            const klRevDisc = klDiscrete(qDisc, pDisc);
+
+            useEffect(() => {
+                if (mode !== 'discrete') return;
+                const canvas = canvasDiscRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const W = canvas.width, H = canvas.height;
+                const pad = { top: 40, bottom: 40, left: 50, right: 20 };
+                const plotW = W - pad.left - pad.right;
+                const plotH = H - pad.top - pad.bottom;
+                const K = pDisc.length;
+
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = '#1f2937'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+                ctx.fillText('Discrete: p (blue) vs q (orange)', W / 2, 24);
+
+                ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+                const groupW = plotW / K;
+                const barW = groupW * 0.35;
+                for (let i = 0; i < K; i++) {
+                    const gx = pad.left + groupW * i;
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.fillRect(gx + groupW * 0.1, H - pad.bottom - pDisc[i] * plotH, barW, pDisc[i] * plotH);
+                    ctx.fillStyle = '#f97316';
+                    ctx.fillRect(gx + groupW * 0.1 + barW + 2, H - pad.bottom - qDisc[i] * plotH, barW, qDisc[i] * plotH);
+                    ctx.fillStyle = '#374151'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+                    ctx.fillText(`x${i+1}`, gx + groupW / 2, H - pad.bottom + 16);
+                }
+            }, [pDisc, qDisc, mode]);
+
+            const normalize = (arr) => {
+                const sum = arr.reduce((a, b) => a + b, 0);
+                return sum > 0 ? arr.map(v => v / sum) : arr.map(() => 1 / arr.length);
+            };
+
+            const handleP = (i, v) => { const n = [...pDisc]; n[i] = parseFloat(v); setPDisc(normalize(n)); };
+            const handleQ = (i, v) => { const n = [...qDisc]; n[i] = parseFloat(v); setQDisc(normalize(n)); };
+
+            return (
+                <div className="max-w-5xl mx-auto p-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-1">KL Divergence Explorer</h1>
+                    <p className="text-gray-500 mb-4">IME 775 — Chapter 6: Explore the asymmetry of KL divergence</p>
+
+                    <div className="flex gap-3 mb-6">
+                        <button onClick={() => setMode('gaussian')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${mode === 'gaussian' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                            Gaussian Mode
+                        </button>
+                        <button onClick={() => setMode('discrete')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium ${mode === 'discrete' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                            Discrete Mode
+                        </button>
+                    </div>
+
+                    {mode === 'gaussian' ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="bg-white rounded-xl shadow p-5">
+                                <h2 className="font-semibold text-blue-700 mb-3">Distribution p (true)</h2>
+                                <label className="text-sm text-gray-600">Mean: {mu1.toFixed(1)}</label>
+                                <input type="range" min="-5" max="5" step="0.1" value={mu1} onChange={e => setMu1(parseFloat(e.target.value))} className="w-full mb-2" />
+                                <label className="text-sm text-gray-600">Std dev: {s1.toFixed(1)}</label>
+                                <input type="range" min="0.3" max="5" step="0.1" value={s1} onChange={e => setS1(parseFloat(e.target.value))} className="w-full mb-4" />
+
+                                <h2 className="font-semibold text-orange-600 mb-3">Distribution q (model)</h2>
+                                <label className="text-sm text-gray-600">Mean: {mu2.toFixed(1)}</label>
+                                <input type="range" min="-5" max="5" step="0.1" value={mu2} onChange={e => setMu2(parseFloat(e.target.value))} className="w-full mb-2" />
+                                <label className="text-sm text-gray-600">Std dev: {s2.toFixed(1)}</label>
+                                <input type="range" min="0.3" max="5" step="0.1" value={s2} onChange={e => setS2(parseFloat(e.target.value))} className="w-full mb-3" />
+
+                                <div className="flex gap-2 flex-wrap">
+                                    <button onClick={() => { setMu1(0); setS1(1); setMu2(0); setS2(1); }}
+                                        className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">p = q</button>
+                                    <button onClick={() => { setMu1(0); setS1(1); setMu2(2); setS2(1); }}
+                                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Shift mean</button>
+                                    <button onClick={() => { setMu1(0); setS1(1); setMu2(0); setS2(3); }}
+                                        className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs">Wider q</button>
+                                    <button onClick={() => { setMu1(0); setS1(3); setMu2(0); setS2(1); }}
+                                        className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Narrower q</button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <canvas ref={canvasRef} width={420} height={300} className="w-full" />
+                                <div className="text-xs text-gray-400 mt-1 text-center">Purple shaded area = pointwise KL contribution p(x) log(p(x)/q(x))</div>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow p-5">
+                                <h2 className="font-semibold text-gray-700 mb-3">KL Divergence</h2>
+
+                                <div className="mb-4 p-3 rounded-lg bg-purple-50">
+                                    <div className="text-sm text-gray-600">D_KL(p || q) — forward</div>
+                                    <div className="text-2xl font-bold text-purple-700">{klForward.toFixed(4)} nats</div>
+                                    <div className="text-xs text-gray-400 mt-1">Cost of encoding p using q's code</div>
+                                </div>
+
+                                <div className="mb-4 p-3 rounded-lg bg-amber-50">
+                                    <div className="text-sm text-gray-600">D_KL(q || p) — reverse</div>
+                                    <div className="text-2xl font-bold text-amber-700">{klReverse.toFixed(4)} nats</div>
+                                    <div className="text-xs text-gray-400 mt-1">Cost of encoding q using p's code</div>
+                                </div>
+
+                                <div className="mb-4 p-3 rounded-lg bg-gray-50">
+                                    <div className="text-sm text-gray-600">Asymmetry |forward - reverse|</div>
+                                    <div className="text-lg font-bold text-gray-700">{Math.abs(klForward - klReverse).toFixed(4)} nats</div>
+                                </div>
+
+                                <div className="p-3 bg-blue-50 rounded-lg text-xs text-gray-600">
+                                    <strong>Closed form:</strong><br />
+                                    D_KL(p||q) = log(&#963;<sub>2</sub>/&#963;<sub>1</sub>) + (&#963;<sub>1</sub><sup>2</sup> + (&#956;<sub>1</sub>-&#956;<sub>2</sub>)<sup>2</sup>) / (2&#963;<sub>2</sub><sup>2</sup>) - 1/2
+                                    <br /><br />
+                                    <strong>Try:</strong> Make p = q and watch both KL values go to 0. Then shift only the mean or variance to see asymmetry.
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="bg-white rounded-xl shadow p-5">
+                                <h2 className="font-semibold text-blue-700 mb-2">p (true)</h2>
+                                {pDisc.map((v, i) => (
+                                    <div key={i} className="mb-1">
+                                        <div className="flex justify-between text-xs text-gray-500"><span>p(x{i+1})</span><span>{v.toFixed(3)}</span></div>
+                                        <input type="range" min="0.01" max="1" step="0.01" value={v} onChange={e => handleP(i, e.target.value)} className="w-full" />
+                                    </div>
+                                ))}
+                                <h2 className="font-semibold text-orange-600 mb-2 mt-4">q (model)</h2>
+                                {qDisc.map((v, i) => (
+                                    <div key={i} className="mb-1">
+                                        <div className="flex justify-between text-xs text-gray-500"><span>q(x{i+1})</span><span>{v.toFixed(3)}</span></div>
+                                        <input type="range" min="0.01" max="1" step="0.01" value={v} onChange={e => handleQ(i, e.target.value)} className="w-full" />
+                                    </div>
+                                ))}
+                            </div>
+                            <div>
+                                <canvas ref={canvasDiscRef} width={420} height={300} className="w-full" />
+                            </div>
+                            <div className="bg-white rounded-xl shadow p-5">
+                                <h2 className="font-semibold text-gray-700 mb-3">KL Divergence (bits)</h2>
+                                <div className="mb-4 p-3 rounded-lg bg-purple-50">
+                                    <div className="text-sm text-gray-600">D_KL(p || q) — forward</div>
+                                    <div className="text-2xl font-bold text-purple-700">{klFwdDisc.toFixed(4)}</div>
+                                </div>
+                                <div className="mb-4 p-3 rounded-lg bg-amber-50">
+                                    <div className="text-sm text-gray-600">D_KL(q || p) — reverse</div>
+                                    <div className="text-2xl font-bold text-amber-700">{klRevDisc.toFixed(4)}</div>
+                                </div>
+                                <div className="p-3 bg-blue-50 rounded-lg text-xs text-gray-600">
+                                    <strong>Key point:</strong> Forward and reverse KL are generally different. Try making p and q identical, then perturb one — watch the asymmetry appear.
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<KLExplorer />);
+    </script>
+</body>
+</html>

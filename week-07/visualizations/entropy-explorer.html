@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entropy Explorer - IME 775</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas { border: 1px solid #e5e7eb; background-color: #f9fafb; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- Utility Functions ---
+        const log2 = (x) => (x <= 0 ? 0 : Math.log2(x));
+        const entropy = (probs) => -probs.reduce((s, p) => s + (p > 0 ? p * log2(p) : 0), 0);
+        const crossEntropy = (p, q) => -p.reduce((s, pi, i) => s + (pi > 0 ? pi * log2(q[i] > 1e-15 ? q[i] : 1e-15) : 0), 0);
+        const klDiv = (p, q) => p.reduce((s, pi, i) => s + (pi > 0 ? pi * log2(pi / (q[i] > 1e-15 ? q[i] : 1e-15)) : 0), 0);
+
+        // --- Canvas Drawing ---
+        function drawBarChart(canvas, probs, color, title, maxY = 1.0) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const pad = { top: 40, bottom: 40, left: 50, right: 20 };
+            const plotW = W - pad.left - pad.right;
+            const plotH = H - pad.top - pad.bottom;
+
+            ctx.clearRect(0, 0, W, H);
+
+            // Title
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 14px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText(title, W / 2, 24);
+
+            // Axes
+            ctx.strokeStyle = '#9ca3af';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, pad.top);
+            ctx.lineTo(pad.left, H - pad.bottom);
+            ctx.lineTo(W - pad.right, H - pad.bottom);
+            ctx.stroke();
+
+            // Y ticks
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '11px system-ui';
+            ctx.textAlign = 'right';
+            for (let t = 0; t <= maxY; t += maxY / 4) {
+                const y = H - pad.bottom - (t / maxY) * plotH;
+                ctx.fillText(t.toFixed(2), pad.left - 6, y + 4);
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+            }
+
+            // Bars
+            const n = probs.length;
+            const barW = plotW / n * 0.7;
+            const gap = plotW / n * 0.3;
+            probs.forEach((p, i) => {
+                const x = pad.left + (plotW / n) * i + gap / 2;
+                const barH = (p / maxY) * plotH;
+                const y = H - pad.bottom - barH;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, barW, barH);
+                ctx.fillStyle = '#374151';
+                ctx.font = '11px system-ui';
+                ctx.textAlign = 'center';
+                ctx.fillText(`x${i + 1}`, x + barW / 2, H - pad.bottom + 16);
+                ctx.fillStyle = '#1f2937';
+                ctx.font = '10px system-ui';
+                ctx.fillText(p.toFixed(3), x + barW / 2, y - 4);
+            });
+        }
+
+        // --- Main App ---
+        function EntropyExplorer() {
+            const [n, setN] = useState(4);
+            const [probs, setProbs] = useState([0.25, 0.25, 0.25, 0.25]);
+            const canvasRef = useRef(null);
+
+            const normalize = (arr) => {
+                const sum = arr.reduce((a, b) => a + b, 0);
+                return sum > 0 ? arr.map(v => v / sum) : arr.map(() => 1 / arr.length);
+            };
+
+            useEffect(() => {
+                const newProbs = Array(n).fill(1 / n);
+                setProbs(newProbs);
+            }, [n]);
+
+            useEffect(() => {
+                drawBarChart(canvasRef.current, probs, '#3b82f6', 'Distribution p(x)');
+            }, [probs]);
+
+            const handleSlider = (i, val) => {
+                const next = [...probs];
+                next[i] = parseFloat(val);
+                setProbs(normalize(next));
+            };
+
+            const setUniform = () => setProbs(Array(n).fill(1 / n));
+            const setDeterministic = () => {
+                const p = Array(n).fill(0.001 / (n - 1));
+                p[0] = 0.999;
+                setProbs(normalize(p));
+            };
+            const setSkewed = () => {
+                const p = Array(n).fill(0);
+                p[0] = 0.7;
+                for (let i = 1; i < n; i++) p[i] = 0.3 / (n - 1);
+                setProbs(normalize(p));
+            };
+
+            const H = entropy(probs);
+            const maxH = log2(n);
+
+            return (
+                <div className="max-w-4xl mx-auto p-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-1">Shannon Entropy Explorer</h1>
+                    <p className="text-gray-500 mb-6">IME 775 — Chapter 6: Bayesian Tools</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Left: Controls */}
+                        <div className="bg-white rounded-xl shadow p-5">
+                            <h2 className="font-semibold text-gray-700 mb-3">Distribution Controls</h2>
+
+                            <label className="text-sm text-gray-600">Number of outcomes: {n}</label>
+                            <input type="range" min="2" max="8" value={n} onChange={e => setN(parseInt(e.target.value))}
+                                className="w-full mb-4" />
+
+                            <div className="flex gap-2 mb-4">
+                                <button onClick={setUniform} className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">Uniform</button>
+                                <button onClick={setSkewed} className="px-3 py-1 bg-orange-100 text-orange-700 rounded text-sm hover:bg-orange-200">Skewed</button>
+                                <button onClick={setDeterministic} className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">Deterministic</button>
+                            </div>
+
+                            {probs.map((p, i) => (
+                                <div key={i} className="mb-2">
+                                    <div className="flex justify-between text-xs text-gray-500">
+                                        <span>p(x{i + 1})</span><span>{p.toFixed(4)}</span>
+                                    </div>
+                                    <input type="range" min="0.001" max="1" step="0.001" value={p}
+                                        onChange={e => handleSlider(i, e.target.value)}
+                                        className="w-full" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Right: Chart + Metrics */}
+                        <div>
+                            <canvas ref={canvasRef} width={400} height={280} className="w-full mb-4" />
+
+                            <div className="bg-white rounded-xl shadow p-5">
+                                <h2 className="font-semibold text-gray-700 mb-3">Entropy Metrics</h2>
+
+                                <div className="mb-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">H(X)</span>
+                                        <span className="font-mono font-bold text-blue-700">{H.toFixed(4)} bits</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded h-3 mt-1">
+                                        <div className="bg-blue-500 h-3 rounded" style={{width: `${(H / maxH) * 100}%`}} />
+                                    </div>
+                                </div>
+
+                                <div className="mb-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Max entropy (uniform)</span>
+                                        <span className="font-mono text-gray-500">{maxH.toFixed(4)} bits</span>
+                                    </div>
+                                </div>
+
+                                <div className="mb-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Efficiency H/H_max</span>
+                                        <span className="font-mono text-gray-700">{(H / maxH * 100).toFixed(1)}%</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-xs text-gray-600">
+                                    <strong>Formula:</strong> H(X) = -&#931; p(x<sub>i</sub>) log<sub>2</sub> p(x<sub>i</sub>)
+                                    <br /><br />
+                                    <strong>Interpretation:</strong> {H < 0.5 ? "Very low uncertainty — nearly deterministic." :
+                                        H > maxH * 0.9 ? "High uncertainty — close to uniform (maximum entropy)." :
+                                        "Moderate uncertainty — some outcomes are more likely than others."}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<EntropyExplorer />);
+    </script>
+</body>
+</html>

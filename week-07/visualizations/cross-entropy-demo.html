@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Entropy & Classification Loss - IME 775</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas { border: 1px solid #e5e7eb; background-color: #f9fafb; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const log2 = (x) => (x <= 1e-15 ? -50 : Math.log2(x));
+        const ln = (x) => (x <= 1e-15 ? -50 : Math.log(x));
+        const entropy = (p) => -p.reduce((s, pi) => s + (pi > 1e-10 ? pi * log2(pi) : 0), 0);
+        const crossEntropyBits = (p, q) => -p.reduce((s, pi, i) => s + (pi > 1e-10 ? pi * log2(Math.max(q[i], 1e-15)) : 0), 0);
+        const klDivBits = (p, q) => crossEntropyBits(p, q) - entropy(p);
+
+        function softmax(logits) {
+            const max = Math.max(...logits);
+            const exps = logits.map(l => Math.exp(l - max));
+            const sum = exps.reduce((a, b) => a + b, 0);
+            return exps.map(e => e / sum);
+        }
+
+        function drawDualBars(canvas, p, q, labels) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const pad = { top: 40, bottom: 50, left: 50, right: 20 };
+            const plotW = W - pad.left - pad.right;
+            const plotH = H - pad.top - pad.bottom;
+            const K = p.length;
+
+            ctx.clearRect(0, 0, W, H);
+
+            ctx.fillStyle = '#1f2937';
+            ctx.font = 'bold 14px system-ui';
+            ctx.textAlign = 'center';
+            ctx.fillText('True (p) vs Predicted (q)', W / 2, 24);
+
+            // Axes
+            ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom);
+            ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+            // Y ticks
+            ctx.fillStyle = '#6b7280'; ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+            for (let t = 0; t <= 1; t += 0.25) {
+                const y = H - pad.bottom - t * plotH;
+                ctx.fillText(t.toFixed(2), pad.left - 6, y + 4);
+                ctx.strokeStyle = '#e5e7eb'; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+            }
+
+            // Bars
+            const groupW = plotW / K;
+            const barW = groupW * 0.35;
+            for (let i = 0; i < K; i++) {
+                const gx = pad.left + groupW * i;
+                // p bar
+                const h1 = p[i] * plotH;
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(gx + groupW * 0.1, H - pad.bottom - h1, barW, h1);
+                // q bar
+                const h2 = q[i] * plotH;
+                ctx.fillStyle = '#f97316';
+                ctx.fillRect(gx + groupW * 0.1 + barW + 2, H - pad.bottom - h2, barW, h2);
+                // label
+                ctx.fillStyle = '#374151'; ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+                ctx.fillText(labels[i], gx + groupW / 2, H - pad.bottom + 16);
+            }
+
+            // Legend
+            ctx.fillStyle = '#3b82f6'; ctx.fillRect(W - 140, pad.top, 12, 12);
+            ctx.fillStyle = '#f97316'; ctx.fillRect(W - 140, pad.top + 18, 12, 12);
+            ctx.fillStyle = '#374151'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+            ctx.fillText('True p', W - 124, pad.top + 10);
+            ctx.fillText('Model q', W - 124, pad.top + 28);
+        }
+
+        function CrossEntropyDemo() {
+            const [K, setK] = useState(3);
+            const [trueClass, setTrueClass] = useState(0);
+            const [logits, setLogits] = useState([2.0, 1.0, 0.5]);
+            const canvasRef = useRef(null);
+
+            const labels = ['Cat', 'Dog', 'Bird', 'Fish', 'Car'].slice(0, K);
+
+            useEffect(() => {
+                const newLogits = Array(K).fill(0).map((_, i) => i === 0 ? 2.0 : 0.5);
+                setLogits(newLogits);
+                if (trueClass >= K) setTrueClass(0);
+            }, [K]);
+
+            const p = Array(K).fill(0); p[trueClass] = 1;
+            const q = softmax(logits);
+            const H_p = entropy(p);
+            const H_pq = crossEntropyBits(p, q);
+            const KL = klDivBits(p, q);
+            const ceNats = -ln(Math.max(q[trueClass], 1e-15));
+
+            useEffect(() => {
+                drawDualBars(canvasRef.current, p, q, labels);
+            }, [logits, trueClass, K]);
+
+            const handleLogit = (i, val) => {
+                const next = [...logits];
+                next[i] = parseFloat(val);
+                setLogits(next);
+            };
+
+            return (
+                <div className="max-w-5xl mx-auto p-6">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-1">Cross-Entropy Loss Demo</h1>
+                    <p className="text-gray-500 mb-6">IME 775 — Chapter 6: See how classification loss depends on model confidence</p>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Controls */}
+                        <div className="bg-white rounded-xl shadow p-5">
+                            <h2 className="font-semibold text-gray-700 mb-3">Controls</h2>
+
+                            <label className="text-sm text-gray-600">Classes: {K}</label>
+                            <input type="range" min="2" max="5" value={K} onChange={e => setK(parseInt(e.target.value))} className="w-full mb-3" />
+
+                            <label className="text-sm text-gray-600">True class:</label>
+                            <div className="flex gap-2 mb-4 flex-wrap">
+                                {labels.map((l, i) => (
+                                    <button key={i} onClick={() => setTrueClass(i)}
+                                        className={`px-3 py-1 rounded text-sm ${i === trueClass ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                                        {l}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <h3 className="font-medium text-gray-600 text-sm mb-2">Model logits (raw scores):</h3>
+                            {logits.map((l, i) => (
+                                <div key={i} className="mb-2">
+                                    <div className="flex justify-between text-xs text-gray-500">
+                                        <span>{labels[i]} {i === trueClass ? '(true)' : ''}</span>
+                                        <span>logit: {l.toFixed(2)} → p: {q[i].toFixed(4)}</span>
+                                    </div>
+                                    <input type="range" min="-5" max="5" step="0.1" value={l}
+                                        onChange={e => handleLogit(i, e.target.value)} className="w-full" />
+                                </div>
+                            ))}
+
+                            <div className="flex gap-2 mt-3">
+                                <button onClick={() => { const l = Array(K).fill(0); l[trueClass] = 5; setLogits(l); }}
+                                    className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200">Confident correct</button>
+                                <button onClick={() => { const l = Array(K).fill(0); l[(trueClass + 1) % K] = 5; setLogits(l); }}
+                                    className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">Confident wrong</button>
+                                <button onClick={() => setLogits(Array(K).fill(0))}
+                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200">Uniform</button>
+                            </div>
+                        </div>
+
+                        {/* Chart */}
+                        <div>
+                            <canvas ref={canvasRef} width={400} height={300} className="w-full mb-4" />
+                            <div className="bg-white rounded-xl shadow p-4">
+                                <h3 className="font-semibold text-gray-700 mb-2 text-sm">Softmax Output q(x):</h3>
+                                {q.map((qi, i) => (
+                                    <div key={i} className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs text-gray-500 w-10">{labels[i]}</span>
+                                        <div className="flex-1 bg-gray-200 rounded h-4">
+                                            <div className={`h-4 rounded ${i === trueClass ? 'bg-blue-500' : 'bg-orange-400'}`}
+                                                style={{width: `${qi * 100}%`}} />
+                                        </div>
+                                        <span className="text-xs font-mono w-14 text-right">{(qi * 100).toFixed(1)}%</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Metrics */}
+                        <div className="bg-white rounded-xl shadow p-5">
+                            <h2 className="font-semibold text-gray-700 mb-3">Loss Metrics</h2>
+
+                            <div className="mb-4 p-3 rounded-lg bg-red-50">
+                                <div className="text-sm text-gray-600">Cross-Entropy Loss (nats)</div>
+                                <div className="text-2xl font-bold text-red-600">{ceNats.toFixed(4)}</div>
+                                <div className="text-xs text-gray-400 mt-1">= -log q(true class) = -log({q[trueClass].toFixed(4)})</div>
+                            </div>
+
+                            <div className="mb-4 p-3 rounded-lg bg-blue-50">
+                                <div className="text-sm text-gray-600">H(p, q) in bits</div>
+                                <div className="text-lg font-bold text-blue-600">{H_pq.toFixed(4)}</div>
+                            </div>
+
+                            <div className="mb-4 p-3 rounded-lg bg-gray-50">
+                                <div className="text-sm text-gray-600">H(p) — true entropy</div>
+                                <div className="text-lg font-bold text-gray-600">{H_p.toFixed(4)}</div>
+                                <div className="text-xs text-gray-400">Always 0 for one-hot labels</div>
+                            </div>
+
+                            <div className="mb-4 p-3 rounded-lg bg-purple-50">
+                                <div className="text-sm text-gray-600">D_KL(p || q) = H(p,q) - H(p)</div>
+                                <div className="text-lg font-bold text-purple-600">{KL.toFixed(4)} bits</div>
+                            </div>
+
+                            <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-xs text-gray-600">
+                                <strong>Key insight:</strong> Since H(p) = 0 for one-hot labels, minimizing cross-entropy H(p,q) is identical to minimizing KL divergence D_KL(p||q). Both push q toward p.
+                                <br /><br />
+                                <strong>Try:</strong> Set "confident wrong" and watch the loss spike. Then gradually move the correct class logit up.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<CrossEntropyDemo />);
+    </script>
+</body>
+</html>

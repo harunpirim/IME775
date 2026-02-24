@@ -61,7 +61,7 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 04 | Classifiers and Vector Calculus (Gradients, Hessians) | Ch. 3 | [📝 Notes (Ch 3)](week-04/notes/Chapter3_Lecture_Notes.md) \| [📄 PDF](week-04/notes/Chapter3_Lecture_Notes.pdf) \| [🎮 Visualizations](week-04/visualizations/) |
 | 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Notes (Ch 4)](week-05/notes/Chapter4_Lecture_Notes.md) \| [📝 Notes (Ch 4 pt 2)](week-05/notes/Chapter4_Lecture_Notes2.md) \| [📄 PDF](week-05/notes/Chapter4_Lecture_Notes.pdf) \| [📓 Notebooks](week-05/code/) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 06 | Probability Distributions for Machine Learning | Ch. 5 | [📝 Lecture 8](week-06/notes/Chapter5_Lecture_Notes.md) \| [📝 Lecture 9](week-06/notes/Chapter5_Lecture_Notes2.md) \| [📝 Problems](assignments/ch5-practice/Chapter5_Problems.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
-| 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | 🔒 Coming Soon |
+| 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | [📝 Lecture 11](week-07/notes/Chapter6_Lecture_Notes.md) \| [📝 Lecture 12](week-07/notes/Chapter6_Lecture_Notes2.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 08 | Midterm Exam | — | 🔒 Coming Soon |
 | 09 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
 | 10 | Forward Propagation and Backpropagation | Ch. 8 | 🔒 Coming Soon |
@@ -80,9 +80,8 @@ All graded work and practice problems are in the [`assignments/`](assignments/) 
 | # | Type | Topic | Files |
 |---|------|-------|-------|
 | 1 | Assignment | Ch. 1 — ML Overview | [📄 Problem Set](assignments/assignment-01/Ch1_Problem_Set.pdf) |
-| 2 | Assignment | Ch. 2 — Linear Algebra | [📝 Problems](assignments/assignment-02/IME775_Lecture3-4_Problems.md) |
-| 2 | Assignment | Ch. 3 — Classifiers & Calculus | [📝 Solutions](assignments/assignment-02/Assignment2_Solutions.md) |
-| 1 | Quiz | Ch. 3 — Classifiers & Calculus | [📄 Solutions](assignments/quiz-01/Q1_Solutions.pdf) |
+| 2 | Assignment | Ch. 2 — Linear Algebra | [📝 Problems](assignments/assignment-02/IME775_Lecture3-4_Problems.md) \| [📝 Solutions](assignments/assignment-02/Assignment2_Solutions.md) |
+| 1 | Quiz | Ch. 2–3 — Linear Algebra & Calculus | [📄 Solutions](assignments/quiz-01/Q1_Solutions.pdf) |
 | — | Practice | Ch. 5 — Probability | [📝 Problems & Solutions](assignments/ch5-practice/Chapter5_Problems.md) |
 
 ---
@@ -98,6 +97,7 @@ Explore mathematical concepts through browser-based interactive demos:
 | 04 | Gradient Descent Animator • Taylor Series • Level Contours • Convexity |
 | 05 | Quadratic Forms • Positive Definiteness • Matrix Norms • PCA • SVD • LSA |
 | 06 | 1D Gaussian • 2D Gaussian • Distributions Explorer • Sampling Demo |
+| 07 | Entropy Explorer • Cross-Entropy & Loss Demo • KL Divergence |
 
 > *No installation required — runs directly in your browser!*
 
@@ -139,7 +139,7 @@ IME775/
 │       └── ...
 ├── assignments/                 # All assignments, quizzes, and solutions
 │   ├── assignment-01/           # Ch. 1 problem set
-│   ├── assignment-02/           # Ch. 3 problems & solutions
+│   ├── assignment-02/           # Ch. 2–3 problems & solutions
 │   ├── quiz-01/                 # Quiz 1 solutions
 │   └── ch5-practice/            # Ch. 5 practice problems & solutions
 ├── week-01/                     # ✅ Released
@@ -156,12 +156,16 @@ IME775/
 │   ├── notes/                   # Lecture notes (Ch 4)
 │   ├── code/                    # Python notebooks (Quadratic Forms, PCA/SVD)
 │   └── visualizations/          # Interactive HTML demos
-└── week-06/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 5)
-    ├── code/                    # Python notebooks
-    └── visualizations/          # Interactive HTML demos
+├── week-06/                     # ✅ Released
+│   ├── notes/                   # Lecture notes (Ch 5)
+│   ├── code/                    # Python notebooks
+│   └── visualizations/          # Interactive HTML demos
+└── week-07/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 6: Bayesian Tools)
+    ├── code/                    # Python notebooks (Bayesian Tools)
+    └── visualizations/          # Interactive HTML demos (Entropy, Cross-Entropy, KL)
 
-Note: Additional weekly materials (week-07 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-08 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools

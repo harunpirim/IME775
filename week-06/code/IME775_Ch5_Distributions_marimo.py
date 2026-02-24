@@ -11,78 +11,72 @@ Topics: Gaussian, Bernoulli, Categorical, Multinomial, Sampling, Generative Data
 
 import marimo
 
-__generated_with = "0.10.0"
+__generated_with = "0.20.2"
 app = marimo.App(width="medium")
 
 
 @app.cell
-def __():
+def _():
     import marimo as mo
+
     return (mo,)
 
 
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        # IME 775: Probability Distributions — Raw vs PyTorch
+def _(mo):
+    mo.md(r"""
+    # IME 775: Probability Distributions — Raw vs PyTorch
 
-        ## Learning Objectives
+    ## Learning Objectives
 
-        1. Implement probability distributions from scratch (NumPy)
-        2. Compare with PyTorch's `torch.distributions` API
-        3. Understand sampling, PDF/PMF evaluation, and log-likelihoods
-        4. Use distributions to **generate synthetic data** for ML / generative AI
+    1. Implement probability distributions from scratch (NumPy)
+    2. Compare with PyTorch's `torch.distributions` API
+    3. Understand sampling, PDF/PMF evaluation, and log-likelihoods
+    4. Use distributions to **generate synthetic data** for ML / generative AI
 
-        ---
+    ---
 
-        ### Organization
+    ### Organization
 
-        | Section | Topic |
-        |---------|-------|
-        | 1 | Gaussian (1D): Raw vs PyTorch |
-        | 2 | Multivariate Gaussian: Covariance & Sampling |
-        | 3 | Bernoulli & Binomial |
-        | 4 | Categorical & Multinomial |
-        | 5 | Generative AI: Synthetic Data Pipeline |
-        | 6 | Gaussian Mixture Model (Mini-VAE Intuition) |
-        """
-    )
+    | Section | Topic |
+    |---------|-------|
+    | 1 | Gaussian (1D): Raw vs PyTorch |
+    | 2 | Multivariate Gaussian: Covariance & Sampling |
+    | 3 | Bernoulli & Binomial |
+    | 4 | Categorical & Multinomial |
+    | 5 | Generative AI: Synthetic Data Pipeline |
+    | 6 | Gaussian Mixture Model (Mini-VAE Intuition) |
+    """)
     return
 
 
 @app.cell
-def __():
+def _():
     import numpy as np
     import torch
     import torch.distributions as D
     import matplotlib.pyplot as plt
     import matplotlib.gridspec as gridspec
     from matplotlib.patches import Ellipse
-    return np, torch, D, plt, gridspec, Ellipse
 
+    return D, Ellipse, np, plt, torch
 
-# ═══════════════════════════════════════════════════════════════
-# SECTION 1: 1D GAUSSIAN
-# ═══════════════════════════════════════════════════════════════
 
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## 1. Gaussian Distribution (1D)
+def _(mo):
+    mo.md(r"""
+    ---
+    ## 1. Gaussian Distribution (1D)
 
-        $$\mathcal{N}(x \mid \mu, \sigma^2) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$$
+    $$\mathcal{N}(x \mid \mu, \sigma^2) = \frac{1}{\sigma\sqrt{2\pi}} \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right)$$
 
-        We'll implement this from scratch, then compare with `torch.distributions.Normal`.
-        """
-    )
+    We'll implement this from scratch, then compare with `torch.distributions.Normal`.
+    """)
     return
 
 
 @app.cell
-def __(mo):
+def _(mo):
     g_mu = mo.ui.slider(start=-3.0, stop=3.0, step=0.1, value=0.0,
                          label="μ (mean)", show_value=True)
     g_sigma = mo.ui.slider(start=0.2, stop=3.0, step=0.1, value=1.0,
@@ -100,11 +94,11 @@ def __(mo):
         | Samples | {g_n} |
         """
     )
-    return g_mu, g_sigma, g_n
+    return g_mu, g_n, g_sigma
 
 
 @app.cell
-def __(np, torch, D, plt, g_mu, g_sigma, g_n):
+def _(D, g_mu, g_n, g_sigma, np, plt, torch):
     # ── Raw NumPy Implementation ──
     def gaussian_pdf_raw(x, mu, sigma):
         """Hand-coded Gaussian PDF."""
@@ -171,11 +165,11 @@ def __(np, torch, D, plt, g_mu, g_sigma, g_n):
     _fig1.suptitle(f'1D Gaussian: μ={_mu}, σ={_sigma}', fontsize=14, fontweight='bold')
     plt.tight_layout()
     _fig1
-    return gaussian_pdf_raw, gaussian_sample_raw, gaussian_log_likelihood_raw, dist_pt
+    return
 
 
 @app.cell
-def __(mo, np, g_mu, g_sigma, g_n):
+def _(g_mu, g_n, g_sigma, mo):
     _mu = g_mu.value
     _sigma = g_sigma.value
     _n = int(g_n.value)
@@ -197,27 +191,21 @@ def __(mo, np, g_mu, g_sigma, g_n):
     return
 
 
-# ═══════════════════════════════════════════════════════════════
-# SECTION 2: MULTIVARIATE GAUSSIAN
-# ═══════════════════════════════════════════════════════════════
-
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## 2. Multivariate Gaussian
+def _(mo):
+    mo.md(r"""
+    ---
+    ## 2. Multivariate Gaussian
 
-        $$\mathcal{N}(\vec{x} \mid \vec{\mu}, \Sigma) = \frac{1}{(2\pi)^{d/2}|\Sigma|^{1/2}} \exp\!\left(-\frac{1}{2}(\vec{x}-\vec{\mu})^T \Sigma^{-1} (\vec{x}-\vec{\mu})\right)$$
+    $$\mathcal{N}(\vec{x} \mid \vec{\mu}, \Sigma) = \frac{1}{(2\pi)^{d/2}|\Sigma|^{1/2}} \exp\!\left(-\frac{1}{2}(\vec{x}-\vec{\mu})^T \Sigma^{-1} (\vec{x}-\vec{\mu})\right)$$
 
-        The covariance matrix $\Sigma$ controls the **shape and orientation** of the distribution.
-        """
-    )
+    The covariance matrix $\Sigma$ controls the **shape and orientation** of the distribution.
+    """)
     return
 
 
 @app.cell
-def __(mo):
+def _(mo):
     mv_var1 = mo.ui.slider(start=0.5, stop=5.0, step=0.25, value=2.0,
                             label="σ₁² (variance in x₁)", show_value=True)
     mv_var2 = mo.ui.slider(start=0.5, stop=5.0, step=0.25, value=1.0,
@@ -238,11 +226,11 @@ def __(mo):
         | Samples | {mv_n} |
         """
     )
-    return mv_var1, mv_var2, mv_rho, mv_n
+    return mv_n, mv_rho, mv_var1, mv_var2
 
 
 @app.cell
-def __(np, torch, D, plt, Ellipse, mv_var1, mv_var2, mv_rho, mv_n):
+def _(D, Ellipse, mv_n, mv_rho, mv_var1, mv_var2, np, plt, torch):
     _v1 = mv_var1.value
     _v2 = mv_var2.value
     _rho = mv_rho.value
@@ -315,51 +303,43 @@ def __(np, torch, D, plt, Ellipse, mv_var1, mv_var2, mv_rho, mv_n):
 
 
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ### Raw vs PyTorch: Multivariate Gaussian
+def _(mo):
+    mo.md(r"""
+    ### Raw vs PyTorch: Multivariate Gaussian
 
-        ```python
-        # ── RAW (NumPy) ──
-        L = np.linalg.cholesky(Σ)          # Cholesky decomposition
-        z = rng.standard_normal((n, d))     # Standard normal samples
-        samples = z @ L.T + μ              # Transform to target distribution
+    ```python
+    # ── RAW (NumPy) ──
+    L = np.linalg.cholesky(Σ)          # Cholesky decomposition
+    z = rng.standard_normal((n, d))     # Standard normal samples
+    samples = z @ L.T + μ              # Transform to target distribution
 
-        # ── PYTORCH ──
-        dist = D.MultivariateNormal(μ, Σ)
-        samples = dist.sample((n,))         # One line!
-        log_p = dist.log_prob(samples)      # Differentiable log-probability
-        ```
+    # ── PYTORCH ──
+    dist = D.MultivariateNormal(μ, Σ)
+    samples = dist.sample((n,))         # One line!
+    log_p = dist.log_prob(samples)      # Differentiable log-probability
+    ```
 
-        **Key insight:** PyTorch's version supports **backpropagation through sampling**
-        via the reparameterization trick — essential for VAEs and generative models.
-        """
-    )
-    return
-
-
-# ═══════════════════════════════════════════════════════════════
-# SECTION 3: BERNOULLI & BINOMIAL
-# ═══════════════════════════════════════════════════════════════
-
-@app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## 3. Bernoulli & Binomial Distributions
-
-        **Bernoulli:** Single binary trial  →  $P(X=1) = \theta$
-
-        **Binomial:** $n$ independent Bernoulli trials  →  $P(k) = \binom{n}{k}\theta^k(1-\theta)^{n-k}$
-        """
-    )
+    **Key insight:** PyTorch's version supports **backpropagation through sampling**
+    via the reparameterization trick — essential for VAEs and generative models.
+    """)
     return
 
 
 @app.cell
-def __(mo):
+def _(mo):
+    mo.md(r"""
+    ---
+    ## 3. Bernoulli & Binomial Distributions
+
+    **Bernoulli:** Single binary trial  →  $P(X=1) = \theta$
+
+    **Binomial:** $n$ independent Bernoulli trials  →  $P(k) = \binom{n}{k}\theta^k(1-\theta)^{n-k}$
+    """)
+    return
+
+
+@app.cell
+def _(mo):
     b_theta = mo.ui.slider(start=0.05, stop=0.95, step=0.05, value=0.6,
                             label="θ (success prob)", show_value=True)
     b_n_trials = mo.ui.slider(start=1, stop=50, step=1, value=20,
@@ -377,11 +357,11 @@ def __(mo):
         | N (experiments) | {b_n_exp} |
         """
     )
-    return b_theta, b_n_trials, b_n_exp
+    return b_n_exp, b_n_trials, b_theta
 
 
 @app.cell
-def __(np, torch, D, plt, b_theta, b_n_trials, b_n_exp):
+def _(D, b_n_exp, b_n_trials, b_theta, np, plt, torch):
     _theta = b_theta.value
     _n_t = int(b_n_trials.value)
     _n_e = int(b_n_exp.value)
@@ -451,29 +431,23 @@ def __(np, torch, D, plt, b_theta, b_n_trials, b_n_exp):
     return
 
 
-# ═══════════════════════════════════════════════════════════════
-# SECTION 4: CATEGORICAL & MULTINOMIAL
-# ═══════════════════════════════════════════════════════════════
-
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## 4. Categorical & Multinomial
+def _(mo):
+    mo.md(r"""
+    ---
+    ## 4. Categorical & Multinomial
 
-        **Categorical:** Single draw from $K$ classes  →  $P(X=k) = \theta_k$
+    **Categorical:** Single draw from $K$ classes  →  $P(X=k) = \theta_k$
 
-        **Multinomial:** $n$ draws from $K$ classes  →  counts $\vec{m}$, $\sum m_k = n$
+    **Multinomial:** $n$ draws from $K$ classes  →  counts $\vec{m}$, $\sum m_k = n$
 
-        These are the distributions behind **softmax classifiers** and **bag-of-words** models.
-        """
-    )
+    These are the distributions behind **softmax classifiers** and **bag-of-words** models.
+    """)
     return
 
 
 @app.cell
-def __(mo):
+def _(mo):
     cat_probs_input = mo.ui.text(
         value="0.5, 0.3, 0.15, 0.05",
         label="Class probabilities (comma-separated)",
@@ -497,11 +471,11 @@ def __(mo):
         **Try:** Change probabilities (must sum to 1) and see how counts change!
         """
     )
-    return cat_probs_input, cat_labels_input, cat_n_draws
+    return cat_labels_input, cat_n_draws, cat_probs_input
 
 
 @app.cell
-def __(np, torch, D, plt, cat_probs_input, cat_labels_input, cat_n_draws):
+def _(D, cat_labels_input, cat_n_draws, cat_probs_input, np, plt, torch):
     # Parse inputs
     _probs = np.array([float(x.strip()) for x in cat_probs_input.value.split(',')])
     _probs = _probs / _probs.sum()  # normalize
@@ -570,53 +544,45 @@ def __(np, torch, D, plt, cat_probs_input, cat_labels_input, cat_n_draws):
 
 
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ### Softmax Connection
+def _(mo):
+    mo.md(r"""
+    ### Softmax Connection
 
-        In neural networks, a **softmax** layer converts logits to a Categorical distribution:
+    In neural networks, a **softmax** layer converts logits to a Categorical distribution:
 
-        ```python
-        logits = model(x)                          # raw scores, shape (K,)
-        probs = torch.softmax(logits, dim=-1)       # → Categorical parameters
-        dist = D.Categorical(probs=probs)
-        predicted_class = dist.sample()              # or probs.argmax()
-        loss = -dist.log_prob(true_label)            # cross-entropy loss!
-        ```
+    ```python
+    logits = model(x)                          # raw scores, shape (K,)
+    probs = torch.softmax(logits, dim=-1)       # → Categorical parameters
+    dist = D.Categorical(probs=probs)
+    predicted_class = dist.sample()              # or probs.argmax()
+    loss = -dist.log_prob(true_label)            # cross-entropy loss!
+    ```
 
-        This is exactly how **multi-class classification** works.
-        """
-    )
-    return
-
-
-# ═══════════════════════════════════════════════════════════════
-# SECTION 5: GENERATIVE AI — SYNTHETIC DATA PIPELINE
-# ═══════════════════════════════════════════════════════════════
-
-@app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## 5. Generative AI: Synthetic Data for ML
-
-        Real generative models (GANs, VAEs, diffusion) learn to **sample from complex
-        distributions**. Here we'll build the intuition step-by-step:
-
-        1. **Class-conditional generation:** Different Gaussians per class
-        2. **Synthetic tabular data:** Multi-feature data with correlations
-        3. **Text generation (bag-of-words):** Multinomial sampling of words
-
-        All of these are building blocks used in production generative AI systems.
-        """
-    )
+    This is exactly how **multi-class classification** works.
+    """)
     return
 
 
 @app.cell
-def __(mo):
+def _(mo):
+    mo.md(r"""
+    ---
+    ## 5. Generative AI: Synthetic Data for ML
+
+    Real generative models (GANs, VAEs, diffusion) learn to **sample from complex
+    distributions**. Here we'll build the intuition step-by-step:
+
+    1. **Class-conditional generation:** Different Gaussians per class
+    2. **Synthetic tabular data:** Multi-feature data with correlations
+    3. **Text generation (bag-of-words):** Multinomial sampling of words
+
+    All of these are building blocks used in production generative AI systems.
+    """)
+    return
+
+
+@app.cell
+def _(mo):
     gen_n_per_class = mo.ui.slider(start=50, stop=500, step=50, value=200,
                                     label="Samples per class", show_value=True)
     gen_separation = mo.ui.slider(start=0.5, stop=5.0, step=0.25, value=2.0,
@@ -637,7 +603,7 @@ def __(mo):
 
 
 @app.cell
-def __(np, torch, D, plt, gen_n_per_class, gen_separation):
+def _(D, gen_n_per_class, gen_separation, np, plt, torch):
     _n_pc = int(gen_n_per_class.value)
     _sep = gen_separation.value
 
@@ -694,28 +660,26 @@ def __(np, torch, D, plt, gen_n_per_class, gen_separation):
                   fontsize=14, fontweight='bold')
     plt.tight_layout()
     _fig5
-    return all_data, all_labels
-
-
-@app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ### 5b. Synthetic Text Generation (Bag of Words)
-
-        In NLP, a simple generative model treats documents as draws from a Multinomial
-        distribution over vocabulary:
-
-        $$P(\text{document}) = \text{Multinomial}(\vec{m} \mid n, \vec{\theta}_{\text{topic}})$$
-
-        This is the foundation of **Naive Bayes classifiers** and **topic models**.
-        """
-    )
     return
 
 
 @app.cell
-def __(np, torch, D, plt):
+def _(mo):
+    mo.md(r"""
+    ### 5b. Synthetic Text Generation (Bag of Words)
+
+    In NLP, a simple generative model treats documents as draws from a Multinomial
+    distribution over vocabulary:
+
+    $$P(\text{document}) = \text{Multinomial}(\vec{m} \mid n, \vec{\theta}_{\text{topic}})$$
+
+    This is the foundation of **Naive Bayes classifiers** and **topic models**.
+    """)
+    return
+
+
+@app.cell
+def _(D, plt, torch):
     # Define topic-word distributions
     vocab = ['neural', 'network', 'gradient', 'loss', 'train',
              'goal', 'score', 'team', 'player', 'win',
@@ -759,11 +723,11 @@ def __(np, torch, D, plt):
                   fontsize=14, fontweight='bold')
     plt.tight_layout()
     _fig6
-    return vocab, topic_probs
+    return topic_probs, vocab
 
 
 @app.cell
-def __(mo, torch, D, vocab, topic_probs):
+def _(D, mo, topic_probs, vocab):
     # Show example generated document
     _topic = 'ML'
     _multi = D.Multinomial(total_count=30, probs=topic_probs[_topic])
@@ -797,33 +761,27 @@ def __(mo, torch, D, vocab, topic_probs):
     return
 
 
-# ═══════════════════════════════════════════════════════════════
-# SECTION 6: GAUSSIAN MIXTURE MODEL (VAE INTUITION)
-# ═══════════════════════════════════════════════════════════════
-
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## 6. Gaussian Mixture Model — The Road to VAEs
+def _(mo):
+    mo.md(r"""
+    ---
+    ## 6. Gaussian Mixture Model — The Road to VAEs
 
-        A **Gaussian Mixture Model (GMM)** is a generative model:
+    A **Gaussian Mixture Model (GMM)** is a generative model:
 
-        $$p(\vec{x}) = \sum_{k=1}^{K} \pi_k \, \mathcal{N}(\vec{x} \mid \vec{\mu}_k, \Sigma_k)$$
+    $$p(\vec{x}) = \sum_{k=1}^{K} \pi_k \, \mathcal{N}(\vec{x} \mid \vec{\mu}_k, \Sigma_k)$$
 
-        **Connection to generative AI:**
-        - GMM: discrete latent variable $z \in \{1,\ldots,K\}$ → Gaussian per component
-        - **VAE**: continuous latent variable $\vec{z} \sim \mathcal{N}(\vec{0}, I)$ → neural network decoder
+    **Connection to generative AI:**
+    - GMM: discrete latent variable $z \in \{1,\ldots,K\}$ → Gaussian per component
+    - **VAE**: continuous latent variable $\vec{z} \sim \mathcal{N}(\vec{0}, I)$ → neural network decoder
 
-        Both follow the pattern: **sample latent → decode to data space**.
-        """
-    )
+    Both follow the pattern: **sample latent → decode to data space**.
+    """)
     return
 
 
 @app.cell
-def __(mo):
+def _(mo):
     gmm_k = mo.ui.slider(start=2, stop=6, step=1, value=3,
                           label="K (components)", show_value=True)
     gmm_n = mo.ui.slider(start=200, stop=3000, step=100, value=1000,
@@ -842,7 +800,7 @@ def __(mo):
 
 
 @app.cell
-def __(np, torch, D, plt, Ellipse, gmm_k, gmm_n):
+def _(D, Ellipse, gmm_k, gmm_n, np, plt, torch):
     _K = int(gmm_k.value)
     _N = int(gmm_n.value)
     torch.manual_seed(42)
@@ -946,52 +904,48 @@ def __(np, torch, D, plt, Ellipse, gmm_k, gmm_n):
 
 
 @app.cell
-def __(mo):
-    mo.md(
-        r"""
-        ---
-        ## Summary: Raw vs PyTorch
+def _(mo):
+    mo.md(r"""
+    ---
+    ## Summary: Raw vs PyTorch
 
-        | Distribution | Raw Implementation | PyTorch |
-        |---|---|---|
-        | **Gaussian 1D** | Box-Muller transform | `D.Normal(μ, σ)` |
-        | **Gaussian nD** | Cholesky decomposition | `D.MultivariateNormal(μ, Σ)` |
-        | **Bernoulli** | Threshold uniform sample | `D.Bernoulli(θ)` |
-        | **Binomial** | Sum of Bernoulli trials | `D.Binomial(n, θ)` |
-        | **Categorical** | Inverse CDF (searchsorted) | `D.Categorical(θ)` |
-        | **Multinomial** | Count categorical draws | `D.Multinomial(n, θ)` |
+    | Distribution | Raw Implementation | PyTorch |
+    |---|---|---|
+    | **Gaussian 1D** | Box-Muller transform | `D.Normal(μ, σ)` |
+    | **Gaussian nD** | Cholesky decomposition | `D.MultivariateNormal(μ, Σ)` |
+    | **Bernoulli** | Threshold uniform sample | `D.Bernoulli(θ)` |
+    | **Binomial** | Sum of Bernoulli trials | `D.Binomial(n, θ)` |
+    | **Categorical** | Inverse CDF (searchsorted) | `D.Categorical(θ)` |
+    | **Multinomial** | Count categorical draws | `D.Multinomial(n, θ)` |
 
-        ### Why PyTorch Wins for ML
+    ### Why PyTorch Wins for ML
 
-        1. **Automatic differentiation** — gradients flow through `log_prob()` and `rsample()`
-        2. **Reparameterization trick** — enables training VAEs and other latent variable models
-        3. **GPU support** — batch sampling on CUDA
-        4. **Composability** — build complex generative models from simple distributions
+    1. **Automatic differentiation** — gradients flow through `log_prob()` and `rsample()`
+    2. **Reparameterization trick** — enables training VAEs and other latent variable models
+    3. **GPU support** — batch sampling on CUDA
+    4. **Composability** — build complex generative models from simple distributions
 
-        ### The Generative AI Connection
+    ### The Generative AI Connection
 
-        Every generative model follows the same pattern:
+    Every generative model follows the same pattern:
 
-        **Sample latent** $\vec{z} \sim p(\vec{z})$ → **Decode** $\vec{x} = f_\theta(\vec{z})$
+    **Sample latent** $\vec{z} \sim p(\vec{z})$ → **Decode** $\vec{x} = f_\theta(\vec{z})$
 
-        - **GMM:** $z$ is discrete (Categorical), $f$ is Gaussian lookup
-        - **VAE:** $z$ is continuous (Gaussian), $f$ is a neural network
-        - **Diffusion:** $z$ is noise (Gaussian), $f$ is iterative denoising
-        - **LLM:** $z$ is context, $f$ produces Categorical over next token
-        """
-    )
+    - **GMM:** $z$ is discrete (Categorical), $f$ is Gaussian lookup
+    - **VAE:** $z$ is continuous (Gaussian), $f$ is a neural network
+    - **Diffusion:** $z$ is noise (Gaussian), $f$ is iterative denoising
+    - **LLM:** $z$ is context, $f$ produces Categorical over next token
+    """)
     return
 
 
 @app.cell
-def __(mo):
-    mo.md(
-        """
-        ---
+def _(mo):
+    mo.md("""
+    ---
 
-        *IME 775 — Mathematical Foundations of Deep Learning — Week 6*
-        """
-    )
+    *IME 775 — Mathematical Foundations of Deep Learning — Week 6*
+    """)
     return
 
 
