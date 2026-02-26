@@ -67,6 +67,44 @@ $D_{KL}(p \| q)$ weights the log-ratio $\log(p/q)$ by $p$. So it cares about reg
 
 For a multimodal $p$, forward KL makes $q$ try to cover all modes (potentially blurry), while reverse KL makes $q$ collapse onto one mode (sharp but incomplete).
 
+**Why $p$ weights the log-ratio — unpacking the expectation:**
+
+The log-ratio $\log \frac{p(x)}{q(x)}$ measures the pointwise "surprise difference" at each outcome — how much more or less surprised you are under $q$ compared to $p$. But not all outcomes matter equally. The factor $p(x_i)$ out front comes from the fact that $D_{KL}(p \| q)$ is an **expectation under $p$**: we are averaging this surprise difference over outcomes *as they actually occur when sampling from $p$*.
+
+This means KL divergence only "sees" regions where $p$ has mass. If $p(x) \approx 0$ somewhere, that term contributes essentially nothing to the sum, regardless of what $q$ does there. Conversely, if $p(x) > 0$ but $q(x) \to 0$, the log-ratio $\log(p/q) \to \infty$ and that term is weighted by a nonzero $p(x)$, so the divergence blows up. This is why:
+
+- **Forward KL** $D_{KL}(p \| q)$: weighted by $p$, forces $q$ to cover everywhere $p$ has mass (mode-covering). In deep learning, cross-entropy loss punishes the model heavily for assigning near-zero probability to outcomes that actually appear in the training data — this is exactly forward KL at work.
+- **Reverse KL** $D_{KL}(q \| p)$: weighted by $q$, forces $q$ to avoid placing mass where $p$ doesn't (mode-seeking). This is why variational inference (e.g., VAEs) tends to produce sharper but incomplete approximations.
+
+**Rule of thumb:** whichever distribution is in front (the one being "expected over") controls *which regions matter*. The one inside the log-ratio is the one being penalized for mismatch in those regions.
+
+**Moment matching vs. mode seeking — unpacked:**
+
+**Forward KL — Moment Matching** $D_{KL}(p \| q)$
+
+The expectation is under $p$, so every region where $p(x) > 0$ must be accounted for. If $q$ assigns near-zero probability anywhere $p$ has mass, the divergence blows up. The only safe strategy for $q$ is to spread out and cover all of $p$'s support. When minimized analytically, the optimal $q$ ends up matching the mean, variance, and higher moments of $p$ — hence "moment matching." For a bimodal $p$, a unimodal Gaussian $q$ will place itself between the two modes, smearing mass across both. It cannot afford to ignore either mode: a blurry but complete approximation.
+
+**Reverse KL — Mode Seeking** $D_{KL}(q \| p)$
+
+Now the expectation is under $q$. If $q$ places probability somewhere $p \approx 0$, the term $\log(q/p) \to \infty$ weighted by $q(x) > 0$, blowing up. So $q$ learns to avoid any region where $p$ is small, and retreats to a single high-density region of $p$ (a mode). Other modes are ignored entirely because venturing into low-$p$ territory is catastrophically penalized. The result is a sharp but incomplete approximation — $q$ finds one peak and stays there.
+
+**Concrete picture — bimodal $p$ with peaks at $x = -3$ and $x = +3$:**
+
+| Direction | What $q$ (Gaussian) does |
+|---|---|
+| Forward KL | Sits near $x = 0$, covering both peaks even though $x=0$ has low $p$-mass — matches the mean |
+| Reverse KL | Collapses onto one peak (e.g., $x = -3$), ignoring the other entirely |
+
+**Practical consequences:**
+
+| Setting | Direction | Consequence |
+|---|---|---|
+| Classifiers / language models (cross-entropy loss) | Forward KL | Model must assign nonzero probability to every observed outcome — no blind spots |
+| VAEs (encoder regularization) | Reverse KL | Latent code concentrates in high-density regions of the prior — compact but may miss variation |
+| GANs | Neither directly | Adversarial objective can approximate arbitrary distributions but with training instability |
+
+The key tradeoff: if missing a mode is catastrophic (e.g., a language model that refuses to generate certain words), use forward KL. If you want a sharp, precise sample from one region and don't need full coverage, reverse KL is more stable.
+
 &nbsp;
 
 *Workout:* Compute $D_{KL}(p \| q)$ for $p = (0.5, 0.5)$ and $q = (0.9, 0.1)$.
