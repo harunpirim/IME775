@@ -133,6 +133,36 @@ This closed-form is used directly in VAEs, where the encoder output is regulariz
 
 $$D_{KL}(p \| q) = -\frac{1}{2}\left(1 + \log \sigma^2 - \mu^2 - \sigma^2\right)$$
 
+**Important notation note (VAE context):**
+
+In this section's notation:
+- $p = \mathcal{N}(\mu, \sigma^2)$ is the encoder output distribution for one input (often written as $q_\phi(z\mid x)$ in VAE papers)
+- $q = \mathcal{N}(0,1)$ is the latent prior (often written as $p(z)$)
+
+So this KL term is "encoder distribution vs. prior," even though the letters $p,q$ may be swapped compared with standard VAE notation.
+
+**Worked VAE example (same formula):**
+
+Suppose for one input $x$, the encoder predicts:
+- $\mu = 1.0$
+- $\log \sigma^2 = -0.693 \Rightarrow \sigma^2 \approx 0.5$
+
+Then:
+- $p = \mathcal{N}(1.0, 0.5)$
+- $q = \mathcal{N}(0,1)$
+
+$D_{KL}(p\|q) = -\frac{1}{2}\left(1+\log \sigma^2-\mu^2-\sigma^2\right)$
+
+$= -\frac{1}{2}\left(1-0.693-1.0-0.5\right) = -\frac{1}{2}(-1.193) = 0.5965$ 
+
+Interpretation: KL $> 0$ because the encoder distribution is shifted ($\mu \neq 0$) and has different spread ($\sigma^2 \neq 1$). Minimizing this term pushes $\mu \to 0$ and $\sigma^2 \to 1$.
+
+### VAE terms in plain language
+
+- **Latent code:** A compact hidden vector $z$ representing the input. In a VAE, the encoder predicts a distribution over this code (mean and variance), then samples $z$.
+- **Decoding:** Mapping latent code back to data space, $z \rightarrow \hat{x}$.
+- **Why KL regularization matters:** Without it, latent codes can become arbitrary and overfit training points. KL regularization keeps codes near a shared prior $N(0,1)$ so the latent space is smooth and sampleable, enabling generation by drawing $z \sim N(0,1)$ and decoding.
+
 ---
 
 ## 3. Conditional Entropy
@@ -177,6 +207,9 @@ $P(Y\text{=yes}) = 0.15 + 0.30 = 0.45$, $P(Y\text{=no}) = 0.55$
 $H(Y) = -(0.45 \log_2 0.45 + 0.55 \log_2 0.55) = -(0.45 \times (-1.152) + 0.55 \times (-0.862)) = 0.993$ bits
 
 For $X\text{=young}$: $P(\text{young}) = 0.50$, $P(\text{yes}|\text{young}) = 0.30$, $P(\text{no}|\text{young}) = 0.70$
+
+How this is computed from the table:
+$$P(\text{yes}|\text{young}) = \frac{P(\text{young},\text{yes})}{P(\text{young})} = \frac{0.15}{0.15+0.35} = \frac{0.15}{0.50} = 0.30$$
 
 $H(Y|\text{young}) = -(0.30 \log_2 0.30 + 0.70 \log_2 0.70) = 0.881$ bits
 
