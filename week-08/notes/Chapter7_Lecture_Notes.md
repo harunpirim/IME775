@@ -39,7 +39,7 @@ The more complex the target function, the more expressive power is needed.
 
 | Type | Training data | Example |
 |---|---|---|
-| **Supervised** | $\langle$input, desired output$\rangle$ pairs (manually labeled) | Image classification, spam detection |
+| **Supervised** | $\langle$ input, desired output $\rangle$ pairs (manually labeled) | Image classification, spam detection |
 | **Unsupervised** | Inputs only (no labels) | Clustering, dimensionality reduction |
 | **Semi-supervised** | Small fraction labeled, rest unlabeled | Label-efficient learning |
 | **Self-supervised** | Labels created programmatically from the data itself | Language model next-word prediction, contrastive learning |
@@ -213,7 +213,7 @@ Since $(\vec{x}_1 - \vec{x}_0)$ is any vector lying on the hyperplane, $\vec{w}$
 | 1D | Point | $w_0 x_0 + b = 0$ → a threshold |
 | 2D | Line | $w_0 x_0 + w_1 x_1 + b = 0$ |
 | 3D | Plane | $w_0 x_0 + w_1 x_1 + w_2 x_2 + b = 0$ |
-| $d$-D | Hyperplane | $\vec{w}^T\vec{x} + b = 0$ |
+| d-D | Hyperplane | $\vec{w}^T\vec{x} + b = 0$ |
 
 &nbsp;
 
