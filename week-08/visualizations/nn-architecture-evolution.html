@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neural Network Architecture Evolution — IME 775</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-dark: #0f1923;
+  --bg-header: #14232f;
+  --bg-light: #f4f6f8;
+  --bg-card: #ffffff;
+  --blue: #2196F3;
+  --teal: #00897B;
+  --teal-light: #4DB6AC;
+  --orange: #FF7043;
+  --orange-light: #FFAB91;
+  --text-dark: #1a2a3a;
+  --text-mid: #4a5a6a;
+  --text-light: #ccd6e0;
+  --border: #dde3ea;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-light);
+  color: var(--text-dark);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+header {
+  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-header) 100%);
+  color: white;
+  padding: 2rem 2rem 1rem;
+  text-align: center;
+}
+header h1 { font-size: 1.8rem; font-weight: 600; letter-spacing: 0.02em; }
+header p { color: var(--text-light); margin-top: 0.3rem; font-size: 0.95rem; }
+
+nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem 1rem 1.5rem;
+  background: var(--bg-dark);
+}
+nav button {
+  padding: 0.55rem 1.2rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+nav button:hover { background: rgba(255,255,255,0.08); }
+nav button.active {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0,137,123,0.4);
+}
+
+main {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+.stage { display: none; animation: fadeIn 0.4s ease; }
+.stage.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 1.8rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.card h2 {
+  font-size: 1.35rem;
+  margin-bottom: 0.5rem;
+  color: var(--bg-header);
+}
+.card h3 {
+  font-size: 1.05rem;
+  margin: 1rem 0 0.5rem;
+  color: var(--teal);
+}
+
+.formula {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.15rem;
+  background: #eef4fa;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  display: inline-block;
+  margin: 0.5rem 0;
+  color: var(--bg-header);
+  border-left: 3px solid var(--blue);
+}
+
+.row { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.row > * { flex: 1; min-width: 280px; }
+
+canvas { display: block; border-radius: 8px; background: #fafcfe; border: 1px solid var(--border); }
+
+.slider-group { margin: 0.6rem 0; }
+.slider-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-mid);
+}
+.slider-group input[type=range] {
+  flex: 1;
+  accent-color: var(--teal);
+  max-width: 220px;
+}
+.slider-group .val {
+  font-family: monospace;
+  color: var(--teal);
+  min-width: 3em;
+  text-align: right;
+}
+
+.btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.8rem 0; }
+.btn-group button, button.action-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-dark);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-group button:hover, button.action-btn:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.btn-group button.active {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+}
+button.action-btn {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+button.action-btn:hover {
+  background: #1976D2;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+table th, table td {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+table th { background: #eef4fa; color: var(--bg-header); font-weight: 600; }
+table td.pass { background: #e8f5e9; color: #2e7d32; font-weight: 600; }
+table td.fail { background: #ffebee; color: #c62828; font-weight: 600; }
+
+.insight-box {
+  background: linear-gradient(135deg, #e3f2fd 0%, #e0f2f1 100%);
+  padding: 1.2rem 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--teal);
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+.insight-box strong { color: var(--teal); }
+
+.timeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  padding: 1rem 0;
+  position: relative;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--blue), var(--teal), var(--orange));
+  border-radius: 2px;
+}
+.tl-item {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  position: relative;
+  padding-top: 40px;
+}
+.tl-item .dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--teal);
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px var(--teal);
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.tl-item .year { font-weight: 700; font-size: 0.95rem; color: var(--bg-header); }
+.tl-item .label { font-size: 0.8rem; color: var(--text-mid); margin-top: 0.2rem; }
+
+.computation-step {
+  background: #f5f9fc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  margin: 0.5rem 0;
+  font-family: monospace;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.flex-center { display: flex; justify-content: center; align-items: center; }
+.mt-1 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Neural Network Architecture Evolution</h1>
+  <p>IME 775 — Mathematical Foundations of Deep Learning &middot; Chapter 7</p>
+</header>
+
+<nav id="nav"></nav>
+
+<main>
+  <!-- Stage 1: Single Perceptron -->
+  <div class="stage" id="stage-0">
+    <div class="card">
+      <h2>Stage 1: The Single Perceptron</h2>
+      <p>The simplest neural network: a single computational unit that computes a weighted sum of inputs, adds a bias, and applies a step activation function.</p>
+      <div class="formula">y = &theta;(w&#8320;x&#8320; + w&#8321;x&#8321; + b)</div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--text-mid)">where &theta;(z) = 1 if z &ge; 0, else 0 (Heaviside step function)</p>
+    </div>
+    <div class="row">
+      <div class="card">
+        <h3>Perceptron Diagram</h3>
+        <canvas id="c1-perceptron" width="420" height="260"></canvas>
+      </div>
+      <div class="card">
+        <h3>Decision Boundary</h3>
+        <canvas id="c1-boundary" width="380" height="300"></canvas>
+        <div class="slider-group">
+          <label>w&#8320; <input type="range" id="s1-w0" min="-3" max="3" step="0.1" value="1"> <span class="val" id="v1-w0">1.0</span></label>
+        </div>
+        <div class="slider-group">
+          <label>w&#8321; <input type="range" id="s1-w1" min="-3" max="3" step="0.1" value="1"> <span class="val" id="v1-w1">1.0</span></label>
+        </div>
+        <div class="slider-group">
+          <label>b &nbsp;&nbsp;&nbsp; <input type="range" id="s1-b" min="-3" max="3" step="0.1" value="0"> <span class="val" id="v1-b">0.0</span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 2: Logic Gates -->
+  <div class="stage" id="stage-1">
+    <div class="card">
+      <h2>Stage 2: Logic Gates with Perceptrons</h2>
+      <p>A single perceptron can implement linearly separable Boolean functions.</p>
+      <div class="btn-group" id="gate-btns">
+        <button class="active" data-gate="AND">AND</button>
+        <button data-gate="OR">OR</button>
+        <button data-gate="NOT">NOT</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="card">
+        <h3>Perceptron Weights</h3>
+        <canvas id="c2-diagram" width="400" height="220"></canvas>
+        <div id="gate-truth-table" class="mt-1"></div>
+      </div>
+      <div class="card">
+        <h3>Decision Boundary</h3>
+        <canvas id="c2-boundary" width="380" height="320"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 3: XOR Problem -->
+  <div class="stage" id="stage-2">
+    <div class="card">
+      <h2>Stage 3: The XOR Problem</h2>
+      <p>Minsky &amp; Papert (1969) proved that XOR cannot be solved by a single perceptron. This limitation nearly killed the field of neural networks for over a decade.</p>
+    </div>
+    <div class="row">
+      <div class="card">
+        <h3>XOR Truth Table</h3>
+        <table>
+          <tr><th>x&#8320;</th><th>x&#8321;</th><th>XOR</th></tr>
+          <tr><td>0</td><td>0</td><td class="fail">0</td></tr>
+          <tr><td>0</td><td>1</td><td class="pass">1</td></tr>
+          <tr><td>1</td><td>0</td><td class="pass">1</td></tr>
+          <tr><td>1</td><td>1</td><td class="fail">0</td></tr>
+        </table>
+        <div class="insight-box mt-1">
+          <strong>XOR is NOT linearly separable.</strong><br>
+          No single hyperplane (line in 2D) can separate the class-0 and class-1 points. Any line will misclassify at least one point.
+        </div>
+      </div>
+      <div class="card">
+        <h3>Impossible Separation</h3>
+        <canvas id="c3-xor" width="380" height="340"></canvas>
+        <p style="font-size:0.85rem;color:var(--text-mid);margin-top:0.5rem;">The dashed lines show attempted decision boundaries — every attempt fails to correctly separate all four points.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stage 4: MLP for XOR -->
+  <div class="stage" id="stage-3">
+    <div class="card">
+      <h2>Stage 4: Multi-Layer Perceptron Solves XOR</h2>
+      <p>By adding a hidden layer with 2 neurons, we can solve XOR. The hidden layer transforms the input space so that the classes become linearly separable.</p>
+    </div>
+    <div class="card">
+      <h3>MLP Architecture (2→2→1)</h3>
+      <canvas id="c4-mlp" width="700" height="280"></canvas>
+    </div>
+    <div class="card">
+      <h3>Step-Through Computation</h3>
+      <p style="font-size:0.9rem;color:var(--text-mid);margin-bottom:0.8rem;">Click <strong>Next</strong> to walk through the forward pass for each input pair.</p>
+      <div class="btn-group">
+        <button class="action-btn" id="mlp-prev">← Prev</button>
+        <button class="action-btn" id="mlp-next">Next →</button>
+      </div>
+      <div id="mlp-step-display" class="computation-step mt-1"></div>
+    </div>
+  </div>
+
+  <!-- Stage 5: Cybenko Tower Construction -->
+  <div class="stage" id="stage-4">
+    <div class="card">
+      <h2>Stage 5: Cybenko's Universal Approximation</h2>
+      <p>Cybenko (1989) proved that a neural network with a single hidden layer and sigmoid activations can approximate any continuous function on a compact set to arbitrary precision.</p>
+    </div>
+    <div class="card">
+      <h3>Building a Tower from Step Functions</h3>
+      <div class="row" style="gap:0.5rem;">
+        <div style="text-align:center;">
+          <canvas id="c5-left" width="240" height="200"></canvas>
+          <p style="font-size:0.82rem;color:var(--text-mid);">θ(x + s) — step up</p>
+        </div>
+        <div style="text-align:center;">
+          <canvas id="c5-mid" width="240" height="200"></canvas>
+          <p style="font-size:0.82rem;color:var(--text-mid);">θ(−x + s) — step down</p>
+        </div>
+        <div style="text-align:center;">
+          <canvas id="c5-right" width="240" height="200"></canvas>
+          <p style="font-size:0.82rem;color:var(--text-mid);">Tower = step up + step down − 1</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Approximating a Function with Towers</h3>
+      <canvas id="c5-approx" width="800" height="300"></canvas>
+      <div class="slider-group mt-1">
+        <label>Number of towers: <input type="range" id="s5-towers" min="1" max="20" value="4"> <span class="val" id="v5-towers">4</span></label>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-mid);margin-top:0.3rem;">More towers → better approximation of the target function (shown in orange).</p>
+    </div>
+  </div>
+
+  <!-- Stage 6: Deep Networks -->
+  <div class="stage" id="stage-5">
+    <div class="card">
+      <h2>Stage 6: The Rise of Deep Networks</h2>
+      <p>While a single hidden layer is theoretically sufficient (Cybenko), <em>deep</em> networks achieve the same expressiveness with exponentially fewer parameters. Depth enables hierarchical feature learning.</p>
+    </div>
+    <div class="card">
+      <h3>Deep Network Architecture</h3>
+      <canvas id="c6-deep" width="800" height="300"></canvas>
+    </div>
+    <div class="card">
+      <h3>Historical Timeline</h3>
+      <div class="timeline">
+        <div class="tl-item"><div class="dot" style="background:var(--blue);box-shadow:0 0 0 2px var(--blue)"></div><div class="year">1958</div><div class="label">Perceptron<br><em>Rosenblatt</em></div></div>
+        <div class="tl-item"><div class="dot" style="background:#c62828;box-shadow:0 0 0 2px #c62828"></div><div class="year">1969</div><div class="label">Perceptrons<br><em>Minsky &amp; Papert</em></div></div>
+        <div class="tl-item"><div class="dot"></div><div class="year">1986</div><div class="label">Backpropagation<br><em>Rumelhart et al.</em></div></div>
+        <div class="tl-item"><div class="dot"></div><div class="year">1989</div><div class="label">Universal Approx.<br><em>Cybenko</em></div></div>
+        <div class="tl-item"><div class="dot" style="background:var(--orange);box-shadow:0 0 0 2px var(--orange)"></div><div class="year">2012</div><div class="label">AlexNet<br><em>Krizhevsky et al.</em></div></div>
+        <div class="tl-item"><div class="dot" style="background:var(--orange);box-shadow:0 0 0 2px var(--orange)"></div><div class="year">2017</div><div class="label">Transformers<br><em>Vaswani et al.</em></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="insight-box">
+        <strong>Key Insight:</strong> Depth beats width — deep networks achieve the same expressiveness with exponentially fewer parameters. Each layer learns increasingly abstract representations, enabling hierarchical feature extraction that shallow networks cannot efficiently replicate.
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Utility ──
+const TAU = Math.PI * 2;
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function step(x) { return x >= 0 ? 1 : 0; }
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function getCanvas(id) {
+  const c = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  if (c.width !== rect.width * dpr) {
+    c.width = rect.width * dpr;
+    c.height = rect.height * dpr;
+    c.style.width = rect.width + 'px';
+    c.style.height = rect.height + 'px';
+  }
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  return { ctx, w: rect.width, h: rect.height };
+}
+
+// ── Navigation ──
+const stages = [
+  '1. Perceptron',
+  '2. Logic Gates',
+  '3. XOR Problem',
+  '4. MLP for XOR',
+  '5. Cybenko Towers',
+  '6. Deep Networks'
+];
+const nav = document.getElementById('nav');
+stages.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.textContent = s;
+  b.addEventListener('click', () => showStage(i));
+  nav.appendChild(b);
+});
+
+let currentStage = -1;
+function showStage(idx) {
+  currentStage = idx;
+  document.querySelectorAll('.stage').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('nav button').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+  drawStage(idx);
+}
+
+function drawStage(idx) {
+  if (idx === 0) { drawPerceptronDiagram(); drawBoundary1(); }
+  else if (idx === 1) { setGate(currentGate); }
+  else if (idx === 2) { drawXOR(); }
+  else if (idx === 3) { drawMLP(); showMlpStep(); }
+  else if (idx === 4) { drawTowerParts(); drawApprox(); }
+  else if (idx === 5) { drawDeepNet(); }
+}
+
+// ── Stage 1 ──
+function drawPerceptronDiagram() {
+  const { ctx, w, h } = getCanvas('c1-perceptron');
+  const cx = w / 2, cy = h / 2;
+  const r = 32;
+
+  ctx.font = '14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const inputs = [{ label: 'x₀', y: cy - 50 }, { label: 'x₁', y: cy + 50 }];
+  const weights = ['w₀', 'w₁'];
+
+  inputs.forEach((inp, i) => {
+    const ix = 60, iy = inp.y;
+    ctx.beginPath(); ctx.arc(ix, iy, 22, 0, TAU); ctx.fillStyle = '#e3f2fd'; ctx.fill();
+    ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#1565C0'; ctx.fillText(inp.label, ix, iy);
+
+    ctx.beginPath(); ctx.moveTo(ix + 22, iy); ctx.lineTo(cx - r, cy + (i === 0 ? -10 : 10));
+    ctx.strokeStyle = '#90A4AE'; ctx.lineWidth = 2; ctx.stroke();
+
+    const mx = (ix + 22 + cx - r) / 2, my = (iy + cy + (i === 0 ? -10 : 10)) / 2;
+    ctx.fillStyle = '#FF7043';
+    ctx.font = 'bold 13px system-ui';
+    ctx.fillText(weights[i], mx, my - 10);
+    ctx.font = '14px system-ui';
+  });
+
+  // bias
+  ctx.fillStyle = '#78909C';
+  ctx.font = '13px system-ui';
+  ctx.fillText('+b', cx, cy - r - 12);
+
+  // neuron
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU);
+  const grd = ctx.createRadialGradient(cx - 8, cy - 8, 4, cx, cy, r);
+  grd.addColorStop(0, '#4DB6AC'); grd.addColorStop(1, '#00897B');
+  ctx.fillStyle = grd; ctx.fill();
+  ctx.strokeStyle = '#00695C'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 16px system-ui';
+  ctx.fillText('θ', cx, cy);
+
+  // output
+  ctx.beginPath(); ctx.moveTo(cx + r, cy); ctx.lineTo(w - 60, cy);
+  ctx.strokeStyle = '#90A4AE'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(w - 60, cy); ctx.lineTo(w - 70, cy - 6); ctx.lineTo(w - 70, cy + 6); ctx.closePath();
+  ctx.fillStyle = '#90A4AE'; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(w - 40, cy, 22, 0, TAU); ctx.fillStyle = '#FFF3E0'; ctx.fill();
+  ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#E64A19'; ctx.font = 'bold 14px system-ui'; ctx.fillText('y', w - 40, cy);
+
+  ctx.font = '14px system-ui';
+}
+
+function drawBoundary1() {
+  const w0 = parseFloat(document.getElementById('s1-w0').value);
+  const w1 = parseFloat(document.getElementById('s1-w1').value);
+  const b = parseFloat(document.getElementById('s1-b').value);
+  document.getElementById('v1-w0').textContent = w0.toFixed(1);
+  document.getElementById('v1-w1').textContent = w1.toFixed(1);
+  document.getElementById('v1-b').textContent = b.toFixed(1);
+
+  const { ctx, w, h } = getCanvas('c1-boundary');
+  const pad = 40;
+  const pw = w - 2 * pad, ph = h - 2 * pad;
+  const range = [-2, 2];
+
+  function toX(v) { return pad + (v - range[0]) / (range[1] - range[0]) * pw; }
+  function toY(v) { return pad + ph - (v - range[0]) / (range[1] - range[0]) * ph; }
+
+  // regions
+  for (let px = 0; px < pw; px += 3) {
+    for (let py = 0; py < ph; py += 3) {
+      const xv = range[0] + px / pw * (range[1] - range[0]);
+      const yv = range[1] - py / ph * (range[1] - range[0]);
+      const z = w0 * xv + w1 * yv + b;
+      ctx.fillStyle = z >= 0 ? 'rgba(0,137,123,0.10)' : 'rgba(255,112,67,0.08)';
+      ctx.fillRect(pad + px, pad + py, 3, 3);
+    }
+  }
+
+  // axes
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(toX(0), pad); ctx.lineTo(toX(0), pad + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(pad + pw, toY(0)); ctx.stroke();
+
+  ctx.fillStyle = '#78909C'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  [-2, -1, 0, 1, 2].forEach(v => {
+    ctx.fillText(v, toX(v), pad + ph + 16);
+    ctx.textAlign = 'right';
+    ctx.fillText(v, pad - 6, toY(v) + 4);
+    ctx.textAlign = 'center';
+  });
+  ctx.fillText('x₀', w / 2, h - 4);
+  ctx.save(); ctx.translate(10, h / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('x₁', 0, 0); ctx.restore();
+
+  // decision boundary
+  if (Math.abs(w1) > 0.01) {
+    const x0s = range[0], x0e = range[1];
+    const y0s = -(w0 * x0s + b) / w1;
+    const y0e = -(w0 * x0e + b) / w1;
+    ctx.beginPath(); ctx.moveTo(toX(x0s), toY(y0s)); ctx.lineTo(toX(x0e), toY(y0e));
+    ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2.5; ctx.stroke();
+  } else if (Math.abs(w0) > 0.01) {
+    const xv = -b / w0;
+    ctx.beginPath(); ctx.moveTo(toX(xv), pad); ctx.lineTo(toX(xv), pad + ph);
+    ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  // label regions
+  ctx.font = 'bold 13px system-ui';
+  ctx.fillStyle = 'rgba(0,137,123,0.7)'; ctx.fillText('y = 1', toX(1.3), toY(1.5));
+  ctx.fillStyle = 'rgba(255,112,67,0.7)'; ctx.fillText('y = 0', toX(-1.3), toY(-1.5));
+}
+
+['s1-w0', 's1-w1', 's1-b'].forEach(id => {
+  document.getElementById(id).addEventListener('input', drawBoundary1);
+});
+
+// ── Stage 2 ──
+const gateParams = {
+  AND: { w: [1, 1], b: -1.5, tt: [[0,0,0],[0,1,0],[1,0,0],[1,1,1]] },
+  OR:  { w: [1, 1], b: -0.5, tt: [[0,0,0],[0,1,1],[1,0,1],[1,1,1]] },
+  NOT: { w: [-1], b: 0.5, tt: [[0,1],[1,0]], singleInput: true }
+};
+let currentGate = 'AND';
+
+document.getElementById('gate-btns').addEventListener('click', e => {
+  if (e.target.dataset.gate) {
+    currentGate = e.target.dataset.gate;
+    document.querySelectorAll('#gate-btns button').forEach(b => b.classList.toggle('active', b.dataset.gate === currentGate));
+    setGate(currentGate);
+  }
+});
+
+function setGate(name) {
+  drawGateDiagram(name);
+  drawGateBoundary(name);
+  drawGateTruth(name);
+}
+
+function drawGateDiagram(name) {
+  const g = gateParams[name];
+  const { ctx, w, h } = getCanvas('c2-diagram');
+  const cx = w / 2, cy = h / 2, r = 28;
+
+  ctx.font = '14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  if (g.singleInput) {
+    const ix = 80, iy = cy;
+    ctx.beginPath(); ctx.arc(ix, iy, 22, 0, TAU); ctx.fillStyle = '#e3f2fd'; ctx.fill();
+    ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#1565C0'; ctx.fillText('x₀', ix, iy);
+
+    ctx.beginPath(); ctx.moveTo(ix + 22, iy); ctx.lineTo(cx - r, cy);
+    ctx.strokeStyle = '#90A4AE'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#FF7043'; ctx.font = 'bold 13px system-ui';
+    ctx.fillText('w₀=' + g.w[0], (ix + 22 + cx - r) / 2, cy - 14);
+  } else {
+    const inputs = [{ label: 'x₀', y: cy - 40 }, { label: 'x₁', y: cy + 40 }];
+    inputs.forEach((inp, i) => {
+      const ix = 60, iy = inp.y;
+      ctx.beginPath(); ctx.arc(ix, iy, 22, 0, TAU); ctx.fillStyle = '#e3f2fd'; ctx.fill();
+      ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#1565C0'; ctx.font = '14px system-ui'; ctx.fillText(inp.label, ix, iy);
+
+      ctx.beginPath(); ctx.moveTo(ix + 22, iy); ctx.lineTo(cx - r, cy + (i === 0 ? -8 : 8));
+      ctx.strokeStyle = '#90A4AE'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#FF7043'; ctx.font = 'bold 12px system-ui';
+      ctx.fillText('w' + (i === 0 ? '₀' : '₁') + '=' + g.w[i], (60 + 22 + cx - r) / 2, (iy + cy + (i === 0 ? -8 : 8)) / 2 - 10);
+    });
+  }
+
+  ctx.fillStyle = '#78909C'; ctx.font = '12px system-ui'; ctx.fillText('b=' + g.b, cx, cy - r - 10);
+
+  const grd = ctx.createRadialGradient(cx - 6, cy - 6, 4, cx, cy, r);
+  grd.addColorStop(0, '#4DB6AC'); grd.addColorStop(1, '#00897B');
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fillStyle = grd; ctx.fill();
+  ctx.strokeStyle = '#00695C'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px system-ui'; ctx.fillText(name, cx, cy);
+
+  ctx.beginPath(); ctx.moveTo(cx + r, cy); ctx.lineTo(w - 60, cy);
+  ctx.strokeStyle = '#90A4AE'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(w - 40, cy, 22, 0, TAU); ctx.fillStyle = '#FFF3E0'; ctx.fill();
+  ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#E64A19'; ctx.font = 'bold 14px system-ui'; ctx.fillText('y', w - 40, cy);
+}
+
+function drawGateTruth(name) {
+  const g = gateParams[name];
+  let html = '<table><tr>';
+  if (g.singleInput) {
+    html += '<th>x₀</th><th>' + name + '</th></tr>';
+    g.tt.forEach(r => {
+      html += '<tr><td>' + r[0] + '</td><td class="' + (r[1] ? 'pass' : 'fail') + '">' + r[1] + '</td></tr>';
+    });
+  } else {
+    html += '<th>x₀</th><th>x₁</th><th>' + name + '</th></tr>';
+    g.tt.forEach(r => {
+      html += '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td class="' + (r[2] ? 'pass' : 'fail') + '">' + r[2] + '</td></tr>';
+    });
+  }
+  html += '</table>';
+  document.getElementById('gate-truth-table').innerHTML = html;
+}
+
+function drawGateBoundary(name) {
+  const g = gateParams[name];
+  const { ctx, w: cw, h: ch } = getCanvas('c2-boundary');
+  if (g.singleInput) {
+    const pad = 50;
+    const pw = cw - 2 * pad;
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, ch / 2); ctx.lineTo(pad + pw, ch / 2); ctx.stroke();
+
+    ctx.font = '11px system-ui'; ctx.fillStyle = '#78909C'; ctx.textAlign = 'center';
+    [0, 1].forEach(v => {
+      const x = pad + v * pw;
+      ctx.beginPath(); ctx.moveTo(x, ch / 2 - 4); ctx.lineTo(x, ch / 2 + 4); ctx.stroke();
+      ctx.fillText(v, x, ch / 2 + 18);
+    });
+
+    const thresh = -g.b / g.w[0];
+    const tx = pad + clamp(thresh, -0.2, 1.2) * pw;
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tx, 40); ctx.lineTo(tx, ch - 40); ctx.stroke();
+    ctx.setLineDash([]);
+
+    g.tt.forEach(r => {
+      const x = pad + r[0] * pw;
+      ctx.beginPath(); ctx.arc(x, ch / 2, 12, 0, TAU);
+      ctx.fillStyle = r[1] ? '#00897B' : '#FF7043'; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px system-ui'; ctx.fillText(r[1], x, ch / 2);
+    });
+    return;
+  }
+
+  const pad = 50, range = [-0.5, 1.5];
+  const pw = cw - 2 * pad, ph = ch - 2 * pad;
+  function toX(v) { return pad + (v - range[0]) / (range[1] - range[0]) * pw; }
+  function toY(v) { return pad + ph - (v - range[0]) / (range[1] - range[0]) * ph; }
+
+  // shading
+  for (let px = 0; px < pw; px += 3) {
+    for (let py = 0; py < ph; py += 3) {
+      const xv = range[0] + px / pw * (range[1] - range[0]);
+      const yv = range[1] - py / ph * (range[1] - range[0]);
+      const z = g.w[0] * xv + g.w[1] * yv + g.b;
+      ctx.fillStyle = z >= 0 ? 'rgba(0,137,123,0.10)' : 'rgba(255,112,67,0.08)';
+      ctx.fillRect(pad + px, pad + py, 3, 3);
+    }
+  }
+
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(toX(0), pad); ctx.lineTo(toX(0), pad + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(pad + pw, toY(0)); ctx.stroke();
+  ctx.fillStyle = '#78909C'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  [0, 1].forEach(v => { ctx.fillText(v, toX(v), pad + ph + 16); });
+  ctx.textAlign = 'right';
+  [0, 1].forEach(v => { ctx.fillText(v, pad - 6, toY(v) + 4); });
+
+  // decision line
+  if (Math.abs(g.w[1]) > 0.01) {
+    const x0 = range[0], x1 = range[1];
+    const y0 = -(g.w[0] * x0 + g.b) / g.w[1];
+    const y1 = -(g.w[0] * x1 + g.b) / g.w[1];
+    ctx.beginPath(); ctx.moveTo(toX(x0), toY(y0)); ctx.lineTo(toX(x1), toY(y1));
+    ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+
+  // points
+  g.tt.forEach(r => {
+    const x = toX(r[0]), y = toY(r[1]);
+    ctx.beginPath(); ctx.arc(x, y, 12, 0, TAU);
+    ctx.fillStyle = r[2] ? '#00897B' : '#EF5350'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(r[2], x, y + 1);
+  });
+}
+
+// ── Stage 3 ──
+function drawXOR() {
+  const { ctx, w, h } = getCanvas('c3-xor');
+  const pad = 55, range = [-0.5, 1.5];
+  const pw = w - 2 * pad, ph = h - 2 * pad;
+  function toX(v) { return pad + (v - range[0]) / (range[1] - range[0]) * pw; }
+  function toY(v) { return pad + ph - (v - range[0]) / (range[1] - range[0]) * ph; }
+
+  // axes
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(toX(0), pad); ctx.lineTo(toX(0), pad + ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(pad + pw, toY(0)); ctx.stroke();
+  ctx.fillStyle = '#78909C'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  [0, 1].forEach(v => { ctx.fillText(v, toX(v), pad + ph + 16); });
+  ctx.textAlign = 'right';
+  [0, 1].forEach(v => { ctx.fillText(v, pad - 6, toY(v) + 4); });
+  ctx.textAlign = 'center';
+  ctx.fillText('x₀', w / 2, h - 8);
+  ctx.save(); ctx.translate(12, h / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('x₁', 0, 0); ctx.restore();
+
+  // failed boundaries
+  ctx.setLineDash([8, 5]);
+  ctx.lineWidth = 2;
+  const attempts = [
+    { w0: 1, w1: 1, b: -0.5, color: 'rgba(239,83,80,0.5)' },
+    { w0: 1, w1: -1, b: 0.5, color: 'rgba(33,150,243,0.4)' },
+    { w0: -1, w1: 1, b: 0.5, color: 'rgba(156,39,176,0.35)' }
+  ];
+  attempts.forEach(a => {
+    if (Math.abs(a.w1) > 0.01) {
+      const x0 = range[0], x1 = range[1];
+      const y0 = -(a.w0 * x0 + a.b) / a.w1;
+      const y1 = -(a.w0 * x1 + a.b) / a.w1;
+      ctx.beginPath(); ctx.moveTo(toX(x0), toY(y0)); ctx.lineTo(toX(x1), toY(y1));
+      ctx.strokeStyle = a.color; ctx.stroke();
+    }
+  });
+  ctx.setLineDash([]);
+
+  // X marks on failed lines
+  ctx.font = 'bold 18px system-ui'; ctx.fillStyle = '#c62828';
+  ctx.fillText('✗', toX(0.5), toY(1.25));
+  ctx.fillText('✗', toX(1.2), toY(0.7));
+  ctx.fillText('✗', toX(-0.25), toY(0.75));
+
+  // XOR points
+  const xorData = [[0,0,0],[0,1,1],[1,0,1],[1,1,0]];
+  xorData.forEach(r => {
+    const x = toX(r[0]), y = toY(r[1]);
+    ctx.beginPath(); ctx.arc(x, y, 14, 0, TAU);
+    ctx.fillStyle = r[2] ? '#00897B' : '#EF5350'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(r[2], x, y + 1);
+  });
+}
+
+// ── Stage 4 ──
+const mlpW1 = [[1, 1], [1, 1]];
+const mlpB1 = [-0.5, -1.5];
+const mlpW2 = [[1, -1]];
+const mlpB2 = [-0.5];
+const xorInputs = [[0,0],[0,1],[1,0],[1,1]];
+const xorTargets = [0, 1, 1, 0];
+let mlpStepIdx = 0;
+
+document.getElementById('mlp-next').addEventListener('click', () => { mlpStepIdx = (mlpStepIdx + 1) % 4; showMlpStep(); drawMLP(); });
+document.getElementById('mlp-prev').addEventListener('click', () => { mlpStepIdx = (mlpStepIdx + 3) % 4; showMlpStep(); drawMLP(); });
+
+function showMlpStep() {
+  const x = xorInputs[mlpStepIdx];
+  const h1_raw = [mlpW1[0][0]*x[0] + mlpW1[0][1]*x[1] + mlpB1[0],
+                  mlpW1[1][0]*x[0] + mlpW1[1][1]*x[1] + mlpB1[1]];
+  const h1 = h1_raw.map(step);
+  const o_raw = mlpW2[0][0]*h1[0] + mlpW2[0][1]*h1[1] + mlpB2[0];
+  const o = step(o_raw);
+  const correct = o === xorTargets[mlpStepIdx];
+
+  const el = document.getElementById('mlp-step-display');
+  el.innerHTML =
+    `<strong>Input ${mlpStepIdx + 1}/4:</strong>  x = [${x[0]}, ${x[1]}]    Target: ${xorTargets[mlpStepIdx]}\n\n` +
+    `<strong>Hidden Layer:</strong>\n` +
+    `  h₁ = θ(${mlpW1[0][0]}·${x[0]} + ${mlpW1[0][1]}·${x[1]} + (${mlpB1[0]})) = θ(${h1_raw[0].toFixed(1)}) = ${h1[0]}\n` +
+    `  h₂ = θ(${mlpW1[1][0]}·${x[0]} + ${mlpW1[1][1]}·${x[1]} + (${mlpB1[1]})) = θ(${h1_raw[1].toFixed(1)}) = ${h1[1]}\n\n` +
+    `<strong>Output Layer:</strong>\n` +
+    `  y  = θ(${mlpW2[0][0]}·${h1[0]} + (${mlpW2[0][1]})·${h1[1]} + (${mlpB2[0]})) = θ(${o_raw.toFixed(1)}) = <span style="color:${correct ? '#00897B' : '#c62828'};font-weight:bold">${o}</span>  ${correct ? '✓' : '✗'}`;
+}
+
+function drawMLP() {
+  const { ctx, w, h } = getCanvas('c4-mlp');
+  const layers = [[2, 'Input'], [2, 'Hidden'], [1, 'Output']];
+  const xs = [100, w / 2, w - 100];
+  const colors = ['#2196F3', '#00897B', '#FF7043'];
+  const x = xorInputs[mlpStepIdx];
+  const h1_raw = [mlpW1[0][0]*x[0] + mlpW1[0][1]*x[1] + mlpB1[0],
+                  mlpW1[1][0]*x[0] + mlpW1[1][1]*x[1] + mlpB1[1]];
+  const h1 = h1_raw.map(step);
+  const o_raw = mlpW2[0][0]*h1[0] + mlpW2[0][1]*h1[1] + mlpB2[0];
+  const o = step(o_raw);
+  const vals = [[x[0], x[1]], [h1[0], h1[1]], [o]];
+  const nodeR = 24;
+
+  function nodeY(layerSize, idx) {
+    const spacing = 70;
+    const top = h / 2 - (layerSize - 1) * spacing / 2;
+    return top + idx * spacing;
+  }
+
+  // connections
+  for (let l = 0; l < layers.length - 1; l++) {
+    for (let i = 0; i < layers[l][0]; i++) {
+      for (let j = 0; j < layers[l + 1][0]; j++) {
+        const x1 = xs[l], y1 = nodeY(layers[l][0], i);
+        const x2 = xs[l + 1], y2 = nodeY(layers[l + 1][0], j);
+        const wt = l === 0 ? mlpW1[j][i] : mlpW2[j][i];
+        ctx.beginPath(); ctx.moveTo(x1 + nodeR, y1); ctx.lineTo(x2 - nodeR, y2);
+        ctx.strokeStyle = wt > 0 ? 'rgba(0,137,123,0.5)' : 'rgba(239,83,80,0.5)';
+        ctx.lineWidth = Math.abs(wt) * 2 + 0.5; ctx.stroke();
+        const mx = (x1 + nodeR + x2 - nodeR) / 2, my = (y1 + y2) / 2;
+        ctx.fillStyle = '#78909C'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText(wt > 0 ? '+' + wt : wt, mx, my - 8);
+      }
+    }
+  }
+
+  // nodes
+  for (let l = 0; l < layers.length; l++) {
+    for (let i = 0; i < layers[l][0]; i++) {
+      const nx = xs[l], ny = nodeY(layers[l][0], i);
+      const grd = ctx.createRadialGradient(nx - 4, ny - 4, 3, nx, ny, nodeR);
+      grd.addColorStop(0, colors[l] + 'cc'); grd.addColorStop(1, colors[l]);
+      ctx.beginPath(); ctx.arc(nx, ny, nodeR, 0, TAU);
+      ctx.fillStyle = grd; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(vals[l][i], nx, ny);
+    }
+    ctx.fillStyle = '#78909C'; ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(layers[l][1], xs[l], h - 16);
+  }
+
+  // biases
+  ctx.fillStyle = '#78909C'; ctx.font = '11px system-ui';
+  ctx.fillText('b=[' + mlpB1.join(',') + ']', xs[1], nodeY(2, 0) - 38);
+  ctx.fillText('b=[' + mlpB2.join(',') + ']', xs[2], nodeY(1, 0) - 38);
+}
+
+// ── Stage 5 ──
+function drawTowerParts() {
+  drawStepFunc('c5-left', 1, 3, '#2196F3');
+  drawStepFunc('c5-mid', -1, 3, '#00897B');
+  drawTower('c5-right');
+}
+
+function drawStepFunc(id, sign, s, color) {
+  const { ctx, w, h } = getCanvas(id);
+  const pad = 30, pw = w - 2 * pad, ph = h - 2 * pad;
+  const xr = [-6, 6], yr = [-0.3, 1.5];
+
+  function toX(v) { return pad + (v - xr[0]) / (xr[1] - xr[0]) * pw; }
+  function toY(v) { return pad + ph - (v - yr[0]) / (yr[1] - yr[0]) * ph; }
+
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(pad + pw, toY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(toX(0), pad); ctx.lineTo(toX(0), pad + ph); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+  for (let px = 0; px <= pw; px++) {
+    const xv = xr[0] + px / pw * (xr[1] - xr[0]);
+    const yv = sigmoid(4 * (sign * xv + s));
+    const sy = toY(yv);
+    px === 0 ? ctx.moveTo(pad + px, sy) : ctx.lineTo(pad + px, sy);
+  }
+  ctx.stroke();
+}
+
+function drawTower(id) {
+  const { ctx, w, h } = getCanvas(id);
+  const pad = 30, pw = w - 2 * pad, ph = h - 2 * pad;
+  const xr = [-6, 6], yr = [-0.3, 1.5];
+
+  function toX(v) { return pad + (v - xr[0]) / (xr[1] - xr[0]) * pw; }
+  function toY(v) { return pad + ph - (v - yr[0]) / (yr[1] - yr[0]) * ph; }
+
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(pad + pw, toY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(toX(0), pad); ctx.lineTo(toX(0), pad + ph); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2.5;
+  for (let px = 0; px <= pw; px++) {
+    const xv = xr[0] + px / pw * (xr[1] - xr[0]);
+    const yv = sigmoid(4 * (xv + 3)) + sigmoid(4 * (-xv + 3)) - 1;
+    const sy = toY(yv);
+    px === 0 ? ctx.moveTo(pad + px, sy) : ctx.lineTo(pad + px, sy);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = 'rgba(255,112,67,0.12)';
+  ctx.beginPath();
+  for (let px = 0; px <= pw; px++) {
+    const xv = xr[0] + px / pw * (xr[1] - xr[0]);
+    const yv = Math.max(0, sigmoid(4 * (xv + 3)) + sigmoid(4 * (-xv + 3)) - 1);
+    const sy = toY(yv);
+    px === 0 ? ctx.moveTo(pad + px, sy) : ctx.lineTo(pad + px, sy);
+  }
+  ctx.lineTo(pad + pw, toY(0));
+  ctx.lineTo(pad, toY(0));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawApprox() {
+  const nTowers = parseInt(document.getElementById('s5-towers').value);
+  document.getElementById('v5-towers').textContent = nTowers;
+
+  const { ctx, w, h } = getCanvas('c5-approx');
+  const pad = 50, pw = w - 2 * pad, ph = h - 2 * pad;
+  const xr = [-0.5, Math.PI * 2 + 0.5], yr = [-1.5, 1.8];
+
+  function toX(v) { return pad + (v - xr[0]) / (xr[1] - xr[0]) * pw; }
+  function toY(v) { return pad + ph - (v - yr[0]) / (yr[1] - yr[0]) * ph; }
+
+  // axes
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(pad + pw, toY(0)); ctx.stroke();
+
+  ctx.fillStyle = '#aaa'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText('0', toX(0), toY(0) + 14);
+  ctx.fillText('π', toX(Math.PI), toY(0) + 14);
+  ctx.fillText('2π', toX(Math.PI * 2), toY(0) + 14);
+
+  // target function
+  ctx.beginPath();
+  ctx.strokeStyle = '#FF7043'; ctx.lineWidth = 2.5;
+  for (let px = 0; px <= pw; px++) {
+    const xv = xr[0] + px / pw * (xr[1] - xr[0]);
+    const yv = Math.sin(xv);
+    px === 0 ? ctx.moveTo(pad + px, toY(yv)) : ctx.lineTo(pad + px, toY(yv));
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#FF7043'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText('sin(x)', toX(Math.PI * 2) + 6, toY(Math.sin(Math.PI * 2)));
+
+  // tower approximation
+  const lo = 0, hi = Math.PI * 2;
+  const dx = (hi - lo) / nTowers;
+  const steepness = 12;
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 2;
+  for (let px = 0; px <= pw; px++) {
+    const xv = xr[0] + px / pw * (xr[1] - xr[0]);
+    let yv = 0;
+    for (let t = 0; t < nTowers; t++) {
+      const center = lo + dx * (t + 0.5);
+      const left = center - dx / 2;
+      const right = center + dx / 2;
+      const height = Math.sin(center);
+      const tower = sigmoid(steepness * (xv - left)) + sigmoid(steepness * (-(xv - right))) - 1;
+      yv += height * Math.max(0, tower);
+    }
+    px === 0 ? ctx.moveTo(pad + px, toY(yv)) : ctx.lineTo(pad + px, toY(yv));
+  }
+  ctx.stroke();
+
+  // fill between
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#2196F3';
+  ctx.beginPath();
+  for (let px = 0; px <= pw; px++) {
+    const xv = xr[0] + px / pw * (xr[1] - xr[0]);
+    let yv = 0;
+    for (let t = 0; t < nTowers; t++) {
+      const center = lo + dx * (t + 0.5);
+      const left = center - dx / 2;
+      const right = center + dx / 2;
+      const height = Math.sin(center);
+      const tower = sigmoid(steepness * (xv - left)) + sigmoid(steepness * (-(xv - right))) - 1;
+      yv += height * Math.max(0, tower);
+    }
+    px === 0 ? ctx.moveTo(pad + px, toY(yv)) : ctx.lineTo(pad + px, toY(yv));
+  }
+  ctx.lineTo(pad + pw, toY(0));
+  ctx.lineTo(pad, toY(0));
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#2196F3'; ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText('Approx (' + nTowers + ' towers)', toX(Math.PI * 2) + 6, toY(0) - 10);
+}
+
+document.getElementById('s5-towers').addEventListener('input', drawApprox);
+
+// ── Stage 6 ──
+function drawDeepNet() {
+  const { ctx, w, h } = getCanvas('c6-deep');
+  const layerSizes = [4, 8, 6, 6, 3];
+  const layerLabels = ['Input', 'Hidden 1', 'Hidden 2', 'Hidden 3', 'Output'];
+  const colors = ['#2196F3', '#00897B', '#00897B', '#00897B', '#FF7043'];
+  const nodeR = 10;
+  const xPad = 80;
+  const xSpacing = (w - 2 * xPad) / (layerSizes.length - 1);
+
+  function nodeY(size, idx) {
+    const spacing = Math.min(32, (h - 80) / size);
+    const top = h / 2 - (size - 1) * spacing / 2;
+    return top + idx * spacing;
+  }
+
+  // connections
+  for (let l = 0; l < layerSizes.length - 1; l++) {
+    const x1 = xPad + l * xSpacing;
+    const x2 = xPad + (l + 1) * xSpacing;
+    for (let i = 0; i < layerSizes[l]; i++) {
+      for (let j = 0; j < layerSizes[l + 1]; j++) {
+        const y1 = nodeY(layerSizes[l], i);
+        const y2 = nodeY(layerSizes[l + 1], j);
+        ctx.beginPath(); ctx.moveTo(x1 + nodeR, y1); ctx.lineTo(x2 - nodeR, y2);
+        ctx.strokeStyle = 'rgba(0,137,123,0.12)';
+        ctx.lineWidth = 0.8; ctx.stroke();
+      }
+    }
+  }
+
+  // nodes
+  for (let l = 0; l < layerSizes.length; l++) {
+    const nx = xPad + l * xSpacing;
+    for (let i = 0; i < layerSizes[l]; i++) {
+      const ny = nodeY(layerSizes[l], i);
+      const grd = ctx.createRadialGradient(nx - 2, ny - 2, 1, nx, ny, nodeR);
+      grd.addColorStop(0, colors[l] + 'dd'); grd.addColorStop(1, colors[l]);
+      ctx.beginPath(); ctx.arc(nx, ny, nodeR, 0, TAU);
+      ctx.fillStyle = grd; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    ctx.fillStyle = '#78909C'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(layerLabels[l], nx, h - 10);
+  }
+}
+
+// ── Init ──
+showStage(0);
+window.addEventListener('resize', () => drawStage(currentStage));
+</script>
+</body>
+</html>

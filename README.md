@@ -62,9 +62,9 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 05 | PCA, SVD, and Dimensionality Reduction | Ch. 4 | [📝 Notes (Ch 4)](week-05/notes/Chapter4_Lecture_Notes.md) \| [📝 Notes (Ch 4 pt 2)](week-05/notes/Chapter4_Lecture_Notes2.md) \| [📄 PDF](week-05/notes/Chapter4_Lecture_Notes.pdf) \| [📓 Notebooks](week-05/code/) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 06 | Probability Distributions for Machine Learning | Ch. 5 | [📝 Lecture 8](week-06/notes/Chapter5_Lecture_Notes.md) \| [📝 Lecture 9](week-06/notes/Chapter5_Lecture_Notes2.md) \| [📝 Problems](assignments/ch5-practice/Chapter5_Problems.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | [📝 Lecture 11](week-07/notes/Chapter6_Lecture_Notes.md) \| [📝 Lecture 12](week-07/notes/Chapter6_Lecture_Notes2.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
-| 08 | Midterm Exam | — | 🔒 Coming Soon |
-| 09 | Perceptrons, MLPs, and Universal Approximation | Ch. 7 | 🔒 Coming Soon |
-| 10 | Forward Propagation and Backpropagation | Ch. 8 | 🔒 Coming Soon |
+| 08 | Function Approximation: Perceptrons, MLPs, Universal Approximation | Ch. 7 | [📝 Lecture 13](week-08/notes/Chapter7_Lecture_Notes.md) \| [📝 Lecture 14](week-08/notes/Chapter7_Lecture_Notes2.md) \| [🎮 Visualizations](week-08/visualizations/) |
+| 09 | Midterm Exam | — | 🔒 Coming Soon |
+| 10 | Forward Propagation and Backpropagation | Ch. 7-8 | 🔒 Coming Soon |
 | 11 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | 🔒 Coming Soon |
 | 12 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | 🔒 Coming Soon |
 | 13 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
@@ -98,6 +98,7 @@ Explore mathematical concepts through browser-based interactive demos:
 | 05 | Quadratic Forms • Positive Definiteness • Matrix Norms • PCA • SVD • LSA |
 | 06 | 1D Gaussian • 2D Gaussian • Distributions Explorer • Sampling Demo |
 | 07 | Entropy Explorer • Cross-Entropy & Loss Demo • KL Divergence |
+| 08 | Neural Network Architecture Evolution |
 
 > *No installation required — runs directly in your browser!*
 
@@ -160,12 +161,15 @@ IME775/
 │   ├── notes/                   # Lecture notes (Ch 5)
 │   ├── code/                    # Python notebooks
 │   └── visualizations/          # Interactive HTML demos
-└── week-07/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 6: Bayesian Tools)
-    ├── code/                    # Python notebooks (Bayesian Tools)
-    └── visualizations/          # Interactive HTML demos (Entropy, Cross-Entropy, KL)
+├── week-07/                     # ✅ Released
+│   ├── notes/                   # Lecture notes (Ch 6: Bayesian Tools)
+│   ├── code/                    # Python notebooks (Bayesian Tools)
+│   └── visualizations/          # Interactive HTML demos (Entropy, Cross-Entropy, KL)
+└── week-08/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 7: Perceptrons, MLPs, Cybenko)
+    └── visualizations/          # Interactive HTML demos (Architecture Evolution)
 
-Note: Additional weekly materials (week-08 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-09 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
