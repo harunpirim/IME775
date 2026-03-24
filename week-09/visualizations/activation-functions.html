@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activation Functions Explorer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:0 16px 32px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:200px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0}
+  .btn{padding:6px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;transition:all .15s}
+  .btn-active{background:#38bdf8;color:#0f172a}
+  .btn-inactive{background:#334155;color:#94a3b8}
+  .btn-inactive:hover{background:#475569}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:700px){.charts{grid-template-columns:1fr}}
+  .chart-card{background:#1e293b;border-radius:12px;padding:16px;position:relative}
+  .chart-card h3{font-size:.9rem;color:#fff;margin-bottom:8px;text-align:center}
+  canvas{width:100%;border-radius:8px;background:#0f172a}
+  .legend{display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#cbd5e1}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .info-box{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px;text-align:center}
+  .info-box .math{color:#38bdf8;font-family:'Courier New',monospace;font-size:1rem;margin:6px 0}
+  .info-box .desc{color:#94a3b8;font-size:.82rem}
+  .probe-info{position:absolute;top:12px;right:16px;font-size:.72rem;color:#64748b}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Activation Functions Explorer</h1>
+  <p>IME 775 &mdash; Chapter 8: Training Neural Networks</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>Steepness (w)</label>
+      <input type="range" id="steepness" min="0.5" max="20" step="0.5" value="1">
+      <span class="val" id="steepness-val">w = 1.0</span>
+    </div>
+    <div class="control-group">
+      <label>Shift (b)</label>
+      <input type="range" id="shift" min="-5" max="5" step="0.1" value="0">
+      <span class="val" id="shift-val">b = 0.0</span>
+    </div>
+    <div class="control-group">
+      <label>X range</label>
+      <input type="range" id="xrange" min="3" max="15" step="1" value="6">
+      <span class="val" id="xrange-val">[-6, 6]</span>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-active" id="btn-sigmoid" onclick="toggle('sigmoid')">Sigmoid</button>
+    <button class="btn btn-active" id="btn-tanh" onclick="toggle('tanh')">Tanh</button>
+    <button class="btn btn-active" id="btn-heaviside" onclick="toggle('heaviside')">Heaviside</button>
+    <button class="btn btn-inactive" id="btn-relu" onclick="toggle('relu')">ReLU (preview)</button>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h3>Activation Functions f(x)</h3>
+      <div class="probe-info">hover to probe</div>
+      <canvas id="cvs-fn" height="300"></canvas>
+      <div class="legend" id="legend-fn"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Derivatives f'(x)</h3>
+      <div class="probe-info">hover to probe</div>
+      <canvas id="cvs-deriv" height="300"></canvas>
+      <div class="legend" id="legend-deriv"></div>
+    </div>
+  </div>
+
+  <div id="info-panel" class="info-box">
+    <div class="math">&sigma;(x) = 1 / (1 + e<sup>-x</sup>)</div>
+    <div class="desc">Hover over the chart to see values at cursor position</div>
+  </div>
+</div>
+
+<script>
+const COLORS = {sigmoid:'#38bdf8',tanh:'#a78bfa',heaviside:'#fb923c',relu:'#4ade80'};
+const NAMES = {sigmoid:'Sigmoid',tanh:'Tanh',heaviside:'Heaviside',relu:'ReLU'};
+let show = {sigmoid:true,tanh:true,heaviside:true,relu:false};
+
+const sliders = {
+  steepness: document.getElementById('steepness'),
+  shift: document.getElementById('shift'),
+  xrange: document.getElementById('xrange'),
+};
+const vals = {
+  steepness: document.getElementById('steepness-val'),
+  shift: document.getElementById('shift-val'),
+  xrange: document.getElementById('xrange-val'),
+};
+
+function getParams(){
+  const w=parseFloat(sliders.steepness.value),b=parseFloat(sliders.shift.value),r=parseInt(sliders.xrange.value);
+  vals.steepness.textContent=`w = ${w.toFixed(1)}`;
+  vals.shift.textContent=`b = ${b.toFixed(1)}`;
+  vals.xrange.textContent=`[-${r}, ${r}]`;
+  return {w,b,r};
+}
+
+function sigmoid(x,w,b){return 1/(1+Math.exp(-(w*x+b)));}
+function sigmoidDeriv(x,w,b){const s=sigmoid(x,w,b);return w*s*(1-s);}
+function tanhF(x,w,b){return Math.tanh(w*x+b);}
+function tanhDeriv(x,w,b){const t=tanhF(x,w,b);return w*(1-t*t);}
+function heaviside(x,w,b){return (w*x+b)>=0?1:0;}
+function heavisideDeriv(){return 0;}
+function reluF(x,w,b){const v=w*x+b;return v>0?v:0;}
+function reluDeriv(x,w,b){return (w*x+b)>0?w:0;}
+
+const fns={
+  sigmoid:{f:sigmoid,d:sigmoidDeriv},
+  tanh:{f:tanhF,d:tanhDeriv},
+  heaviside:{f:heaviside,d:()=>0},
+  relu:{f:reluF,d:reluDeriv},
+};
+
+function toggle(name){
+  show[name]=!show[name];
+  document.getElementById('btn-'+name).className=show[name]?'btn btn-active':'btn btn-inactive';
+  draw();
+}
+
+function setupCanvas(cvs){
+  const rect=cvs.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  cvs.width=rect.width*dpr;
+  cvs.height=rect.height*dpr;
+  const ctx=cvs.getContext('2d');
+  ctx.scale(dpr,dpr);
+  return {ctx,W:rect.width,H:rect.height};
+}
+
+function drawChart(cvs,legendEl,mode,mouseX){
+  const {ctx,W,H}=setupCanvas(cvs);
+  const {w,b,r}=getParams();
+  const pad={l:45,r:15,t:15,b:30};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const xMin=-r,xMax=r;
+
+  let yMin,yMax;
+  if(mode==='fn'){yMin=-1.5;yMax=1.5;}
+  else{yMin=-0.5;yMax=Math.max(1.5,w*1.1);}
+
+  function tx(x){return pad.l+(x-xMin)/(xMax-xMin)*pw;}
+  function ty(y){return pad.t+(1-(y-yMin)/(yMax-yMin))*ph;}
+
+  ctx.clearRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
+  for(let gx=Math.ceil(xMin);gx<=Math.floor(xMax);gx++){
+    ctx.beginPath();ctx.moveTo(tx(gx),pad.t);ctx.lineTo(tx(gx),H-pad.b);ctx.stroke();
+  }
+  for(let gy=Math.ceil(yMin*2)/2;gy<=yMax;gy+=0.5){
+    ctx.beginPath();ctx.moveTo(pad.l,ty(gy));ctx.lineTo(W-pad.r,ty(gy));ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle='#475569';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(tx(xMin),ty(0));ctx.lineTo(tx(xMax),ty(0));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(tx(0),pad.t);ctx.lineTo(tx(0),H-pad.b);ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textAlign='center';
+  for(let gx=Math.ceil(xMin);gx<=Math.floor(xMax);gx++){
+    if(gx===0)continue;
+    ctx.fillText(gx,tx(gx),H-pad.b+14);
+  }
+  ctx.textAlign='right';
+  for(let gy=Math.ceil(yMin*2)/2;gy<=yMax;gy+=0.5){
+    if(Math.abs(gy)<0.01)continue;
+    ctx.fillText(gy.toFixed(1),pad.l-6,ty(gy)+4);
+  }
+
+  // curves
+  const N=400;
+  const legendItems=[];
+  const probeX=mouseX!==null?(mouseX-pad.l)/pw*(xMax-xMin)+xMin:null;
+
+  for(const name of ['sigmoid','tanh','heaviside','relu']){
+    if(!show[name])continue;
+    const fn=mode==='fn'?fns[name].f:fns[name].d;
+    ctx.strokeStyle=COLORS[name];ctx.lineWidth=2.5;ctx.beginPath();
+    let started=false;
+    for(let i=0;i<=N;i++){
+      const x=xMin+(xMax-xMin)*i/N;
+      let y=fn(x,w,b);
+      if(y<yMin-1)y=yMin-1;if(y>yMax+1)y=yMax+1;
+      const px=tx(x),py=ty(y);
+      if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    legendItems.push(name);
+  }
+
+  // probe line
+  if(probeX!==null && probeX>=xMin && probeX<=xMax){
+    ctx.strokeStyle='#ffffff30';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(tx(probeX),pad.t);ctx.lineTo(tx(probeX),H-pad.b);ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font='bold 11px monospace';
+    let py=pad.t+16;
+    for(const name of ['sigmoid','tanh','heaviside','relu']){
+      if(!show[name])continue;
+      const fn=mode==='fn'?fns[name].f:fns[name].d;
+      const val=fn(probeX,w,b);
+      ctx.fillStyle=COLORS[name];
+      ctx.textAlign='left';
+      ctx.fillText(`${NAMES[name]}: ${val.toFixed(4)}`,pad.l+8,py);
+      py+=14;
+
+      // dot on curve
+      const dotY=ty(Math.max(yMin,Math.min(yMax,val)));
+      ctx.beginPath();ctx.arc(tx(probeX),dotY,4,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle='#64748b';ctx.fillText(`x = ${probeX.toFixed(2)}`,pad.l+8,py);
+  }
+
+  // legend
+  legendEl.innerHTML=legendItems.map(n=>`<span class="legend-item"><span class="legend-dot" style="background:${COLORS[n]}"></span>${NAMES[n]}</span>`).join('');
+}
+
+let mouseXfn=null,mouseXd=null;
+const cvsFn=document.getElementById('cvs-fn');
+const cvsDeriv=document.getElementById('cvs-deriv');
+
+function draw(){
+  drawChart(cvsFn,document.getElementById('legend-fn'),'fn',mouseXfn);
+  drawChart(cvsDeriv,document.getElementById('legend-deriv'),'deriv',mouseXd);
+  updateInfo();
+}
+
+function updateInfo(){
+  const {w,b}=getParams();
+  const panel=document.getElementById('info-panel');
+  let html='';
+  if(show.sigmoid){
+    html+=`<div class="math" style="color:${COLORS.sigmoid}">&sigma;(x) = 1 / (1 + e<sup>-(${w.toFixed(1)}x + ${b.toFixed(1)})</sup>)&ensp;&ensp;max &sigma;'=${(w*0.25).toFixed(3)}</div>`;
+  }
+  if(show.tanh){
+    html+=`<div class="math" style="color:${COLORS.tanh}">tanh(${w.toFixed(1)}x + ${b.toFixed(1)})&ensp;&ensp;max tanh'=${w.toFixed(3)}</div>`;
+  }
+  if(show.heaviside){
+    html+=`<div class="math" style="color:${COLORS.heaviside}">&theta;(${w.toFixed(1)}x + ${b.toFixed(1)})&ensp;&ensp;&theta;' = 0 everywhere</div>`;
+  }
+  if(show.relu){
+    html+=`<div class="math" style="color:${COLORS.relu}">ReLU(${w.toFixed(1)}x + ${b.toFixed(1)})&ensp;&ensp;ReLU' = ${w.toFixed(1)} for x&gt;0</div>`;
+  }
+  if(!html)html='<div class="desc">Select at least one activation function</div>';
+  else html+=`<div class="desc">Adjust steepness (w) to see how activations approach step function. Max derivative determines gradient strength for training.</div>`;
+  panel.innerHTML=html;
+}
+
+function getMouseX(e,cvs){
+  const rect=cvs.getBoundingClientRect();
+  return e.clientX-rect.left;
+}
+
+cvsFn.addEventListener('mousemove',e=>{mouseXfn=getMouseX(e,cvsFn);draw();});
+cvsFn.addEventListener('mouseleave',()=>{mouseXfn=null;draw();});
+cvsDeriv.addEventListener('mousemove',e=>{mouseXd=getMouseX(e,cvsDeriv);draw();});
+cvsDeriv.addEventListener('mouseleave',()=>{mouseXd=null;draw();});
+
+for(const s of Object.values(sliders))s.addEventListener('input',draw);
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

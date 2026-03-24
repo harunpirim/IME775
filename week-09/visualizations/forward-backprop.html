@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forward &amp; Backpropagation Visualizer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:0 16px 32px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
+  .btn{padding:8px 18px;border:none;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s}
+  .btn-primary{background:#38bdf8;color:#0f172a}
+  .btn-primary:hover{background:#7dd3fc}
+  .btn-secondary{background:#334155;color:#94a3b8}
+  .btn-secondary:hover{background:#475569}
+  .btn-active{background:#a78bfa;color:#0f172a}
+  .btn-disabled{background:#1e293b;color:#475569;cursor:default}
+  .step-label{background:#1e293b;border-radius:8px;padding:8px 16px;color:#38bdf8;font-weight:600;font-size:.9rem;text-align:center;margin:12px 0}
+  .main-area{display:flex;gap:16px;margin-top:12px}
+  @media(max-width:800px){.main-area{flex-direction:column}}
+  .network-panel{flex:2;background:#1e293b;border-radius:12px;padding:16px;min-height:420px;position:relative}
+  .side-panel{flex:1;display:flex;flex-direction:column;gap:12px}
+  .info-card{background:#1e293b;border-radius:12px;padding:14px}
+  .info-card h4{font-size:.8rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .info-card .val-row{display:flex;justify-content:space-between;padding:3px 0;font-size:.82rem;font-family:'Courier New',monospace}
+  .info-card .val-row .k{color:#94a3b8}
+  .info-card .val-row .v{color:#38bdf8;font-weight:600}
+  .info-card .val-row .v.fwd{color:#4ade80}
+  .info-card .val-row .v.bwd{color:#fb923c}
+  .info-card .val-row .v.upd{color:#a78bfa}
+  canvas{width:100%;height:100%;border-radius:8px}
+  .legend-bar{display:flex;gap:16px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+  .legend-bar span{font-size:.72rem;display:flex;align-items:center;gap:4px;color:#94a3b8}
+  .legend-bar .dot{width:10px;height:10px;border-radius:50%}
+  .formula-box{background:#0f172a;border-radius:8px;padding:10px 14px;margin-top:8px;font-family:'Courier New',monospace;font-size:.78rem;color:#cbd5e1;line-height:1.5}
+  .formula-box .highlight{color:#38bdf8;font-weight:600}
+  .formula-box .fwd{color:#4ade80}
+  .formula-box .bwd{color:#fb923c}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Forward &amp; Backpropagation Visualizer</h1>
+  <p>IME 775 &mdash; Chapter 8: Step through a 1→2→1 MLP</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <button class="btn btn-secondary" onclick="resetNet()">⟳ Reset</button>
+    <button class="btn btn-primary" id="btn-prev" onclick="prevStep()">← Prev</button>
+    <button class="btn btn-primary" id="btn-next" onclick="nextStep()">Next →</button>
+    <button class="btn btn-secondary" onclick="autoPlay()">▶ Auto Play</button>
+  </div>
+  <div class="step-label" id="step-label">Step 0/9 — Initial Network</div>
+
+  <div class="main-area">
+    <div class="network-panel">
+      <canvas id="cvs-net"></canvas>
+    </div>
+    <div class="side-panel">
+      <div class="info-card" id="card-params">
+        <h4>Network Parameters</h4>
+        <div id="params-content"></div>
+      </div>
+      <div class="info-card" id="card-computation">
+        <h4>Current Computation</h4>
+        <div class="formula-box" id="formula-content">Click "Next" to start the forward pass</div>
+      </div>
+      <div class="info-card" id="card-values">
+        <h4>Computed Values</h4>
+        <div id="values-content"></div>
+      </div>
+    </div>
+  </div>
+  <div class="legend-bar">
+    <span><span class="dot" style="background:#4ade80"></span>Forward pass</span>
+    <span><span class="dot" style="background:#fb923c"></span>Backward pass</span>
+    <span><span class="dot" style="background:#a78bfa"></span>Weight update</span>
+    <span><span class="dot" style="background:#64748b"></span>Inactive</span>
+  </div>
+</div>
+
+<script>
+const sigmoid = x => 1 / (1 + Math.exp(-x));
+const sigmoidDeriv = s => s * (1 - s);
+
+// Network: 1 → 2 → 1, sigmoid
+let net = {};
+const x_in = 1.0;
+const y_target = 0.0;
+const lr = 1.0;
+
+function initNet(){
+  net = {
+    w00: 0.5, w10: -0.3, b00: 0.1, b10: -0.1,
+    w01: 0.4, w11: 0.6, b1: 0.2,
+    z00:null, z10:null, a00:null, a10:null,
+    z1:null, y:null,
+    loss:null,
+    d1:null, dw01:null, dw11:null, db1:null,
+    d00:null, d10:null, dw00:null, dw10:null, db00:null, db10:null,
+    w00_new:null, w10_new:null, b00_new:null, b10_new:null,
+    w01_new:null, w11_new:null, b1_new:null,
+  };
+}
+
+let step = 0;
+const STEPS = [
+  {label:'Initial Network', phase:'init'},
+  {label:'Forward: Layer 0 Pre-activation z⁰', phase:'fwd'},
+  {label:'Forward: Layer 0 Activation a⁰ = σ(z⁰)', phase:'fwd'},
+  {label:'Forward: Layer 1 Pre-activation z¹', phase:'fwd'},
+  {label:'Forward: Output y = σ(z¹) & Loss', phase:'fwd'},
+  {label:'Backward: Output Delta δ¹', phase:'bwd'},
+  {label:'Backward: Layer 1 Gradients', phase:'bwd'},
+  {label:'Backward: Hidden Delta δ⁰', phase:'bwd'},
+  {label:'Backward: Layer 0 Gradients', phase:'bwd'},
+  {label:'Update: New Parameters (w ← w − r·∂L/∂w)', phase:'upd'},
+];
+
+function computeStep(s){
+  if(s >= 1){ net.z00 = net.w00*x_in+net.b00; net.z10 = net.w10*x_in+net.b10; }
+  if(s >= 2){ net.a00 = sigmoid(net.z00); net.a10 = sigmoid(net.z10); }
+  if(s >= 3){ net.z1 = net.w01*net.a00 + net.w11*net.a10 + net.b1; }
+  if(s >= 4){ net.y = sigmoid(net.z1); net.loss = 0.5*(y_target-net.y)*(y_target-net.y); }
+  if(s >= 5){ net.d1 = -(y_target-net.y)*sigmoidDeriv(net.y); }
+  if(s >= 6){ net.dw01=net.d1*net.a00; net.dw11=net.d1*net.a10; net.db1=net.d1; }
+  if(s >= 7){ net.d00=net.d1*net.w01*sigmoidDeriv(net.a00); net.d10=net.d1*net.w11*sigmoidDeriv(net.a10); }
+  if(s >= 8){ net.dw00=net.d00*x_in; net.dw10=net.d10*x_in; net.db00=net.d00; net.db10=net.d10; }
+  if(s >= 9){
+    net.w00_new=net.w00-lr*net.dw00; net.w10_new=net.w10-lr*net.dw10;
+    net.b00_new=net.b00-lr*net.db00; net.b10_new=net.b10-lr*net.db10;
+    net.w01_new=net.w01-lr*net.dw01; net.w11_new=net.w11-lr*net.dw11;
+    net.b1_new=net.b1-lr*net.db1;
+  }
+}
+
+function resetNet(){
+  initNet();
+  step=0;
+  computeStep(0);
+  drawAll();
+}
+
+function nextStep(){
+  if(step < STEPS.length-1){ step++; initNet(); computeStep(step); drawAll(); }
+}
+function prevStep(){
+  if(step > 0){ step--; initNet(); computeStep(step); drawAll(); }
+}
+
+let autoId=null;
+function autoPlay(){
+  if(autoId){clearInterval(autoId);autoId=null;return;}
+  autoId=setInterval(()=>{
+    if(step>=STEPS.length-1){clearInterval(autoId);autoId=null;return;}
+    nextStep();
+  },1200);
+}
+
+function fmt(v,d=4){return v===null?'—':v.toFixed(d);}
+
+function drawAll(){
+  document.getElementById('step-label').textContent=`Step ${step}/${STEPS.length-1} — ${STEPS[step].label}`;
+  drawNetwork();
+  updatePanels();
+}
+
+function updatePanels(){
+  // params
+  let ph='';
+  const pc=(k,v,nv)=>{
+    const cls=step>=9&&nv!==null?'upd':'';
+    const disp=step>=9&&nv!==null?fmt(nv):fmt(v);
+    return `<div class="val-row"><span class="k">${k}</span><span class="v ${cls}">${disp}</span></div>`;
+  };
+  ph+=pc('w₀₀',net.w00,net.w00_new)+pc('w₁₀',net.w10,net.w10_new);
+  ph+=pc('b₀₀',net.b00,net.b00_new)+pc('b₁₀',net.b10,net.b10_new);
+  ph+=pc('w₀₁',net.w01,net.w01_new)+pc('w₁₁',net.w11,net.w11_new);
+  ph+=pc('b₁',net.b1,net.b1_new);
+  document.getElementById('params-content').innerHTML=ph;
+
+  // values
+  let vh='';
+  const vc=(k,v,cls='')=>`<div class="val-row"><span class="k">${k}</span><span class="v ${cls}">${fmt(v)}</span></div>`;
+  if(step>=1) vh+=vc('z₀₀',net.z00,'fwd')+vc('z₁₀',net.z10,'fwd');
+  if(step>=2) vh+=vc('a₀₀',net.a00,'fwd')+vc('a₁₀',net.a10,'fwd');
+  if(step>=3) vh+=vc('z₁',net.z1,'fwd');
+  if(step>=4) vh+=vc('y',net.y,'fwd')+vc('Loss',net.loss,'fwd');
+  if(step>=5) vh+=vc('δ¹',net.d1,'bwd');
+  if(step>=6) vh+=vc('∂L/∂w₀₁',net.dw01,'bwd')+vc('∂L/∂w₁₁',net.dw11,'bwd')+vc('∂L/∂b₁',net.db1,'bwd');
+  if(step>=7) vh+=vc('δ₀₀',net.d00,'bwd')+vc('δ₁₀',net.d10,'bwd');
+  if(step>=8) vh+=vc('∂L/∂w₀₀',net.dw00,'bwd')+vc('∂L/∂w₁₀',net.dw10,'bwd');
+  if(!vh) vh='<div class="val-row"><span class="k">—</span><span class="v">start forward pass</span></div>';
+  document.getElementById('values-content').innerHTML=vh;
+
+  // formula
+  const formulas=[
+    'Network: 1 → 2 → 1 with sigmoid\nx = 1.0, target ȳ = 0.0, lr = 1.0',
+    `<span class="fwd">z₀₀ = w₀₀·x + b₀₀ = ${fmt(net.w00)}·1 + ${fmt(net.b00)} = ${fmt(net.z00)}</span>\n<span class="fwd">z₁₀ = w₁₀·x + b₁₀ = ${fmt(net.w10)}·1 + ${fmt(net.b10)} = ${fmt(net.z10)}</span>`,
+    `<span class="fwd">a₀₀ = σ(${fmt(net.z00)}) = ${fmt(net.a00)}</span>\n<span class="fwd">a₁₀ = σ(${fmt(net.z10)}) = ${fmt(net.a10)}</span>`,
+    `<span class="fwd">z¹ = w₀₁·a₀₀ + w₁₁·a₁₀ + b₁</span>\n<span class="fwd">   = ${fmt(net.w01)}·${fmt(net.a00)} + ${fmt(net.w11)}·${fmt(net.a10)} + ${fmt(net.b1)}</span>\n<span class="fwd">   = ${fmt(net.z1)}</span>`,
+    `<span class="fwd">y = σ(${fmt(net.z1)}) = ${fmt(net.y)}</span>\n<span class="fwd">L = ½(ȳ - y)² = ½(0 - ${fmt(net.y)})² = ${fmt(net.loss)}</span>`,
+    `<span class="bwd">δ¹ = -(ȳ - y)·σ'(z¹)</span>\n<span class="bwd">   = -(0 - ${fmt(net.y)})·${fmt(net.y)}·(1-${fmt(net.y)})</span>\n<span class="bwd">   = ${fmt(net.d1)}</span>`,
+    `<span class="bwd">∂L/∂w₀₁ = δ¹·a₀₀ = ${fmt(net.d1)}·${fmt(net.a00)} = ${fmt(net.dw01)}</span>\n<span class="bwd">∂L/∂w₁₁ = δ¹·a₁₀ = ${fmt(net.d1)}·${fmt(net.a10)} = ${fmt(net.dw11)}</span>\n<span class="bwd">∂L/∂b₁  = δ¹ = ${fmt(net.db1)}</span>`,
+    `<span class="bwd">δ₀₀ = δ¹·w₀₁·σ'(z₀₀) = ${fmt(net.d1)}·${fmt(net.w01)}·${fmt(sigmoidDeriv(net.a00))} = ${fmt(net.d00)}</span>\n<span class="bwd">δ₁₀ = δ¹·w₁₁·σ'(z₁₀) = ${fmt(net.d1)}·${fmt(net.w11)}·${fmt(sigmoidDeriv(net.a10))} = ${fmt(net.d10)}</span>`,
+    `<span class="bwd">∂L/∂w₀₀ = δ₀₀·x = ${fmt(net.d00)}·1 = ${fmt(net.dw00)}</span>\n<span class="bwd">∂L/∂w₁₀ = δ₁₀·x = ${fmt(net.d10)}·1 = ${fmt(net.dw10)}</span>`,
+    `<span class="highlight">w₀₀ ← ${fmt(net.w00)} - 1·${fmt(net.dw00)} = ${fmt(net.w00_new)}</span>\n<span class="highlight">w₁₀ ← ${fmt(net.w10)} - 1·${fmt(net.dw10)} = ${fmt(net.w10_new)}</span>\n<span class="highlight">w₀₁ ← ${fmt(net.w01)} - 1·${fmt(net.dw01)} = ${fmt(net.w01_new)}</span>\n<span class="highlight">w₁₁ ← ${fmt(net.w11)} - 1·${fmt(net.dw11)} = ${fmt(net.w11_new)}</span>`,
+  ];
+  document.getElementById('formula-content').innerHTML=formulas[step].replace(/\n/g,'<br>');
+}
+
+function drawNetwork(){
+  const cvs=document.getElementById('cvs-net');
+  const rect=cvs.parentElement.getBoundingClientRect();
+  const dpr=window.devicePixelRatio||1;
+  cvs.width=(rect.width-32)*dpr;
+  cvs.height=Math.max(380,rect.height-32)*dpr;
+  const ctx=cvs.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const W=cvs.width/dpr, H=cvs.height/dpr;
+  ctx.clearRect(0,0,W,H);
+
+  // node positions
+  const layers=[
+    [{x:W*0.12, y:H*0.5, label:'x', val:x_in}],
+    [{x:W*0.45, y:H*0.3, label:'h₀', val:net.a00}, {x:W*0.45, y:H*0.7, label:'h₁', val:net.a10}],
+    [{x:W*0.78, y:H*0.5, label:'y', val:net.y}],
+  ];
+
+  // target & loss
+  const targetPos = {x:W*0.92, y:H*0.5};
+
+  // connection colors based on step
+  function edgeColor(fromLayer, fromIdx, toLayer, toIdx){
+    if(step===0) return '#334155';
+    if(step<=4){
+      if(fromLayer===0 && toLayer===1){
+        if(step>=1) return '#4ade80';
+      }
+      if(fromLayer===1 && toLayer===2){
+        if(step>=3) return '#4ade80';
+      }
+    }
+    if(step>=5){
+      if(fromLayer===1 && toLayer===2) return '#fb923c';
+      if(fromLayer===0 && toLayer===1 && step>=7) return '#fb923c';
+    }
+    if(step>=9) return '#a78bfa';
+    return '#334155';
+  }
+
+  function edgeWidth(fromLayer,toLayer){
+    if(step===0) return 1.5;
+    if(step<=4){
+      if(fromLayer===0&&toLayer===1&&step>=1) return 2.5;
+      if(fromLayer===1&&toLayer===2&&step>=3) return 2.5;
+    }
+    if(step>=5){
+      if(fromLayer===1&&toLayer===2) return 2.5;
+      if(fromLayer===0&&toLayer===1&&step>=7) return 2.5;
+    }
+    return 1.5;
+  }
+
+  // weights for labels
+  const wLabels=[
+    [[null],[{l:'w₀₀',v:net.w00},{l:'w₁₀',v:net.w10}]],
+    [[{l:'w₀₁',v:net.w01}],[{l:'w₁₁',v:net.w11}]],
+  ];
+
+  // draw edges
+  for(let li=0;li<layers.length-1;li++){
+    for(let fi=0;fi<layers[li].length;fi++){
+      for(let ti=0;ti<layers[li+1].length;ti++){
+        const from=layers[li][fi], to=layers[li+1][ti];
+        ctx.strokeStyle=edgeColor(li,fi,li+1,ti);
+        ctx.lineWidth=edgeWidth(li,li+1);
+        ctx.beginPath();ctx.moveTo(from.x+18,from.y);ctx.lineTo(to.x-18,to.y);ctx.stroke();
+
+        // weight label
+        const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
+        let wLabel='';
+        if(li===0){
+          if(fi===0&&ti===0) wLabel=`w₀₀=${fmt(step>=9?net.w00_new:net.w00,2)}`;
+          if(fi===0&&ti===1) wLabel=`w₁₀=${fmt(step>=9?net.w10_new:net.w10,2)}`;
+        }
+        if(li===1){
+          if(fi===0&&ti===0) wLabel=`w₀₁=${fmt(step>=9?net.w01_new:net.w01,2)}`;
+          if(fi===1&&ti===0) wLabel=`w₁₁=${fmt(step>=9?net.w11_new:net.w11,2)}`;
+        }
+        if(wLabel){
+          ctx.font='10px monospace';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+          const off=fi===ti?-10:((fi<ti)?10:-10);
+          ctx.fillText(wLabel,mx,my+off);
+        }
+      }
+    }
+  }
+
+  // draw nodes
+  for(let li=0;li<layers.length;li++){
+    for(let ni=0;ni<layers[li].length;ni++){
+      const node=layers[li][ni];
+      let color='#334155',ring='#475569';
+      if(step>=1&&step<=4){
+        if(li===0) {color='#065f46';ring='#4ade80';}
+        if(li===1&&step>=2) {color='#065f46';ring='#4ade80';}
+        if(li===2&&step>=4) {color='#065f46';ring='#4ade80';}
+      }
+      if(step>=5){
+        if(li===2) {color='#7c2d12';ring='#fb923c';}
+        if(li===1&&step>=7) {color='#7c2d12';ring='#fb923c';}
+        if(li===0&&step>=8) {color='#7c2d12';ring='#fb923c';}
+      }
+      if(step>=9){color='#3b0764';ring='#a78bfa';}
+
+      ctx.beginPath();ctx.arc(node.x,node.y,18,0,Math.PI*2);
+      ctx.fillStyle=color;ctx.fill();
+      ctx.strokeStyle=ring;ctx.lineWidth=2.5;ctx.stroke();
+
+      ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(node.label,node.x,node.y);
+
+      // value below
+      if(node.val!==null){
+        ctx.fillStyle='#38bdf8';ctx.font='10px monospace';
+        ctx.fillText(fmt(node.val,3),node.x,node.y+28);
+      }
+
+      // bias above
+      let bias=null;
+      if(li===1&&ni===0) bias=step>=9?net.b00_new:net.b00;
+      if(li===1&&ni===1) bias=step>=9?net.b10_new:net.b10;
+      if(li===2&&ni===0) bias=step>=9?net.b1_new:net.b1;
+      if(bias!==null){
+        ctx.fillStyle='#64748b';ctx.font='9px monospace';
+        ctx.fillText(`b=${fmt(bias,2)}`,node.x,node.y-26);
+      }
+
+      // delta below value
+      if(step>=5){
+        let delta=null,lbl='';
+        if(li===2){delta=net.d1;lbl='δ¹';}
+        if(li===1&&ni===0&&step>=7){delta=net.d00;lbl='δ₀₀';}
+        if(li===1&&ni===1&&step>=7){delta=net.d10;lbl='δ₁₀';}
+        if(delta!==null){
+          ctx.fillStyle='#fb923c';ctx.font='10px monospace';
+          ctx.fillText(`${lbl}=${fmt(delta,4)}`,node.x,node.y+40);
+        }
+      }
+    }
+  }
+
+  // target node
+  if(step>=4){
+    ctx.beginPath();ctx.arc(targetPos.x,targetPos.y,14,0,Math.PI*2);
+    ctx.fillStyle='#1e293b';ctx.fill();
+    ctx.strokeStyle='#64748b';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('ȳ=0',targetPos.x,targetPos.y);
+
+    // loss
+    if(net.loss!==null){
+      ctx.fillStyle='#f87171';ctx.font='bold 11px monospace';
+      ctx.fillText(`L=${fmt(net.loss,4)}`,targetPos.x,targetPos.y+24);
+    }
+
+    // dashed line from y to target
+    ctx.strokeStyle='#64748b';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(layers[2][0].x+18,layers[2][0].y);ctx.lineTo(targetPos.x-14,targetPos.y);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // phase indicator
+  const phase=STEPS[step].phase;
+  const phaseColors={init:'#64748b',fwd:'#4ade80',bwd:'#fb923c',upd:'#a78bfa'};
+  const phaseLabels={init:'INIT',fwd:'FORWARD',bwd:'BACKWARD',upd:'UPDATE'};
+  ctx.fillStyle=phaseColors[phase];ctx.font='bold 13px sans-serif';ctx.textAlign='left';
+  ctx.fillText(phaseLabels[phase],10,20);
+
+  // direction arrow
+  if(phase==='fwd'){
+    ctx.strokeStyle='#4ade8060';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(W*0.15,H-20);ctx.lineTo(W*0.75,H-20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(W*0.75,H-20);ctx.lineTo(W*0.75-8,H-25);ctx.lineTo(W*0.75-8,H-15);ctx.closePath();ctx.fillStyle='#4ade8060';ctx.fill();
+    ctx.fillStyle='#4ade8060';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('forward →',W*0.45,H-8);
+  }
+  if(phase==='bwd'){
+    ctx.strokeStyle='#fb923c60';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(W*0.75,H-20);ctx.lineTo(W*0.15,H-20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(W*0.15,H-20);ctx.lineTo(W*0.15+8,H-25);ctx.lineTo(W*0.15+8,H-15);ctx.closePath();ctx.fillStyle='#fb923c60';ctx.fill();
+    ctx.fillStyle='#fb923c60';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('← backward',W*0.45,H-8);
+  }
+}
+
+window.addEventListener('resize',drawAll);
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' ')nextStep();
+  if(e.key==='ArrowLeft')prevStep();
+});
+
+resetNet();
+</script>
+</body>
+</html>

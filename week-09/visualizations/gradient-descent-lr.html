@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Descent &amp; Learning Rate — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:0 16px 32px}
+  .top-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:180px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  select{background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:.85rem}
+  .btn-row{display:flex;gap:8px;justify-content:center;margin:8px 0}
+  .btn{padding:8px 20px;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s}
+  .btn-primary{background:#38bdf8;color:#0f172a}
+  .btn-primary:hover{background:#7dd3fc}
+  .btn-secondary{background:#334155;color:#94a3b8}
+  .btn-secondary:hover{background:#475569}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:720px){.charts{grid-template-columns:1fr}}
+  .chart-card{background:#1e293b;border-radius:12px;padding:16px;position:relative}
+  .chart-card h3{font-size:.9rem;color:#fff;margin-bottom:8px;text-align:center}
+  canvas{width:100%;border-radius:8px;background:#0f172a}
+  .stats{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  .stat{text-align:center}
+  .stat .label{font-size:.72rem;color:#64748b;text-transform:uppercase}
+  .stat .value{font-size:1.1rem;color:#38bdf8;font-weight:700;font-family:'Courier New',monospace}
+  .stat .value.warn{color:#fb923c}
+  .stat .value.bad{color:#f87171}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Gradient Descent &amp; Learning Rate</h1>
+  <p>IME 775 &mdash; Chapter 8: Visualizing the optimization process</p>
+</div>
+<div class="container">
+  <div class="top-row">
+    <div class="control-group">
+      <label>Loss Function</label>
+      <select id="loss-fn">
+        <option value="quadratic">L(w) = (w-2)²+1</option>
+        <option value="multimodal">L(w) = sin(w)+w²/10+1</option>
+        <option value="flat">L(w) = tanh²(w-2)+0.5</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Learning Rate (r)</label>
+      <input type="range" id="lr" min="-3" max="0.5" step="0.05" value="-1">
+      <span class="val" id="lr-val">r = 0.100</span>
+    </div>
+    <div class="control-group">
+      <label>Initial w</label>
+      <input type="range" id="w0" min="-4" max="5" step="0.1" value="-2">
+      <span class="val" id="w0-val">w₀ = -2.0</span>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btn-run" onclick="runGD()">▶ Run Gradient Descent</button>
+    <button class="btn btn-secondary" onclick="stepGD()">Step</button>
+    <button class="btn btn-secondary" onclick="resetGD()">Reset</button>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h3>Loss Surface L(w)</h3>
+      <canvas id="cvs-surface" height="320"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Loss vs Iteration</h3>
+      <canvas id="cvs-loss" height="320"></canvas>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="label">Iteration</div><div class="value" id="s-iter">0</div></div>
+    <div class="stat"><div class="label">w</div><div class="value" id="s-w">-2.000</div></div>
+    <div class="stat"><div class="label">L(w)</div><div class="value" id="s-loss">17.000</div></div>
+    <div class="stat"><div class="label">∂L/∂w</div><div class="value" id="s-grad">-8.000</div></div>
+    <div class="stat"><div class="label">Status</div><div class="value" id="s-status">Ready</div></div>
+  </div>
+</div>
+
+<script>
+const lossFns = {
+  quadratic: {
+    f: w => (w-2)*(w-2)+1,
+    df: w => 2*(w-2),
+    range: [-4, 6],
+    yrange: [0, 30]
+  },
+  multimodal: {
+    f: w => Math.sin(w*2)+w*w/10+1.5,
+    df: w => 2*Math.cos(w*2)+w/5,
+    range: [-5, 5],
+    yrange: [0, 5]
+  },
+  flat: {
+    f: w => Math.tanh(w-2)*Math.tanh(w-2)+0.5,
+    df: w => 2*Math.tanh(w-2)*(1-Math.tanh(w-2)*Math.tanh(w-2)),
+    range: [-3, 7],
+    yrange: [0, 2]
+  }
+};
+
+let history = [];
+let animId = null;
+let running = false;
+
+function getLR(){ return Math.pow(10, parseFloat(document.getElementById('lr').value)); }
+function getW0(){ return parseFloat(document.getElementById('w0').value); }
+function getLossFn(){ return lossFns[document.getElementById('loss-fn').value]; }
+
+function updateLabels(){
+  const lr = getLR();
+  document.getElementById('lr-val').textContent = `r = ${lr.toFixed(4)}`;
+  const w0 = getW0();
+  document.getElementById('w0-val').textContent = `w₀ = ${w0.toFixed(1)}`;
+}
+
+function resetGD(){
+  if(animId) cancelAnimationFrame(animId);
+  running = false;
+  document.getElementById('btn-run').textContent = '▶ Run Gradient Descent';
+  const lf = getLossFn();
+  const w0 = getW0();
+  history = [{w: w0, loss: lf.f(w0), grad: lf.df(w0)}];
+  updateStats();
+  drawAll();
+}
+
+function stepGD(){
+  const lf = getLossFn();
+  const lr = getLR();
+  const last = history[history.length - 1];
+  const grad = lf.df(last.w);
+  const newW = last.w - lr * grad;
+  const clampedW = Math.max(lf.range[0]-2, Math.min(lf.range[1]+2, newW));
+  history.push({w: clampedW, loss: lf.f(clampedW), grad: lf.df(clampedW)});
+  if(history.length > 500) history = history.slice(-500);
+  updateStats();
+  drawAll();
+}
+
+function runGD(){
+  if(running){
+    running = false;
+    if(animId) cancelAnimationFrame(animId);
+    document.getElementById('btn-run').textContent = '▶ Run Gradient Descent';
+    return;
+  }
+  running = true;
+  document.getElementById('btn-run').textContent = '⏸ Pause';
+  let lastTime = 0;
+  function tick(ts){
+    if(!running) return;
+    if(ts - lastTime > 80){
+      stepGD();
+      lastTime = ts;
+      if(history.length > 200 || Math.abs(history[history.length-1].grad) < 1e-8){
+        running = false;
+        document.getElementById('btn-run').textContent = '▶ Run Gradient Descent';
+        return;
+      }
+    }
+    animId = requestAnimationFrame(tick);
+  }
+  animId = requestAnimationFrame(tick);
+}
+
+function updateStats(){
+  const last = history[history.length - 1];
+  document.getElementById('s-iter').textContent = history.length - 1;
+  document.getElementById('s-w').textContent = last.w.toFixed(4);
+  document.getElementById('s-loss').textContent = last.loss.toFixed(4);
+  document.getElementById('s-grad').textContent = last.grad.toFixed(4);
+
+  const sEl = document.getElementById('s-status');
+  const lr = getLR();
+  if(Math.abs(last.grad) < 0.01){
+    sEl.textContent = 'Converged ✓';
+    sEl.className = 'value';
+  } else if(history.length > 3 && last.loss > history[history.length-3].loss * 1.5){
+    sEl.textContent = 'Diverging ✗';
+    sEl.className = 'value bad';
+  } else if(lr > 0.5){
+    sEl.textContent = 'Oscillating';
+    sEl.className = 'value warn';
+  } else {
+    sEl.textContent = 'Descending';
+    sEl.className = 'value';
+  }
+}
+
+function setupCanvas(cvs){
+  const rect = cvs.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  cvs.width = rect.width * dpr;
+  cvs.height = rect.height * dpr;
+  const ctx = cvs.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return {ctx, W: rect.width, H: rect.height};
+}
+
+function drawSurface(){
+  const cvs = document.getElementById('cvs-surface');
+  const {ctx, W, H} = setupCanvas(cvs);
+  const lf = getLossFn();
+  const pad = {l:45, r:15, t:15, b:30};
+  const pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+  const [xMin, xMax] = lf.range;
+  const [yMin, yMax] = lf.yrange;
+
+  function tx(x){ return pad.l + (x - xMin)/(xMax - xMin) * pw; }
+  function ty(y){ return pad.t + (1 - (y - yMin)/(yMax - yMin)) * ph; }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // grid
+  ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
+  for(let gx=Math.ceil(xMin);gx<=Math.floor(xMax);gx++){
+    ctx.beginPath();ctx.moveTo(tx(gx),pad.t);ctx.lineTo(tx(gx),H-pad.b);ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle='#475569';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,ty(yMin));ctx.lineTo(W-pad.r,ty(yMin));ctx.stroke();
+
+  // axis labels
+  ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textAlign='center';
+  for(let gx=Math.ceil(xMin);gx<=Math.floor(xMax);gx++){
+    ctx.fillText(gx,tx(gx),H-pad.b+14);
+  }
+  ctx.textAlign='right';
+  const step = (yMax-yMin) > 10 ? 5 : (yMax-yMin) > 3 ? 1 : 0.5;
+  for(let gy=yMin;gy<=yMax;gy+=step){
+    ctx.fillText(gy.toFixed(step<1?1:0),pad.l-6,ty(gy)+4);
+  }
+  ctx.textAlign='center';
+  ctx.fillText('w',W-pad.r+8,H-pad.b+14);
+
+  // loss curve
+  const N=400;
+  ctx.strokeStyle='#475569';ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const x=xMin+(xMax-xMin)*i/N;
+    const y=lf.f(x);
+    const px=tx(x),py=ty(Math.max(yMin,Math.min(yMax,y)));
+    if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // gradient descent path
+  if(history.length > 1){
+    ctx.strokeStyle='#38bdf830';ctx.lineWidth=1.5;
+    for(let i=0;i<history.length-1;i++){
+      const h0=history[i], h1=history[i+1];
+      // arrow from h0 to h1 on the surface
+      ctx.beginPath();
+      ctx.moveTo(tx(h0.w),ty(Math.min(yMax,h0.loss)));
+      ctx.lineTo(tx(h1.w),ty(Math.min(yMax,h1.loss)));
+      ctx.stroke();
+    }
+  }
+
+  // dots for GD steps
+  for(let i=0;i<history.length;i++){
+    const h=history[i];
+    const px=tx(h.w),py=ty(Math.min(yMax,Math.max(yMin,h.loss)));
+    const alpha = i===history.length-1 ? 1 : 0.4+0.6*i/history.length;
+    ctx.globalAlpha=alpha;
+    ctx.fillStyle=i===history.length-1?'#f87171':'#38bdf8';
+    ctx.beginPath();ctx.arc(px,py,i===history.length-1?6:3,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  // tangent line at current point
+  if(history.length > 0){
+    const last=history[history.length-1];
+    const g=last.grad;
+    const cx=tx(last.w),cy=ty(Math.min(yMax,last.loss));
+    const dx=0.8;
+    ctx.strokeStyle='#f8717180';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(tx(last.w-dx),ty(Math.min(yMax,last.loss-g*dx)));
+    ctx.lineTo(tx(last.w+dx),ty(Math.min(yMax,last.loss+g*dx)));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // gradient arrow
+    const arrowLen=Math.min(pw*0.15, Math.abs(g)*20);
+    const dir=g>0?-1:1;
+    ctx.strokeStyle='#4ade80';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(cx,cy+15);ctx.lineTo(cx+dir*arrowLen,cy+15);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx+dir*arrowLen,cy+15);
+    ctx.lineTo(cx+dir*arrowLen-dir*6,cy+10);
+    ctx.lineTo(cx+dir*arrowLen-dir*6,cy+20);
+    ctx.closePath();ctx.fillStyle='#4ade80';ctx.fill();
+    ctx.fillStyle='#4ade80';ctx.font='10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('-r·∇L',cx+dir*arrowLen/2,cy+28);
+  }
+}
+
+function drawLoss(){
+  const cvs = document.getElementById('cvs-loss');
+  const {ctx, W, H} = setupCanvas(cvs);
+  const pad = {l:50, r:15, t:15, b:30};
+  const pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+
+  ctx.clearRect(0, 0, W, H);
+
+  if(history.length < 2){
+    ctx.fillStyle='#64748b';ctx.font='14px sans-serif';ctx.textAlign='center';
+    ctx.fillText('Press Run or Step to begin',W/2,H/2);
+    return;
+  }
+
+  const losses = history.map(h=>h.loss);
+  const maxIter = Math.max(history.length-1, 10);
+  const maxLoss = Math.max(...losses)*1.1;
+  const minLoss = Math.min(0, Math.min(...losses)*0.9);
+
+  function tx(i){ return pad.l + i/maxIter * pw; }
+  function ty(l){ return pad.t + (1 - (l-minLoss)/(maxLoss-minLoss)) * ph; }
+
+  // grid
+  ctx.strokeStyle='#1e293b';ctx.lineWidth=1;
+  const iterStep = maxIter > 100 ? 50 : maxIter > 50 ? 10 : maxIter > 20 ? 5 : 1;
+  for(let i=0;i<=maxIter;i+=iterStep){
+    ctx.beginPath();ctx.moveTo(tx(i),pad.t);ctx.lineTo(tx(i),H-pad.b);ctx.stroke();
+  }
+
+  // axes
+  ctx.strokeStyle='#475569';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,H-pad.b);ctx.lineTo(W-pad.r,H-pad.b);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,H-pad.b);ctx.stroke();
+
+  // labels
+  ctx.fillStyle='#64748b';ctx.font='11px sans-serif';ctx.textAlign='center';
+  for(let i=0;i<=maxIter;i+=iterStep){
+    ctx.fillText(i,tx(i),H-pad.b+14);
+  }
+  ctx.fillText('iteration',W/2,H-2);
+
+  // loss curve
+  ctx.strokeStyle='#38bdf8';ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<history.length;i++){
+    const px=tx(i),py=ty(Math.min(maxLoss,losses[i]));
+    if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  // dots
+  for(let i=0;i<history.length;i++){
+    if(history.length > 50 && i % Math.ceil(history.length/50) !== 0 && i !== history.length-1) continue;
+    const px=tx(i),py=ty(Math.min(maxLoss,losses[i]));
+    ctx.fillStyle=i===history.length-1?'#f87171':'#38bdf8';
+    ctx.beginPath();ctx.arc(px,py,i===history.length-1?5:2.5,0,Math.PI*2);ctx.fill();
+  }
+
+  // current loss label
+  const last=history[history.length-1];
+  ctx.fillStyle='#f87171';ctx.font='bold 11px monospace';ctx.textAlign='left';
+  ctx.fillText(`L = ${last.loss.toFixed(4)}`,tx(history.length-1)+8,ty(Math.min(maxLoss,last.loss))-6);
+}
+
+function drawAll(){drawSurface();drawLoss();}
+
+document.getElementById('lr').addEventListener('input',()=>{updateLabels();resetGD();});
+document.getElementById('w0').addEventListener('input',()=>{updateLabels();resetGD();});
+document.getElementById('loss-fn').addEventListener('change',()=>{resetGD();});
+window.addEventListener('resize',drawAll);
+
+updateLabels();
+resetGD();
+</script>
+</body>
+</html>
