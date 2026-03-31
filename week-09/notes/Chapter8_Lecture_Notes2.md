@@ -101,6 +101,36 @@ $$W \leftarrow W - r \cdot \frac{\partial L}{\partial W}, \qquad \vec{b} \leftar
 
 Every weight and bias in every layer is updated in the same way.
 
+&nbsp;
+
+*Workout:* Consider a 2 → 2 → 1 network with the following current parameters and computed gradients (after a backward pass). Apply one gradient descent step with learning rate $r = 0.1$.
+
+**Layer 0:**
+
+$$W^{(0)} = \begin{pmatrix} 0.5 & 0.3 \\ -0.2 & 0.8 \end{pmatrix}, \quad \vec{b}^{(0)} = \begin{pmatrix} 0.1 \\ -0.1 \end{pmatrix}$$
+
+$$\frac{\partial L}{\partial W^{(0)}} = \begin{pmatrix} 0.04 & -0.02 \\ 0.06 & 0.01 \end{pmatrix}, \quad \frac{\partial L}{\partial \vec{b}^{(0)}} = \begin{pmatrix} 0.05 \\ -0.03 \end{pmatrix}$$
+
+**Layer 1:**
+
+$$\vec{w}^{(1)} = \begin{pmatrix} 0.4 & 0.6 \end{pmatrix}, \quad b^{(1)} = 0.2$$
+
+$$\frac{\partial L}{\partial \vec{w}^{(1)}} = \begin{pmatrix} -0.08 & -0.05 \end{pmatrix}, \quad \frac{\partial L}{\partial b^{(1)}} = -0.10$$
+
+**Solution:**
+
+All six parameter groups are updated simultaneously using $\theta \leftarrow \theta - r \cdot \frac{\partial L}{\partial \theta}$:
+
+$$W^{(0)} \leftarrow \begin{pmatrix} 0.5 & 0.3 \\ -0.2 & 0.8 \end{pmatrix} - 0.1 \begin{pmatrix} 0.04 & -0.02 \\ 0.06 & 0.01 \end{pmatrix} = \begin{pmatrix} 0.496 & 0.302 \\ -0.206 & 0.799 \end{pmatrix}$$
+
+$$\vec{b}^{(0)} \leftarrow \begin{pmatrix} 0.1 \\ -0.1 \end{pmatrix} - 0.1 \begin{pmatrix} 0.05 \\ -0.03 \end{pmatrix} = \begin{pmatrix} 0.095 \\ -0.097 \end{pmatrix}$$
+
+$$\vec{w}^{(1)} \leftarrow \begin{pmatrix} 0.4 & 0.6 \end{pmatrix} - 0.1 \begin{pmatrix} -0.08 & -0.05 \end{pmatrix} = \begin{pmatrix} 0.408 & 0.605 \end{pmatrix}$$
+
+$$b^{(1)} \leftarrow 0.2 - 0.1 \times (-0.10) = 0.210$$
+
+Notice that every parameter moves in the direction that reduces $L$: parameters with positive gradients decrease, and parameters with negative gradients increase.
+
 ### The Learning Rate $r$
 
 The learning rate is the single most important hyperparameter in neural network training.
@@ -156,6 +186,26 @@ $$\frac{\partial L}{\partial w^{(l)}} = \delta^{(l)} \cdot a^{(l-1)}$$
 
 $$\frac{\partial L}{\partial b^{(l)}} = \delta^{(l)}$$
 
+### Why these gradients?
+
+For a single neuron, the layer only influences the loss through its **pre-activation**
+$$z^{(l)} = w^{(l)} a^{(l-1)} + b^{(l)}.$$
+
+Using the chain rule:
+$$\frac{\partial L}{\partial w^{(l)}} = \frac{\partial L}{\partial z^{(l)}} \cdot \frac{\partial z^{(l)}}{\partial w^{(l)}}.$$
+
+Since $a^{(l-1)}$ is treated as a constant when differentiating w.r.t. $w^{(l)}$,
+$$\frac{\partial z^{(l)}}{\partial w^{(l)}} = a^{(l-1)}.$$
+So,
+$$\frac{\partial L}{\partial w^{(l)}} = \delta^{(l)} \cdot a^{(l-1)}.$$
+
+Similarly,
+$$\frac{\partial L}{\partial b^{(l)}} = \frac{\partial L}{\partial z^{(l)}} \cdot \frac{\partial z^{(l)}}{\partial b^{(l)}}.$$
+But
+$$\frac{\partial z^{(l)}}{\partial b^{(l)}} = 1,$$
+so
+$$\frac{\partial L}{\partial b^{(l)}} = \delta^{(l)}.$$
+
 ### Computing $\delta$ — From Output to Input
 
 **Last layer** ($l = L$):
@@ -164,11 +214,60 @@ For single-example MSE loss $\ell = \frac{1}{2}(\bar{y} - y)^2$:
 
 $$\delta^{(L)} = \frac{\partial \ell}{\partial z^{(L)}} = -(\bar{y} - y) \cdot \sigma'(z^{(L)})$$
 
+**Derivation (last layer):**
+
+At the output layer, $y = a^{(L)} = \sigma(z^{(L)})$, so
+$$\frac{\partial \ell}{\partial z^{(L)}} = \frac{\partial \ell}{\partial y}\cdot\frac{\partial y}{\partial z^{(L)}}.$$
+
+For $\ell = \frac{1}{2}(\bar{y} - y)^2$,
+$$\frac{\partial \ell}{\partial y} = -( \bar{y} - y ).$$
+
+Also,
+$$\frac{\partial y}{\partial z^{(L)}} = \sigma'(z^{(L)}).$$
+
+Multiplying gives
+$$\delta^{(L)} = \frac{\partial \ell}{\partial z^{(L)}} = -(\bar{y}-y)\sigma'(z^{(L)}).$$
+
 **Recursion** (from layer $l+1$ back to layer $l$):
 
 $$\delta^{(l)} = \delta^{(l+1)} \cdot w^{(l+1)} \cdot \sigma'(z^{(l)})$$
 
+**Derivation (recursive step):**
+
+For an internal layer $l$, the loss depends on $z^{(l)}$ through the next layer:
+$$z^{(l)} \rightarrow a^{(l)} \rightarrow z^{(l+1)} \rightarrow \cdots \rightarrow \ell.$$
+
+Using chain rule through this path:
+$$\frac{\partial \ell}{\partial z^{(l)}}=
+\frac{\partial \ell}{\partial z^{(l+1)}}\cdot
+\frac{\partial z^{(l+1)}}{\partial a^{(l)}}\cdot
+\frac{\partial a^{(l)}}{\partial z^{(l)}}.$$
+
+Now substitute each factor:
+- $\frac{\partial \ell}{\partial z^{(l+1)}} = \delta^{(l+1)}$
+- $z^{(l+1)} = w^{(l+1)}a^{(l)} + b^{(l+1)} \Rightarrow \frac{\partial z^{(l+1)}}{\partial a^{(l)}} = w^{(l+1)}$
+- $a^{(l)} = \sigma(z^{(l)}) \Rightarrow \frac{\partial a^{(l)}}{\partial z^{(l)}} = \sigma'(z^{(l)})$
+
+Therefore:
+$$\delta^{(l)}=\delta^{(l+1)}\cdot w^{(l+1)}\cdot \sigma'(z^{(l)}).$$
+
 This recursion is the heart of backpropagation: the delta at layer $l$ is computed from the delta at layer $l+1$, propagated **backward** through the network.
+
+Interpretation:
+1. $\delta^{(l+1)}$ is the error signal arriving from the next layer.
+2. Multiplying by $w^{(l+1)}$ tells how strongly neuron $l$ influences that next-layer error.
+3. Multiplying by $\sigma'(z^{(l)})$ applies local sensitivity at layer $l$ (if the neuron is saturated, this term is small, so little error flows back).
+
+### How Backpropagation and Gradient Descent Work Together
+
+These are two different steps in one training iteration:
+
+1. **Forward pass:** compute predictions and loss.
+2. **Backpropagation:** compute all gradients $\frac{\partial L}{\partial W^{(l)}}$, $\frac{\partial L}{\partial \vec{b}^{(l)}}$ using the chain rule.
+3. **Gradient descent:** update parameters using those gradients:
+   $$W^{(l)} \leftarrow W^{(l)} - r\frac{\partial L}{\partial W^{(l)}}, \qquad \vec{b}^{(l)} \leftarrow \vec{b}^{(l)} - r\frac{\partial L}{\partial \vec{b}^{(l)}}.$$
+
+In short: **backpropagation computes the direction; gradient descent takes the step**.
 
 ### Why "Backpropagation"?
 
@@ -260,6 +359,16 @@ Gradients for layer 0:
 $$\frac{\partial \ell}{\partial W^{(0)}} = \vec{\delta}^{(0)} \cdot x = \begin{pmatrix} -0.00675 \\ -0.01061 \end{pmatrix} \times 1.0 = \begin{pmatrix} -0.00675 \\ -0.01061 \end{pmatrix}$$
 
 $$\frac{\partial \ell}{\partial \vec{b}^{(0)}} = \vec{\delta}^{(0)} = \begin{pmatrix} -0.00675 \\ -0.01061 \end{pmatrix}$$
+
+**Gradient descent update (one step, with $r = 0.1$):**
+
+$$\vec{w}^{(1)}_{\text{new}} = \vec{w}^{(1)} - r\frac{\partial \ell}{\partial \vec{w}^{(1)}} = \begin{pmatrix}0.4 & 0.6\end{pmatrix} - 0.1\begin{pmatrix}-0.0476 & -0.0296\end{pmatrix} = \begin{pmatrix}0.40476 & 0.60296\end{pmatrix}$$
+
+$$b^{(1)}_{\text{new}} = b^{(1)} - r\frac{\partial \ell}{\partial b^{(1)}} = 0.2 - 0.1(-0.0737) = 0.20737$$
+
+$$W^{(0)}_{\text{new}} = W^{(0)} - r\frac{\partial \ell}{\partial W^{(0)}} = \begin{pmatrix}0.5 \\ -0.3\end{pmatrix} - 0.1\begin{pmatrix}-0.00675 \\ -0.01061\end{pmatrix} = \begin{pmatrix}0.500675 \\ -0.298939\end{pmatrix}$$
+
+$$\vec{b}^{(0)}_{\text{new}} = \vec{b}^{(0)} - r\frac{\partial \ell}{\partial \vec{b}^{(0)}} = \begin{pmatrix}0.1 \\ -0.1\end{pmatrix} - 0.1\begin{pmatrix}-0.00675 \\ -0.01061\end{pmatrix} = \begin{pmatrix}0.100675 \\ -0.098939\end{pmatrix}$$
 
 All gradients are negative, meaning the loss decreases if we increase these weights — consistent with the network under-predicting (0.668 vs target 1.0).
 
