@@ -226,7 +226,7 @@ where $m$ is a margin (usually $m = 1$).
 
 ### The Computational Problem
 
-Computing the true gradient requires processing **all** $n$ training examples per iteration. With $n$ iterations per epoch, the cost is $O(n^2)$ per epoch — prohibitive for large datasets.
+Computing the true gradient requires processing **all** $n$ training examples per iteration. 
 
 ### The Solution: Minibatches
 
@@ -240,7 +240,6 @@ where $\mathcal{B}$ is the minibatch.
 
 - The minibatch gradient is a **noisy but unbiased estimate** of the true gradient
 - Over many iterations, the noise averages out
-- Each epoch costs $O(n)$ instead of $O(n^2)$
 
 ### Key Concepts
 
@@ -285,5 +284,4 @@ for epoch in range(5):
 4. **Softmax + CE** is combined in PyTorch's `CrossEntropyLoss` for numerical stability
 5. **Focal loss** down-weights easy examples to focus on hard ones (class imbalance)
 6. **Hinge loss** stops improving once the correct class wins by a margin
-7. **SGD with minibatches** approximates the true gradient cheaply — $O(n)$ instead of $O(n^2)$
 8. Always **shuffle** training data between epochs
