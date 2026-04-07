@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regularization Explorer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px 32px}
+  .section{margin-top:24px}
+  .section-title{font-size:1.1rem;color:#fff;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #334155}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:160px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:700px){.charts{grid-template-columns:1fr}}
+  .chart-card{background:#1e293b;border-radius:12px;padding:16px}
+  .chart-card h3{font-size:.9rem;color:#fff;margin-bottom:8px;text-align:center}
+  canvas{width:100%;border-radius:8px;background:#0f172a}
+  .legend{display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#cbd5e1}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .info-box{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px}
+  .info-box .desc{color:#94a3b8;font-size:.82rem;line-height:1.5}
+  .weight-grid{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+  .weight-cell{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-family:monospace;font-weight:700;transition:all .3s}
+  .results{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px;text-align:center}
+  .results h3{font-size:.9rem;color:#fff;margin-bottom:8px}
+  .metric{display:inline-block;margin:0 16px;font-size:.85rem}
+  .metric-label{color:#94a3b8;font-size:.7rem;text-transform:uppercase;display:block}
+  .metric-val{color:#38bdf8;font-weight:700;font-family:monospace;font-size:1.1rem}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Regularization Explorer</h1>
+  <p>IME 775 &mdash; Chapter 9: L1 vs L2, Sparsity &amp; Dropout</p>
+</div>
+<div class="container">
+
+  <!-- SECTION 1: L1 vs L2 -->
+  <div class="section">
+    <div class="section-title">Part 1: L1 vs L2 Regularization — Effect on Optimal Weight</div>
+    <div class="controls">
+      <div class="control-group">
+        <label>&lambda; (regularization)</label>
+        <input type="range" id="lam" min="0" max="3" step="0.05" value="0.5">
+        <span class="val" id="lam-val">&lambda; = 0.50</span>
+      </div>
+      <div class="control-group">
+        <label>True optimum w*</label>
+        <input type="range" id="wstar" min="0.1" max="4" step="0.1" value="2.0">
+        <span class="val" id="wstar-val">w* = 2.0</span>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="chart-card">
+        <h3>L1 Regularization</h3>
+        <canvas id="cvL1" height="280"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>Base loss</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div>L1 total</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f472b6;opacity:.4"></div>L1 penalty</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>L2 Regularization</h3>
+        <canvas id="cvL2" height="280"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>Base loss</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>L2 total</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#38bdf8;opacity:.4"></div>L2 penalty</div>
+        </div>
+      </div>
+    </div>
+    <div class="results">
+      <div class="metric"><span class="metric-label">No reg optimal</span><span class="metric-val" id="r-base">—</span></div>
+      <div class="metric"><span class="metric-label">L1 optimal</span><span class="metric-val" style="color:#f472b6" id="r-l1">—</span></div>
+      <div class="metric"><span class="metric-label">L2 optimal</span><span class="metric-val" style="color:#38bdf8" id="r-l2">—</span></div>
+      <div class="metric"><span class="metric-label">L1 is zero?</span><span class="metric-val" style="color:#fbbf24" id="r-sparse">—</span></div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Weight Sparsity -->
+  <div class="section">
+    <div class="section-title">Part 2: Weight Sparsity — L1 Produces Zeros</div>
+    <div class="controls">
+      <div class="control-group">
+        <label>&lambda; for sparsity demo</label>
+        <input type="range" id="lam2" min="0" max="2" step="0.05" value="0.3">
+        <span class="val" id="lam2-val">&lambda; = 0.30</span>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="chart-card">
+        <h3>L1 Weights (sparse)</h3>
+        <div class="weight-grid" id="wg-l1"></div>
+        <canvas id="cvW1" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>L2 Weights (dense, small)</h3>
+        <div class="weight-grid" id="wg-l2"></div>
+        <canvas id="cvW2" height="200"></canvas>
+      </div>
+    </div>
+    <div class="results">
+      <div class="metric"><span class="metric-label">L1 zeros</span><span class="metric-val" style="color:#f472b6" id="r-l1z">—</span></div>
+      <div class="metric"><span class="metric-label">L2 zeros</span><span class="metric-val" style="color:#38bdf8" id="r-l2z">—</span></div>
+      <div class="metric"><span class="metric-label">L1 ||w||₁</span><span class="metric-val" style="color:#f472b6" id="r-l1n">—</span></div>
+      <div class="metric"><span class="metric-label">L2 ||w||₂²</span><span class="metric-val" style="color:#38bdf8" id="r-l2n">—</span></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Gradient comparison -->
+  <div class="section">
+    <div class="section-title">Part 3: Why L1 Creates Sparsity — Gradient Comparison</div>
+    <div class="charts">
+      <div class="chart-card">
+        <h3>Penalty &amp; Gradient: L1 (|w|) vs L2 (w²)</h3>
+        <canvas id="cvGrad" height="300"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div>L1 |w|</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div>L2 w²</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f472b6;border:2px dashed #f472b6;background:transparent"></div>L1 gradient</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#38bdf8;border:2px dashed #38bdf8;background:transparent"></div>L2 gradient</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3 style="line-height:1.4">Key Insight</h3>
+        <div class="info-box" style="margin-top:0">
+          <div class="desc" style="font-size:.95rem;line-height:1.8">
+            <p><strong style="color:#f472b6">L1 gradient = ±1</strong> (constant magnitude)</p>
+            <p style="margin-top:8px">Pushes weights toward zero with the <em>same force</em> regardless of magnitude. A weight at <code>w = 0.001</code> gets the same push as <code>w = 100</code>. Weights reach <strong>exactly zero</strong>.</p>
+            <hr style="border-color:#334155;margin:12px 0">
+            <p><strong style="color:#38bdf8">L2 gradient = 2w</strong> (proportional to w)</p>
+            <p style="margin-top:8px">Push weakens as <code>w → 0</code>. Weights shrink but <strong>never reach zero</strong>. This produces dense vectors with small values.</p>
+            <hr style="border-color:#334155;margin:12px 0">
+            <p style="color:#fbbf24"><strong>Bayesian view:</strong> L2 ↔ Gaussian prior, L1 ↔ Laplace prior (sharp peak at zero).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const dpr = () => window.devicePixelRatio || 1;
+function sizeCanvas(c, h) {
+  const r = dpr(), w = c.parentElement.clientWidth - 32;
+  c.style.width = w + 'px'; c.width = w * r; c.height = h * r;
+  c.getContext('2d').setTransform(r, 0, 0, r, 0, 0);
+}
+
+// Original weights for sparsity demo
+const origWeights = [2.5, -1.2, 0.3, -0.1, 1.8, -0.05, 0.7, -2.1, 0.02, 0.9, -0.4, 1.5, -0.08, 0.15, -1.0, 0.6];
+
+function drawLossPlot(canvasId, lam, wstar, type) {
+  const cv = $(canvasId); sizeCanvas(cv, 280);
+  const ctx = cv.getContext('2d');
+  const W = cv.width / dpr(), H = 280;
+  const pad = { l: 45, r: 15, t: 15, b: 30 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  ctx.clearRect(0, 0, W, H);
+
+  const xMin = -1, xMax = 5, yMax = 12;
+  const toX = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
+  const toY = v => pad.t + ph * (1 - Math.min(v, yMax) / yMax);
+
+  // Grid
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ph * i / 4;
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+    ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText((yMax * (1 - i / 4)).toFixed(0), pad.l - 4, y + 4);
+  }
+  ctx.strokeStyle = '#475569'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(toX(0), pad.t); ctx.lineTo(toX(0), pad.t + ph); ctx.stroke();
+
+  const steps = 300;
+  const base = w => (w - wstar) ** 2;
+  const pen = type === 'l1' ? (w => lam * Math.abs(w)) : (w => lam * w * w);
+  const total = w => base(w) + pen(w);
+
+  // Base loss (dashed)
+  ctx.beginPath(); ctx.strokeStyle = '#64748b'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]);
+  for (let i = 0; i <= steps; i++) {
+    const w = xMin + (xMax - xMin) * i / steps;
+    const x = toX(w), y = toY(base(w));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Penalty (faint)
+  const penColor = type === 'l1' ? 'rgba(244,114,182,0.3)' : 'rgba(56,189,248,0.3)';
+  ctx.beginPath(); ctx.strokeStyle = penColor; ctx.lineWidth = 1.5;
+  for (let i = 0; i <= steps; i++) {
+    const w = xMin + (xMax - xMin) * i / steps;
+    i === 0 ? ctx.moveTo(toX(w), toY(pen(w))) : ctx.lineTo(toX(w), toY(pen(w)));
+  }
+  ctx.stroke();
+
+  // Total loss
+  const totalColor = type === 'l1' ? '#f472b6' : '#38bdf8';
+  ctx.beginPath(); ctx.strokeStyle = totalColor; ctx.lineWidth = 2.5;
+  for (let i = 0; i <= steps; i++) {
+    const w = xMin + (xMax - xMin) * i / steps;
+    i === 0 ? ctx.moveTo(toX(w), toY(total(w))) : ctx.lineTo(toX(w), toY(total(w)));
+  }
+  ctx.stroke();
+
+  // Optimal
+  let optW;
+  if (type === 'l1') {
+    optW = wstar > 0 ? Math.max(0, wstar - lam / 2) : Math.min(0, wstar + lam / 2);
+  } else {
+    optW = wstar / (1 + lam);
+  }
+  ctx.strokeStyle = totalColor; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(toX(optW), pad.t); ctx.lineTo(toX(optW), pad.t + ph); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(toX(optW), toY(total(optW)), 5, 0, Math.PI * 2);
+  ctx.fillStyle = totalColor; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('w=' + optW.toFixed(2), toX(optW), toY(total(optW)) - 10);
+
+  // X axis label
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('w', pad.l + pw / 2, H - 3);
+
+  return optW;
+}
+
+function drawSparsity(lam) {
+  const wL1 = origWeights.map(w => {
+    if (w > 0) return Math.max(0, w - lam / 2);
+    if (w < 0) return Math.min(0, w + lam / 2);
+    return 0;
+  });
+  const wL2 = origWeights.map(w => w / (1 + lam));
+
+  // Weight grids
+  function renderGrid(gridId, weights) {
+    const el = $(gridId); el.innerHTML = '';
+    const maxAbs = Math.max(...origWeights.map(Math.abs));
+    weights.forEach(w => {
+      const cell = document.createElement('div');
+      cell.className = 'weight-cell';
+      const intensity = Math.abs(w) / maxAbs;
+      if (Math.abs(w) < 0.001) {
+        cell.style.background = '#1e293b';
+        cell.style.color = '#475569';
+        cell.textContent = '0';
+      } else if (w > 0) {
+        cell.style.background = `rgba(56,189,248,${0.2 + intensity * 0.8})`;
+        cell.style.color = '#fff';
+        cell.textContent = w.toFixed(1);
+      } else {
+        cell.style.background = `rgba(248,113,113,${0.2 + intensity * 0.8})`;
+        cell.style.color = '#fff';
+        cell.textContent = w.toFixed(1);
+      }
+      el.appendChild(cell);
+    });
+  }
+  renderGrid('wg-l1', wL1);
+  renderGrid('wg-l2', wL2);
+
+  // Bar charts
+  function drawBars(canvasId, weights, color) {
+    const cv = $(canvasId); sizeCanvas(cv, 200);
+    const ctx = cv.getContext('2d');
+    const W = cv.width / dpr(), H = 200;
+    const pad = { l: 35, r: 10, t: 10, b: 20 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+    ctx.clearRect(0, 0, W, H);
+    const n = weights.length, bw = pw / (n + 1), gap = bw / (n + 1);
+    const maxV = Math.max(...origWeights.map(Math.abs));
+    const mid = pad.t + ph / 2;
+    ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.l, mid); ctx.lineTo(pad.l + pw, mid); ctx.stroke();
+    weights.forEach((w, i) => {
+      const x = pad.l + gap + i * (bw * 0.8 + gap * 0.3);
+      const h = (Math.abs(w) / maxV) * (ph / 2);
+      if (w >= 0) {
+        ctx.fillStyle = Math.abs(w) < 0.001 ? '#334155' : color;
+        ctx.fillRect(x, mid - h, bw * 0.7, h);
+      } else {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, mid, bw * 0.7, h);
+      }
+    });
+  }
+  drawBars('cvW1', wL1, '#f472b6');
+  drawBars('cvW2', wL2, '#38bdf8');
+
+  $('r-l1z').textContent = wL1.filter(w => Math.abs(w) < 0.001).length + ' / ' + wL1.length;
+  $('r-l2z').textContent = wL2.filter(w => Math.abs(w) < 0.001).length + ' / ' + wL2.length;
+  $('r-l1n').textContent = wL1.reduce((s, w) => s + Math.abs(w), 0).toFixed(2);
+  $('r-l2n').textContent = wL2.reduce((s, w) => s + w * w, 0).toFixed(2);
+}
+
+function drawGradient() {
+  const cv = $('cvGrad'); sizeCanvas(cv, 300);
+  const ctx = cv.getContext('2d');
+  const W = cv.width / dpr(), H = 300;
+  const pad = { l: 45, r: 15, t: 15, b: 30 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  ctx.clearRect(0, 0, W, H);
+  const xMin = -3, xMax = 3, yMax = 9;
+  const toX = v => pad.l + (v - xMin) / (xMax - xMin) * pw;
+  const toY = v => pad.t + ph * (1 - (v + 3) / (yMax + 3));
+
+  // Grid
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 0.5;
+  const mid = toY(0);
+  ctx.beginPath(); ctx.moveTo(pad.l, mid); ctx.lineTo(pad.l + pw, mid); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(toX(0), pad.t); ctx.lineTo(toX(0), pad.t + ph); ctx.stroke();
+
+  const steps = 300;
+  // L1 penalty
+  ctx.beginPath(); ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 2;
+  for (let i = 0; i <= steps; i++) {
+    const w = xMin + (xMax - xMin) * i / steps;
+    i === 0 ? ctx.moveTo(toX(w), toY(Math.abs(w))) : ctx.lineTo(toX(w), toY(Math.abs(w)));
+  }
+  ctx.stroke();
+
+  // L2 penalty
+  ctx.beginPath(); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2;
+  for (let i = 0; i <= steps; i++) {
+    const w = xMin + (xMax - xMin) * i / steps;
+    i === 0 ? ctx.moveTo(toX(w), toY(w * w)) : ctx.lineTo(toX(w), toY(w * w));
+  }
+  ctx.stroke();
+
+  // L1 gradient (dashed)
+  ctx.beginPath(); ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+  ctx.moveTo(toX(xMin), toY(-1)); ctx.lineTo(toX(-0.01), toY(-1));
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(toX(0.01), toY(1)); ctx.lineTo(toX(xMax), toY(1));
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // L2 gradient (dashed)
+  ctx.beginPath(); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+  for (let i = 0; i <= steps; i++) {
+    const w = xMin + (xMax - xMin) * i / steps;
+    i === 0 ? ctx.moveTo(toX(w), toY(2 * w)) : ctx.lineTo(toX(w), toY(2 * w));
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('w', pad.l + pw / 2, H - 3);
+  ctx.fillStyle = '#f472b6'; ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('±1', toX(2.5), toY(1) - 8);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText('2w', toX(2.5), toY(5) - 8);
+}
+
+function draw() {
+  const lam = +$('lam').value, wstar = +$('wstar').value;
+  $('lam-val').innerHTML = '&lambda; = ' + lam.toFixed(2);
+  $('wstar-val').textContent = 'w* = ' + wstar.toFixed(1);
+
+  const optL1 = drawLossPlot('cvL1', lam, wstar, 'l1');
+  const optL2 = drawLossPlot('cvL2', lam, wstar, 'l2');
+  $('r-base').textContent = wstar.toFixed(2);
+  $('r-l1').textContent = optL1.toFixed(3);
+  $('r-l2').textContent = optL2.toFixed(3);
+  $('r-sparse').textContent = Math.abs(optL1) < 0.001 ? 'YES ✓' : 'No';
+  $('r-sparse').style.color = Math.abs(optL1) < 0.001 ? '#34d399' : '#fbbf24';
+
+  const lam2 = +$('lam2').value;
+  $('lam2-val').innerHTML = '&lambda; = ' + lam2.toFixed(2);
+  drawSparsity(lam2);
+  drawGradient();
+}
+
+['lam', 'wstar', 'lam2'].forEach(id => $(id).addEventListener('input', draw));
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body>
+</html>

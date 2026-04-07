@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loss Functions Explorer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px 32px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:180px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  select{background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:.85rem}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:700px){.charts{grid-template-columns:1fr}}
+  .chart-card{background:#1e293b;border-radius:12px;padding:16px}
+  .chart-card h3{font-size:.9rem;color:#fff;margin-bottom:8px;text-align:center}
+  canvas{width:100%;border-radius:8px;background:#0f172a}
+  .results{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px}
+  .results h3{font-size:.9rem;color:#fff;margin-bottom:10px;text-align:center}
+  .loss-table{width:100%;border-collapse:collapse}
+  .loss-table th,.loss-table td{padding:8px 12px;text-align:center;font-size:.85rem}
+  .loss-table th{color:#94a3b8;border-bottom:1px solid #334155;font-weight:600;text-transform:uppercase;font-size:.72rem;letter-spacing:.5px}
+  .loss-table td{color:#e2e8f0;border-bottom:1px solid #1e293b}
+  .loss-val{font-weight:700;font-family:'Courier New',monospace}
+  .c-mse{color:#f472b6}.c-ce{color:#fb923c}.c-focal{color:#a78bfa}.c-hinge{color:#34d399}
+  .legend{display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#cbd5e1}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .info-box{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px}
+  .info-box .math{color:#38bdf8;font-family:'Courier New',monospace;font-size:.9rem;margin:4px 0}
+  .info-box .desc{color:#94a3b8;font-size:.82rem}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Loss Functions Explorer</h1>
+  <p>IME 775 &mdash; Chapter 9: Loss, Optimization &amp; Regularization</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>P(correct class)</label>
+      <input type="range" id="prob" min="0.01" max="0.99" step="0.01" value="0.70">
+      <span class="val" id="prob-val">p = 0.70</span>
+    </div>
+    <div class="control-group">
+      <label>Focal &gamma;</label>
+      <input type="range" id="gamma" min="0" max="5" step="0.5" value="2">
+      <span class="val" id="gamma-val">&gamma; = 2.0</span>
+    </div>
+    <div class="control-group">
+      <label>Hinge margin</label>
+      <input type="range" id="margin" min="0" max="3" step="0.1" value="1">
+      <span class="val" id="margin-val">m = 1.0</span>
+    </div>
+    <div class="control-group">
+      <label>Number of classes</label>
+      <select id="nclasses">
+        <option value="2">2 classes</option>
+        <option value="4" selected>4 classes</option>
+        <option value="10">10 classes</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h3>Loss vs P(correct class)</h3>
+      <canvas id="cvLoss" height="300"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div>MSE</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>Cross-Entropy</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Focal</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>Hinge</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Prediction vs Ground Truth</h3>
+      <canvas id="cvBar" height="300"></canvas>
+    </div>
+  </div>
+
+  <div class="results">
+    <h3>Loss Values at Current Settings</h3>
+    <table class="loss-table">
+      <tr><th>Loss Function</th><th>Formula</th><th>Value</th></tr>
+      <tr><td class="c-mse">MSE (Regression)</td><td class="math">||y - ȳ||²</td><td class="loss-val c-mse" id="v-mse">—</td></tr>
+      <tr><td class="c-ce">Cross-Entropy</td><td class="math">-log(p)</td><td class="loss-val c-ce" id="v-ce">—</td></tr>
+      <tr><td class="c-focal">Focal (γ)</td><td class="math">-(1-p)<sup>γ</sup> log(p)</td><td class="loss-val c-focal" id="v-focal">—</td></tr>
+      <tr><td class="c-hinge">Hinge (SVM)</td><td class="math">Σ max(0, s_j - s_c + m)</td><td class="loss-val c-hinge" id="v-hinge">—</td></tr>
+    </table>
+  </div>
+
+  <div class="info-box">
+    <div class="desc">
+      <strong>Cross-entropy</strong> penalises low confidence on the correct class unboundedly. <strong>Focal loss</strong> down-weights easy (high-confidence) examples — notice how it flattens on the right. <strong>Hinge loss</strong> stops caring once the correct class wins by margin <em>m</em>. Drag the slider to compare!
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const probSlider = $('prob'), gammaSlider = $('gamma'), marginSlider = $('margin'), nclSel = $('nclasses');
+const cvLoss = $('cvLoss'), cvBar = $('cvBar');
+const ctxL = cvLoss.getContext('2d'), ctxB = cvBar.getContext('2d');
+
+function dpr(){return window.devicePixelRatio||1}
+function sizeCanvas(c){const r=dpr(),w=c.parentElement.clientWidth-32;c.style.width=w+'px';c.width=w*r;c.height=300*r;c.getContext('2d').setTransform(r,0,0,r,0,0)}
+
+function mseLoss(p,N){const gt=new Array(N).fill(0);gt[0]=1;const pred=new Array(N).fill((1-p)/(N-1));pred[0]=p;return pred.reduce((s,v,i)=>s+(v-gt[i])**2,0)}
+function ceLoss(p){return -Math.log(Math.max(p,1e-10))}
+function focalLoss(p,g){return -Math.pow(1-p,g)*Math.log(Math.max(p,1e-10))}
+function hingeLoss(p,N,m){const sc=Math.log(Math.max(p,1e-10));const sj=Math.log(Math.max((1-p)/(N-1),1e-10));let h=0;for(let j=1;j<N;j++)h+=Math.max(0,sj-sc+m);return h}
+
+function draw(){
+  const p=+probSlider.value, g=+gammaSlider.value, m=+marginSlider.value, N=+nclSel.value;
+  $('prob-val').textContent='p = '+p.toFixed(2);
+  $('gamma-val').innerHTML='&gamma; = '+g.toFixed(1);
+  $('margin-val').textContent='m = '+m.toFixed(1);
+
+  sizeCanvas(cvLoss); sizeCanvas(cvBar);
+  const W=cvLoss.width/dpr(), H=300;
+  const pad={l:50,r:20,t:20,b:35}, pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  // Loss curves
+  ctxL.clearRect(0,0,W,H);
+  ctxL.strokeStyle='#334155';ctxL.lineWidth=1;
+  const maxY=6;
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ph*(1-i/maxY);
+    ctxL.beginPath();ctxL.moveTo(pad.l,y);ctxL.lineTo(pad.l+pw,y);ctxL.stroke();
+    ctxL.fillStyle='#64748b';ctxL.font='11px sans-serif';ctxL.textAlign='right';
+    ctxL.fillText(i.toFixed(0),pad.l-6,y+4);
+  }
+  for(let i=0;i<=10;i++){
+    const x=pad.l+pw*i/10;
+    ctxL.fillStyle='#64748b';ctxL.font='11px sans-serif';ctxL.textAlign='center';
+    ctxL.fillText((i/10).toFixed(1),x,H-pad.b+18);
+  }
+  ctxL.fillStyle='#94a3b8';ctxL.font='12px sans-serif';ctxL.textAlign='center';
+  ctxL.fillText('P(correct class)',pad.l+pw/2,H-2);
+
+  const steps=200;
+  const curves=[
+    {fn:x=>mseLoss(x,N),color:'#f472b6'},
+    {fn:x=>ceLoss(x),color:'#fb923c'},
+    {fn:x=>focalLoss(x,g),color:'#a78bfa'},
+    {fn:x=>hingeLoss(x,N,m),color:'#34d399'},
+  ];
+  curves.forEach(c=>{
+    ctxL.beginPath();ctxL.strokeStyle=c.color;ctxL.lineWidth=2.5;
+    for(let i=0;i<=steps;i++){
+      const px=i/steps,vx=0.01+px*0.98;
+      const vy=c.fn(vx);
+      const sx=pad.l+px*pw, sy=pad.t+ph*(1-Math.min(vy,maxY)/maxY);
+      i===0?ctxL.moveTo(sx,sy):ctxL.lineTo(sx,sy);
+    }
+    ctxL.stroke();
+  });
+
+  // Vertical indicator
+  const ix=pad.l+((p-0.01)/0.98)*pw;
+  ctxL.strokeStyle='#fff';ctxL.lineWidth=1;ctxL.setLineDash([4,4]);
+  ctxL.beginPath();ctxL.moveTo(ix,pad.t);ctxL.lineTo(ix,pad.t+ph);ctxL.stroke();
+  ctxL.setLineDash([]);
+
+  // Dots on curves
+  curves.forEach(c=>{
+    const vy=c.fn(p), sy=pad.t+ph*(1-Math.min(vy,maxY)/maxY);
+    ctxL.beginPath();ctxL.arc(ix,sy,5,0,Math.PI*2);ctxL.fillStyle=c.color;ctxL.fill();
+    ctxL.strokeStyle='#fff';ctxL.lineWidth=1.5;ctxL.stroke();
+  });
+
+  // Bar chart: prediction vs GT
+  const Wb=cvBar.width/dpr(), Hb=300;
+  ctxB.clearRect(0,0,Wb,Hb);
+  const bpad={l:50,r:20,t:20,b:35}, bw=Wb-bpad.l-bpad.r, bh=Hb-bpad.t-bpad.b;
+  const labels=[];for(let i=0;i<N;i++)labels.push('Class '+i);
+  const gt=new Array(N).fill(0);gt[0]=1;
+  const pred=new Array(N).fill(+((1-p)/(N-1)).toFixed(4));pred[0]=p;
+  const barW=bw/(N*3+1), gap=barW;
+  for(let i=0;i<N;i++){
+    const x0=bpad.l+gap+i*(barW*2+gap);
+    const hGT=gt[i]*bh, hP=pred[i]*bh;
+    ctxB.fillStyle='#475569';ctxB.fillRect(x0,bpad.t+bh-hGT,barW,hGT);
+    ctxB.fillStyle=i===0?'#38bdf8':'#f87171';ctxB.fillRect(x0+barW,bpad.t+bh-hP,barW,hP);
+    ctxB.fillStyle='#94a3b8';ctxB.font='10px sans-serif';ctxB.textAlign='center';
+    ctxB.fillText(labels[i],x0+barW,Hb-bpad.b+14);
+    if(pred[i]>0.01){
+      ctxB.fillStyle='#e2e8f0';ctxB.font='10px monospace';
+      ctxB.fillText(pred[i].toFixed(3),x0+barW,bpad.t+bh-hP-4);
+    }
+  }
+  ctxB.fillStyle='#94a3b8';ctxB.font='11px sans-serif';ctxB.textAlign='center';
+  ctxB.fillText('Grey = Ground Truth  |  Color = Prediction',bpad.l+bw/2,Hb-2);
+
+  // Axis
+  ctxB.strokeStyle='#334155';ctxB.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=bpad.t+bh*(1-i/4);
+    ctxB.beginPath();ctxB.moveTo(bpad.l,y);ctxB.lineTo(bpad.l+bw,y);ctxB.stroke();
+    ctxB.fillStyle='#64748b';ctxB.font='11px sans-serif';ctxB.textAlign='right';
+    ctxB.fillText((i/4).toFixed(2),bpad.l-6,y+4);
+  }
+
+  // Values table
+  $('v-mse').textContent=mseLoss(p,N).toFixed(4);
+  $('v-ce').textContent=ceLoss(p).toFixed(4);
+  $('v-focal').textContent=focalLoss(p,g).toFixed(4);
+  $('v-hinge').textContent=hingeLoss(p,N,m).toFixed(4);
+}
+
+[probSlider,gammaSlider,marginSlider].forEach(s=>s.addEventListener('input',draw));
+nclSel.addEventListener('change',draw);
+window.addEventListener('resize',draw);
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimizer Trajectories — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px 32px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:160px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  select{background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:.85rem}
+  .btn{padding:6px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;transition:all .15s;background:#38bdf8;color:#0f172a;align-self:center}
+  .btn:hover{background:#7dd3fc}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:700px){.charts{grid-template-columns:1fr}}
+  .chart-card{background:#1e293b;border-radius:12px;padding:16px}
+  .chart-card h3{font-size:.9rem;color:#fff;margin-bottom:8px;text-align:center}
+  canvas{width:100%;border-radius:8px;background:#0f172a}
+  .legend{display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:4px;font-size:.75rem;color:#cbd5e1}
+  .legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .stats{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px}
+  .stats h3{font-size:.9rem;color:#fff;margin-bottom:10px;text-align:center}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:6px 10px;text-align:center;font-size:.82rem}
+  th{color:#94a3b8;border-bottom:1px solid #334155;text-transform:uppercase;font-size:.7rem;letter-spacing:.5px}
+  td{color:#e2e8f0;border-bottom:1px solid #1e293b;font-family:'Courier New',monospace}
+  .info-box{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px}
+  .info-box .desc{color:#94a3b8;font-size:.82rem;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Optimizer Trajectories</h1>
+  <p>IME 775 &mdash; Chapter 9: SGD, Momentum, Nesterov &amp; Adam</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>Learning rate &eta;</label>
+      <input type="range" id="lr" min="0.001" max="0.2" step="0.001" value="0.03">
+      <span class="val" id="lr-val">&eta; = 0.030</span>
+    </div>
+    <div class="control-group">
+      <label>Momentum &beta;</label>
+      <input type="range" id="beta" min="0" max="0.99" step="0.01" value="0.9">
+      <span class="val" id="beta-val">&beta; = 0.90</span>
+    </div>
+    <div class="control-group">
+      <label>Iterations</label>
+      <input type="range" id="iters" min="10" max="300" step="10" value="80">
+      <span class="val" id="iters-val">80</span>
+    </div>
+    <div class="control-group">
+      <label>Surface shape</label>
+      <select id="surface">
+        <option value="bowl">Elongated Bowl (w₀²+10w₁²)</option>
+        <option value="rosenbrock">Rosenbrock-like</option>
+        <option value="saddle">Saddle Point</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Start point</label>
+      <select id="start">
+        <option value="4,4">( 4, 4 )</option>
+        <option value="-3,4">( -3, 4 )</option>
+        <option value="4,-3">( 4, -3 )</option>
+        <option value="-4,-4">( -4, -4 )</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h3>Optimizer Paths on Loss Contours</h3>
+      <canvas id="cvContour" height="400"></canvas>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div>SGD</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div>Momentum</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Nesterov</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>Adam</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Loss vs Iteration</h3>
+      <canvas id="cvLoss" height="400"></canvas>
+    </div>
+  </div>
+
+  <div class="stats">
+    <h3>Final Loss after <span id="n-iter-label">80</span> Iterations</h3>
+    <table>
+      <tr><th>Optimizer</th><th>Final Loss</th><th>Steps to &lt;1% of initial</th></tr>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="info-box">
+    <div class="desc">
+      <strong>SGD</strong> follows the gradient — slow on elongated surfaces. <strong>Momentum</strong> accumulates velocity for faster convergence but can overshoot. <strong>Nesterov</strong> uses look-ahead to reduce overshooting. <strong>Adam</strong> adapts per-parameter rates for balanced progress on all axes. Try the Rosenbrock surface to see Adam's advantage!
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const dpr = () => window.devicePixelRatio || 1;
+
+function sizeCanvas(c, h) {
+  const r = dpr(), w = c.parentElement.clientWidth - 32;
+  c.style.width = w + 'px';
+  c.width = w * r; c.height = h * r;
+  c.getContext('2d').setTransform(r, 0, 0, r, 0, 0);
+}
+
+function getLossFn(name) {
+  if (name === 'bowl') return (w0, w1) => w0 * w0 + 10 * w1 * w1;
+  if (name === 'rosenbrock') return (w0, w1) => (1 - w0) ** 2 + 10 * (w1 - w0 * w0) ** 2;
+  return (w0, w1) => w0 * w0 - w1 * w1; // saddle
+}
+function getGrad(name, w0, w1) {
+  if (name === 'bowl') return [2 * w0, 20 * w1];
+  if (name === 'rosenbrock') return [-2 * (1 - w0) - 40 * w0 * (w1 - w0 * w0), 20 * (w1 - w0 * w0)];
+  return [2 * w0, -2 * w1];
+}
+
+function runSGD(lr, beta, nesterov, iters, surface, start) {
+  let [w0, w1] = start;
+  let dw0 = 0, dw1 = 0;
+  const path = [[w0, w1]], losses = [];
+  const fn = getLossFn(surface);
+  for (let t = 0; t < iters; t++) {
+    losses.push(fn(w0, w1));
+    let gw0, gw1;
+    if (nesterov) {
+      const lw0 = w0 - beta * dw0, lw1 = w1 - beta * dw1;
+      [gw0, gw1] = getGrad(surface, lw0, lw1);
+    } else {
+      [gw0, gw1] = getGrad(surface, w0, w1);
+    }
+    dw0 = beta * dw0 + lr * gw0;
+    dw1 = beta * dw1 + lr * gw1;
+    w0 -= dw0; w1 -= dw1;
+    if (Math.abs(w0) > 100 || Math.abs(w1) > 100) break;
+    path.push([w0, w1]);
+  }
+  losses.push(fn(w0, w1));
+  return { path, losses };
+}
+
+function runAdam(lr, iters, surface, start) {
+  let [w0, w1] = start;
+  let v0 = 0, v1 = 0, s0 = 0, s1 = 0;
+  const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+  const path = [[w0, w1]], losses = [];
+  const fn = getLossFn(surface);
+  for (let t = 1; t <= iters; t++) {
+    losses.push(fn(w0, w1));
+    const [g0, g1] = getGrad(surface, w0, w1);
+    v0 = b1 * v0 + (1 - b1) * g0; v1 = b1 * v1 + (1 - b1) * g1;
+    s0 = b2 * s0 + (1 - b2) * g0 * g0; s1 = b2 * s1 + (1 - b2) * g1 * g1;
+    const vh0 = v0 / (1 - b1 ** t), vh1 = v1 / (1 - b1 ** t);
+    const sh0 = s0 / (1 - b2 ** t), sh1 = s1 / (1 - b2 ** t);
+    w0 -= lr * vh0 / (Math.sqrt(sh0) + eps);
+    w1 -= lr * vh1 / (Math.sqrt(sh1) + eps);
+    if (Math.abs(w0) > 100 || Math.abs(w1) > 100) break;
+    path.push([w0, w1]);
+  }
+  losses.push(fn(w0, w1));
+  return { path, losses };
+}
+
+function draw() {
+  const lr = +$('lr').value, beta = +$('beta').value, iters = +$('iters').value;
+  const surface = $('surface').value;
+  const sp = $('start').value.split(',').map(Number);
+  $('lr-val').innerHTML = '&eta; = ' + lr.toFixed(3);
+  $('beta-val').innerHTML = '&beta; = ' + beta.toFixed(2);
+  $('iters-val').textContent = iters;
+  $('n-iter-label').textContent = iters;
+
+  const results = [
+    { name: 'SGD', color: '#f472b6', ...runSGD(lr, 0, false, iters, surface, sp) },
+    { name: 'Momentum', color: '#fb923c', ...runSGD(lr, beta, false, iters, surface, sp) },
+    { name: 'Nesterov', color: '#a78bfa', ...runSGD(lr, beta, true, iters, surface, sp) },
+    { name: 'Adam', color: '#34d399', ...runAdam(lr, iters, surface, sp) },
+  ];
+
+  // Contour plot
+  const cvC = $('cvContour');
+  sizeCanvas(cvC, 400);
+  const ctx = cvC.getContext('2d');
+  const W = cvC.width / dpr(), H = 400;
+  const pad = { l: 40, r: 20, t: 20, b: 35 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  ctx.clearRect(0, 0, W, H);
+
+  const range = 5.5;
+  const fn = getLossFn(surface);
+  const toX = v => pad.l + (v + range) / (2 * range) * pw;
+  const toY = v => pad.t + (range - v) / (2 * range) * ph;
+
+  // Draw contours
+  const res = 100;
+  const grid = [];
+  for (let j = 0; j < res; j++) {
+    grid[j] = [];
+    for (let i = 0; i < res; i++) {
+      const x = -range + 2 * range * i / (res - 1);
+      const y = range - 2 * range * j / (res - 1);
+      grid[j][i] = fn(x, y);
+    }
+  }
+  const levels = [0.1, 0.5, 1, 2, 5, 10, 20, 50, 100, 200];
+  levels.forEach(lev => {
+    ctx.strokeStyle = 'rgba(100,116,139,0.3)';
+    ctx.lineWidth = 0.8;
+    for (let j = 0; j < res - 1; j++) {
+      for (let i = 0; i < res - 1; i++) {
+        const v00 = grid[j][i], v10 = grid[j][i + 1], v01 = grid[j + 1][i], v11 = grid[j + 1][i + 1];
+        const above = [v00 >= lev, v10 >= lev, v01 >= lev, v11 >= lev];
+        const cnt = above.filter(Boolean).length;
+        if (cnt > 0 && cnt < 4) {
+          const cx = pad.l + (i + 0.5) / res * pw;
+          const cy = pad.t + (j + 0.5) / res * ph;
+          ctx.beginPath(); ctx.arc(cx, cy, 0.8, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+  });
+
+  // Axes
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t + ph / 2); ctx.lineTo(pad.l + pw, pad.t + ph / 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l + pw / 2, pad.t); ctx.lineTo(pad.l + pw / 2, pad.t + ph); ctx.stroke();
+  ctx.fillStyle = '#64748b'; ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.fillText('w₀', pad.l + pw / 2, H - 5);
+  ctx.save(); ctx.translate(12, pad.t + ph / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('w₁', 0, 0); ctx.restore();
+
+  // Trajectories
+  results.forEach(r => {
+    ctx.beginPath(); ctx.strokeStyle = r.color; ctx.lineWidth = 2;
+    r.path.forEach((p, i) => {
+      const x = toX(p[0]), y = toY(p[1]);
+      if (x < pad.l - 5 || x > pad.l + pw + 5 || y < pad.t - 5 || y > pad.t + ph + 5) return;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    // Start & end dots
+    if (r.path.length > 0) {
+      const s = r.path[0], e = r.path[r.path.length - 1];
+      ctx.beginPath(); ctx.arc(toX(s[0]), toY(s[1]), 4, 0, Math.PI * 2);
+      ctx.fillStyle = r.color; ctx.fill();
+      ctx.beginPath(); ctx.arc(toX(e[0]), toY(e[1]), 5, 0, Math.PI * 2);
+      ctx.fillStyle = r.color; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  });
+
+  // Minimum marker
+  const minPt = surface === 'rosenbrock' ? [1, 1] : [0, 0];
+  ctx.beginPath(); ctx.arc(toX(minPt[0]), toY(minPt[1]), 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#fbbf24'; ctx.fill();
+  ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#0f172a'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('★', toX(minPt[0]), toY(minPt[1]) + 3.5);
+
+  // Loss curves
+  const cvL = $('cvLoss');
+  sizeCanvas(cvL, 400);
+  const ctxL = cvL.getContext('2d');
+  const WL = cvL.width / dpr(), HL = 400;
+  ctxL.clearRect(0, 0, WL, HL);
+
+  let maxLoss = 1;
+  results.forEach(r => { r.losses.forEach(l => { if (isFinite(l) && l > 0) maxLoss = Math.max(maxLoss, l); }); });
+  const logMax = Math.ceil(Math.log10(maxLoss + 1));
+  const logMin = -2;
+
+  // Grid
+  for (let i = logMin; i <= logMax; i++) {
+    const y = pad.t + ph * (1 - (i - logMin) / (logMax - logMin));
+    ctxL.strokeStyle = '#334155'; ctxL.lineWidth = 0.5;
+    ctxL.beginPath(); ctxL.moveTo(pad.l, y); ctxL.lineTo(pad.l + pw, y); ctxL.stroke();
+    ctxL.fillStyle = '#64748b'; ctxL.font = '10px monospace'; ctxL.textAlign = 'right';
+    ctxL.fillText('10^' + i, pad.l - 4, y + 4);
+  }
+  ctxL.fillStyle = '#94a3b8'; ctxL.font = '12px sans-serif'; ctxL.textAlign = 'center';
+  ctxL.fillText('Iteration', pad.l + pw / 2, HL - 5);
+
+  results.forEach(r => {
+    ctxL.beginPath(); ctxL.strokeStyle = r.color; ctxL.lineWidth = 2;
+    r.losses.forEach((l, i) => {
+      if (!isFinite(l) || l <= 0) return;
+      const x = pad.l + i / Math.max(1, r.losses.length - 1) * pw;
+      const logL = Math.log10(l);
+      const y = pad.t + ph * (1 - (logL - logMin) / (logMax - logMin));
+      const yc = Math.max(pad.t, Math.min(pad.t + ph, y));
+      i === 0 ? ctxL.moveTo(x, yc) : ctxL.lineTo(x, yc);
+    });
+    ctxL.stroke();
+  });
+
+  // Stats table
+  const tbody = $('tbody');
+  tbody.innerHTML = '';
+  const initLoss = results[0].losses[0] || 1;
+  results.forEach(r => {
+    const finalL = r.losses[r.losses.length - 1];
+    let stepsTo1 = '—';
+    for (let i = 0; i < r.losses.length; i++) {
+      if (r.losses[i] < initLoss * 0.01) { stepsTo1 = i; break; }
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:${r.color};font-weight:600">${r.name}</td><td>${isFinite(finalL) ? finalL.toFixed(4) : 'diverged'}</td><td>${stepsTo1}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+['lr', 'beta', 'iters'].forEach(id => $(id).addEventListener('input', draw));
+['surface', 'start'].forEach(id => $(id).addEventListener('change', draw));
+window.addEventListener('resize', draw);
+draw();
+</script>
+</body>
+</html>

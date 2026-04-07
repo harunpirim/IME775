@@ -64,8 +64,8 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 07 | Bayesian Tools: MLE, MAP, Entropy, KL Divergence | Ch. 6 | [📝 Lecture 11](week-07/notes/Chapter6_Lecture_Notes.md) \| [📝 Lecture 12](week-07/notes/Chapter6_Lecture_Notes2.md) \| [🎮 Visualizations](https://harunpirim.github.io/IME775/) |
 | 08 | Function Approximation: Perceptrons, MLPs, Universal Approximation | Ch. 7 | [📝 Lecture 13](week-08/notes/Chapter7_Lecture_Notes.md) \| [📝 Lecture 14](week-08/notes/Chapter7_Lecture_Notes2.md) \| [🎮 Visualizations](week-08/visualizations/) |
 | 09 | Training Neural Networks: Activation Functions, Forward Prop & Backprop | Ch. 8 | [📝 Lecture 15](week-09/notes/Chapter8_Lecture_Notes.md) \| [📝 Lecture 16](week-09/notes/Chapter8_Lecture_Notes2.md) \| [📓 Notebook](week-09/code/IME775_Ch8_Training_marimo.py) \| [🎮 Visualizations](week-09/visualizations/) |
-| 10 | Midterm Exam | Ch. 1-8 | 🔒 Coming Soon |
-| 11 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | 🔒 Coming Soon |
+| 10 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | [📝 Lecture 17](week-10/notes/Chapter9_Lecture_Notes.md) \| [📝 Lecture 18](week-10/notes/Chapter9_Lecture_Notes2.md) \| [📓 Notebook](week-10/code/IME775_Ch9_Optimization_marimo.py) \| [🎮 Visualizations](week-10/visualizations/) |
+| 11 | Midterm Exam | Ch. 1-9 | 🔒 Coming Soon |
 | 12 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | 🔒 Coming Soon |
 | 13 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
 | 14 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
@@ -100,6 +100,7 @@ Explore mathematical concepts through browser-based interactive demos:
 | 07 | Entropy Explorer • Cross-Entropy & Loss Demo • KL Divergence |
 | 08 | Neural Network Architecture Evolution |
 | 09 | Activation Functions Explorer • Gradient Descent & Learning Rate • Forward & Backpropagation |
+| 10 | Loss Functions Explorer • Softmax Explorer • Optimizer Trajectories • Regularization (L1 vs L2) |
 
 > *No installation required — runs directly in your browser!*
 
@@ -169,12 +170,16 @@ IME775/
 ├── week-08/                     # ✅ Released
 │   ├── notes/                   # Lecture notes (Ch 7: Perceptrons, MLPs, Cybenko)
 │   └── visualizations/          # Interactive HTML demos (Architecture Evolution)
-└── week-09/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 8: Training NNs, Backpropagation)
-    ├── code/                    # Marimo notebook (PyTorch training lab)
-    └── visualizations/          # Interactive HTML demos (Activations, GD, Backprop)
+├── week-09/                     # ✅ Released
+│   ├── notes/                   # Lecture notes (Ch 8: Training NNs, Backpropagation)
+│   ├── code/                    # Marimo notebook (PyTorch training lab)
+│   └── visualizations/          # Interactive HTML demos (Activations, GD, Backprop)
+└── week-10/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 9: Loss, Optimization, Regularization)
+    ├── code/                    # Marimo notebook (Loss & optimizer lab)
+    └── visualizations/          # Interactive HTML demos (Loss, Softmax, Optimizers, Regularization)
 
-Note: Additional weekly materials (week-10 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-11 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
