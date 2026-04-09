@@ -3,8 +3,8 @@
 # dependencies = [
 #     "marimo>=0.21.1",
 #     "matplotlib==3.10.8",
-#     "numpy==2.4.3",
-#     "torch==2.10.0",
+#     "numpy==2.4.4",
+#     "torch==2.11.0",
 # ]
 # ///
 """
@@ -20,7 +20,7 @@ Topics: CE loss, Softmax, SGD, Momentum, Adam, L1/L2, Dropout
 
 import marimo
 
-__generated_with = "0.21.1"
+__generated_with = "0.23.0"
 app = marimo.App(
     width="medium",
     css_file="/usr/local/_marimo/custom.css",
@@ -73,11 +73,6 @@ def _():
     return nn, np, plt, torch
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# SECTION 1 — LOSS FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════════
-
-
 @app.cell
 def _(mo):
     mo.md(r"""
@@ -100,7 +95,7 @@ def _(mo):
     loss_p1 = mo.ui.slider(0.01, 0.98, value=0.80, step=0.01, label="P(dog)")
     loss_gt = mo.ui.dropdown(
         options={"cat (0)": 0, "dog (1)": 1, "airplane (2)": 2, "auto (3)": 3},
-        value=1,
+        value="dog (1)",
         label="Ground-truth class",
     )
     mo.md(
@@ -114,11 +109,14 @@ def _(mo):
         *P(airplane) and P(auto) share the remaining probability equally.*
         """
     )
+
+
+
     return loss_gt, loss_p0, loss_p1
 
 
 @app.cell
-def _(loss_gt, loss_p0, loss_p1, mo, np, plt, torch):
+def _(loss_gt, loss_p0, loss_p1, np, plt, torch):
     _p0 = loss_p0.value
     _p1 = loss_p1.value
     _remaining = max(1e-6, 1.0 - _p0 - _p1)
@@ -187,11 +185,6 @@ def _(loss_results, mo):
         """
     )
     return
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# SECTION 2 — SOFTMAX
-# ═══════════════════════════════════════════════════════════════════════
 
 
 @app.cell
@@ -279,11 +272,6 @@ def _(mo, sm_results):
         """
     )
     return
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# SECTION 3 — OPTIMIZER COMPARISON
-# ═══════════════════════════════════════════════════════════════════════
 
 
 @app.cell
@@ -378,23 +366,16 @@ def _(np, opt_lr, opt_steps, plt, torch):
 
 @app.cell
 def _(mo):
-    mo.md(
-        """
-        **Observations:**
-        - **SGD** oscillates along the steep $w_1$ axis while making slow progress on $w_0$.
-        - **Momentum** speeds up convergence but may overshoot.
-        - **Nesterov** reduces overshooting with look-ahead gradients.
-        - **Adam** adapts per-parameter and converges smoothly on both axes.
+    mo.md("""
+    **Observations:**
+    - **SGD** oscillates along the steep $w_1$ axis while making slow progress on $w_0$.
+    - **Momentum** speeds up convergence but may overshoot.
+    - **Nesterov** reduces overshooting with look-ahead gradients.
+    - **Adam** adapts per-parameter and converges smoothly on both axes.
 
-        Try increasing η to see momentum/SGD diverge while Adam stays stable.
-        """
-    )
+    Try increasing η to see momentum/SGD diverge while Adam stays stable.
+    """)
     return
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# SECTION 4 — REGULARIZATION
-# ═══════════════════════════════════════════════════════════════════════
 
 
 @app.cell
@@ -474,24 +455,17 @@ def _(np, plt, reg_lambda, reg_w_star):
 
 @app.cell
 def _(mo, reg_results):
-    mo.md(
-        f"""
-        | | Optimal w |
-        |---|---|
-        | **No regularization** | w* (as set) |
-        | **L1** | {reg_results['opt_l1']:.3f} |
-        | **L2** | {reg_results['opt_l2']:.3f} |
+    mo.md(f"""
+    | | Optimal w |
+    |---|---|
+    | **No regularization** | w* (as set) |
+    | **L1** | {reg_results['opt_l1']:.3f} |
+    | **L2** | {reg_results['opt_l2']:.3f} |
 
-        **Key insight:** L1 pushes the optimum all the way to zero for large enough λ.
-        L2 shrinks it but never reaches zero. Increase λ to see L1 hit zero first.
-        """
-    )
+    **Key insight:** L1 pushes the optimum all the way to zero for large enough λ.
+    L2 shrinks it but never reaches zero. Increase λ to see L1 hit zero first.
+    """)
     return
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# SECTION 5 — DROPOUT
-# ═══════════════════════════════════════════════════════════════════════
 
 
 @app.cell
@@ -569,19 +543,12 @@ def _(drop_n_trials, drop_p, nn, plt, torch):
 
 @app.cell
 def _(mo):
-    mo.md(
-        """
-        **Try:** Set dropout to 0 (no randomness → all passes identical) vs 0.9
-        (most neurons off → high variance). During inference (model.eval()),
-        PyTorch disables dropout and uses the full network.
-        """
-    )
+    mo.md("""
+    **Try:** Set dropout to 0 (no randomness → all passes identical) vs 0.9
+    (most neurons off → high variance). During inference (model.eval()),
+    PyTorch disables dropout and uses the full network.
+    """)
     return
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# SECTION 6 — FULL TRAINING: 3-CLASS CLASSIFIER
-# ═══════════════════════════════════════════════════════════════════════
 
 
 @app.cell
@@ -600,22 +567,38 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    train_form = mo.ui.batch(
-        {
-            "lr": mo.ui.slider(0.001, 0.5, value=0.05, step=0.005, label="Learning rate"),
-            "epochs": mo.ui.slider(5, 100, value=30, step=5, label="Epochs"),
-            "hidden": mo.ui.slider(4, 64, value=16, step=4, label="Hidden size"),
-            "optimizer": mo.ui.dropdown(
-                options={"SGD": "sgd", "SGD+Momentum": "sgd_mom", "Adam": "adam"},
-                value="adam",
-                label="Optimizer",
-            ),
-            "weight_decay": mo.ui.slider(0.0, 0.1, value=0.0, step=0.005,
-                                          label="Weight decay (L2)"),
-            "dropout": mo.ui.slider(0.0, 0.8, value=0.0, step=0.1, label="Dropout"),
-        }
+    train_form = mo.md(
+        """
+        **Learning rate:** {lr}
+
+        **Epochs:** {epochs}
+
+        **Hidden size:** {hidden}
+
+        **Optimizer:** {optimizer}
+
+        **Weight decay (L2):** {weight_decay}
+
+        **Dropout:** {dropout}
+        """
+    ).batch(
+        lr=mo.ui.slider(0.001, 0.5, value=0.05, step=0.005, label="Learning rate"),
+        epochs=mo.ui.slider(5, 100, value=30, step=5, label="Epochs"),
+        hidden=mo.ui.slider(4, 64, value=16, step=4, label="Hidden size"),
+        optimizer=mo.ui.dropdown(
+            options={"SGD": "sgd", "SGD+Momentum": "sgd_mom", "Adam": "adam"},
+            value="Adam",
+            label="Optimizer",
+        ),
+        weight_decay=mo.ui.slider(0.0, 0.1, value=0.0, step=0.005,
+                                      label="Weight decay (L2)"),
+        dropout=mo.ui.slider(0.0, 0.8, value=0.0, step=0.1, label="Dropout"),
     ).form(submit_button_label="🚀 Train")
     train_form
+
+
+
+
     return (train_form,)
 
 
@@ -734,16 +717,14 @@ def _(mo, nn, np, plt, torch, train_form):
 
 @app.cell
 def _(mo):
-    mo.md(
-        """
-        **Experiments to try:**
-        1. Compare SGD vs Adam — which converges faster?
-        2. Increase weight decay to 0.05 — does accuracy decrease (underfitting)?
-        3. Set dropout to 0.5 — does training accuracy decrease? (It should — dropout
-           adds noise during training. Test accuracy on unseen data would likely improve.)
-        4. Reduce hidden size to 4 — can the network still learn 3 clusters?
-        """
-    )
+    mo.md("""
+    **Experiments to try:**
+    1. Compare SGD vs Adam — which converges faster?
+    2. Increase weight decay to 0.05 — does accuracy decrease (underfitting)?
+    3. Set dropout to 0.5 — does training accuracy decrease? (It should — dropout
+       adds noise during training. Test accuracy on unseen data would likely improve.)
+    4. Reduce hidden size to 4 — can the network still learn 3 clusters?
+    """)
     return
 
 
