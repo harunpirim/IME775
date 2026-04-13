@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transposed Convolution — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:0 16px 32px}
+  .tabs{display:flex;gap:8px;justify-content:center;margin:16px 0}
+  .tab{background:#1e293b;color:#94a3b8;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s}
+  .tab.active{background:#3b82f6;color:#fff}
+  .section{display:none;margin-top:16px}
+  .section.active{display:block}
+  .card{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:16px}
+  .card h3{font-size:1rem;color:#fff;margin-bottom:12px;text-align:center}
+  .grid-area{display:flex;justify-content:center;gap:32px;flex-wrap:wrap;align-items:flex-start}
+  .grid-wrap{text-align:center}
+  .grid-wrap .label{font-size:.8rem;color:#94a3b8;margin-bottom:4px}
+  table.grid{border-collapse:collapse;margin:0 auto}
+  table.grid td{width:50px;height:50px;text-align:center;font-size:.82rem;font-weight:600;border:1px solid #334155;transition:background .3s}
+  .c-input{background:#1e293b;color:#e2e8f0}
+  .c-kernel{background:#7c3aed;color:#fff}
+  .c-output{background:#10b981;color:#fff}
+  .c-active{background:#3b82f6;color:#fff}
+  .c-highlight{background:#f97316;color:#fff}
+  .c-zero{background:#0f172a;color:#334155}
+  .arrow{font-size:2rem;color:#94a3b8;display:flex;align-items:center;padding:0 8px}
+  .step-controls{display:flex;gap:8px;justify-content:center;margin:16px 0}
+  button{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600;transition:background .2s}
+  button:hover{background:#2563eb}
+  button.active-btn{background:#10b981}
+  .info{background:#1e293b;border-radius:12px;padding:16px;text-align:center;margin-top:12px}
+  .info .math{color:#38bdf8;font-family:'Courier New',monospace;font-size:.9rem}
+  .info .desc{color:#94a3b8;font-size:.82rem;margin-top:4px}
+  .formula-box{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin:12px 0;text-align:center}
+  .formula-box .f{color:#38bdf8;font-family:'Courier New',monospace;font-size:1rem}
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:700px){.compare-grid{grid-template-columns:1fr}}
+  .compare-card{background:#1e293b;border-radius:12px;padding:16px;text-align:center}
+  .compare-card h4{color:#fff;font-size:.9rem;margin-bottom:8px}
+  .compare-card .big{font-size:2rem;font-weight:700;margin:8px 0}
+  .c-down{color:#f472b6}.c-up{color:#34d399}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Transposed Convolution Visualizer</h1>
+  <p>IME 775 &mdash; Chapter 10: Upsampling via Transposed Convolution</p>
+</div>
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" data-tab="demo">Step-by-Step Demo</button>
+    <button class="tab" data-tab="compare">Conv vs Transpose Conv</button>
+    <button class="tab" data-tab="sizes">Output Size Calculator</button>
+  </div>
+
+  <!-- Demo Section -->
+  <div class="section active" id="sec-demo">
+    <div class="card">
+      <h3>Transposed 2D Convolution: stride=2, kernel=2×2</h3>
+      <div class="step-controls">
+        <button id="btnPrev">◀ Prev</button>
+        <button id="btnPlay">▶ Play</button>
+        <button id="btnNext">Next ▶</button>
+        <button id="btnReset">Reset</button>
+      </div>
+      <div class="grid-area" id="demoArea"></div>
+      <div class="info">
+        <div class="math" id="demoStep">Step 0 of 3</div>
+        <div class="desc" id="demoDesc"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare Section -->
+  <div class="section" id="sec-compare">
+    <div class="card">
+      <h3>Forward Convolution vs Transposed Convolution</h3>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h4>Forward Convolution</h4>
+          <div class="big c-down">4×4 → 3×3</div>
+          <div class="desc">Downsampling: extracts local features</div>
+          <div class="formula-box"><div class="f">y = W · x</div></div>
+          <div class="desc">Weight matrix W is (9×16), input is (16×1)</div>
+        </div>
+        <div class="compare-card">
+          <h4>Transposed Convolution</h4>
+          <div class="big c-up">3×3 → 4×4</div>
+          <div class="desc">Upsampling: distributes values back</div>
+          <div class="formula-box"><div class="f">x̃ = W<sup>T</sup> · y</div></div>
+          <div class="desc">W<sup>T</sup> is (16×9), input is (9×1)</div>
+        </div>
+      </div>
+      <div class="info" style="margin-top:16px">
+        <div class="math">Key insight: W<sup>T</sup> distributes output back in the same proportions as W collected it</div>
+        <div class="desc">Perfect reconstruction is impossible — information is irretrievably lost during forward convolution. The forward weight matrix is non-square and non-invertible.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Size Calculator -->
+  <div class="section" id="sec-sizes">
+    <div class="card">
+      <h3>Transposed Convolution Output Size Calculator</h3>
+      <div class="formula-box">
+        <div class="f">o' = (n' − 1) × s + k − 2p</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;margin:16px 0">
+        <div style="text-align:center">
+          <label style="color:#94a3b8;font-size:.75rem;text-transform:uppercase">Input size n'</label><br>
+          <input type="number" id="calcN" value="3" min="1" max="64" style="width:60px;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;text-align:center;font-size:1rem">
+        </div>
+        <div style="text-align:center">
+          <label style="color:#94a3b8;font-size:.75rem;text-transform:uppercase">Stride s</label><br>
+          <input type="number" id="calcS" value="2" min="1" max="4" style="width:60px;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;text-align:center;font-size:1rem">
+        </div>
+        <div style="text-align:center">
+          <label style="color:#94a3b8;font-size:.75rem;text-transform:uppercase">Kernel k</label><br>
+          <input type="number" id="calcK" value="2" min="1" max="11" style="width:60px;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;text-align:center;font-size:1rem">
+        </div>
+        <div style="text-align:center">
+          <label style="color:#94a3b8;font-size:.75rem;text-transform:uppercase">Padding p</label><br>
+          <input type="number" id="calcP" value="0" min="0" max="5" style="width:60px;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;text-align:center;font-size:1rem">
+        </div>
+      </div>
+      <div class="info">
+        <div class="math" id="calcResult"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    $('sec-' + tab.dataset.tab).classList.add('active');
+  };
+});
+
+// Transposed convolution demo
+const INPUT = [[1,2],[3,4]];
+const KERNEL = [[5,6],[7,8]];
+let step = 0, playing = false, timer = null;
+
+function transposeConv(input, kernel, stride) {
+  const iH = input.length, iW = input[0].length;
+  const kH = kernel.length, kW = kernel[0].length;
+  const oH = (iH - 1) * stride + kH;
+  const oW = (iW - 1) * stride + kW;
+  const out = Array.from({length: oH}, () => Array(oW).fill(0));
+  const steps = [];
+  for (let r = 0; r < iH; r++) {
+    for (let c = 0; c < iW; c++) {
+      const contrib = Array.from({length: oH}, () => Array(oW).fill(0));
+      for (let i = 0; i < kH; i++) {
+        for (let j = 0; j < kW; j++) {
+          const val = input[r][c] * kernel[i][j];
+          out[r*stride+i][c*stride+j] += val;
+          contrib[r*stride+i][c*stride+j] = val;
+        }
+      }
+      steps.push({ r, c, contrib: contrib.map(row => [...row]) });
+    }
+  }
+  return { out, oH, oW, steps };
+}
+
+function renderDemo() {
+  const res = transposeConv(INPUT, KERNEL, 2);
+  const maxS = res.steps.length - 1;
+  if (step > maxS) step = maxS;
+  const st = res.steps[step];
+
+  const cumulative = Array.from({length: res.oH}, () => Array(res.oW).fill(0));
+  for (let s = 0; s <= step; s++) {
+    for (let r = 0; r < res.oH; r++)
+      for (let c = 0; c < res.oW; c++)
+        cumulative[r][c] += res.steps[s].contrib[r][c];
+  }
+
+  let html = '';
+
+  // Input
+  html += '<div class="grid-wrap"><div class="label">Input (2×2)</div><table class="grid">';
+  for (let r = 0; r < 2; r++) {
+    html += '<tr>';
+    for (let c = 0; c < 2; c++) {
+      const cls = r === st.r && c === st.c ? 'c-highlight' : 'c-input';
+      html += `<td class="${cls}">${INPUT[r][c]}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+
+  html += '<div class="arrow">×</div>';
+
+  // Kernel
+  html += '<div class="grid-wrap"><div class="label">Kernel (2×2)</div><table class="grid">';
+  for (let i = 0; i < 2; i++) {
+    html += '<tr>';
+    for (let j = 0; j < 2; j++) {
+      html += `<td class="c-kernel">${KERNEL[i][j]}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+
+  html += '<div class="arrow">→</div>';
+
+  // Output
+  html += '<div class="grid-wrap"><div class="label">Output (4×4)</div><table class="grid">';
+  for (let r = 0; r < res.oH; r++) {
+    html += '<tr>';
+    for (let c = 0; c < res.oW; c++) {
+      const hasContrib = st.contrib[r][c] !== 0;
+      const cls = hasContrib ? 'c-highlight' : (cumulative[r][c] !== 0 ? 'c-output' : 'c-zero');
+      html += `<td class="${cls}">${cumulative[r][c] || ''}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+
+  $('demoArea').innerHTML = html;
+  $('demoStep').textContent = `Step ${step} of ${maxS}`;
+
+  let contribs = [];
+  for (let i = 0; i < 2; i++)
+    for (let j = 0; j < 2; j++)
+      if (st.contrib[st.r*2+i] && st.contrib[st.r*2+i][st.c*2+j])
+        contribs.push(`${INPUT[st.r][st.c]}×${KERNEL[i][j]}=${INPUT[st.r][st.c]*KERNEL[i][j]}`);
+  $('demoDesc').textContent = `Input[${st.r},${st.c}]=${INPUT[st.r][st.c]} × Kernel → ${contribs.join(', ')}`;
+
+  return maxS;
+}
+
+let maxStepDemo = 3;
+function nextS() { if (step < maxStepDemo) { step++; maxStepDemo = renderDemo(); } }
+function prevS() { if (step > 0) { step--; renderDemo(); } }
+function resetS() { step = 0; renderDemo(); }
+function togglePlay() {
+  playing = !playing;
+  $('btnPlay').textContent = playing ? '⏸ Pause' : '▶ Play';
+  $('btnPlay').classList.toggle('active-btn', playing);
+  if (playing) {
+    timer = setInterval(() => { if (step >= maxStepDemo) step = 0; else step++; maxStepDemo = renderDemo(); }, 800);
+  } else clearInterval(timer);
+}
+
+$('btnNext').onclick = nextS;
+$('btnPrev').onclick = prevS;
+$('btnReset').onclick = resetS;
+$('btnPlay').onclick = togglePlay;
+
+// Size calculator
+function calcSize() {
+  const n = +$('calcN').value, s = +$('calcS').value, k = +$('calcK').value, p = +$('calcP').value;
+  const o = (n - 1) * s + k - 2 * p;
+  $('calcResult').textContent = `o' = (${n} − 1) × ${s} + ${k} − 2×${p} = ${o}`;
+}
+['calcN','calcS','calcK','calcP'].forEach(id => $(id).oninput = calcSize);
+calcSize();
+
+maxStepDemo = renderDemo();
+</script>
+</body>
+</html>

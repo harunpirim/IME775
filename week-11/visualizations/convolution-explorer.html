@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convolution Explorer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px 32px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:160px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  select{background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:.85rem}
+  button{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600;transition:background .2s}
+  button:hover{background:#2563eb}
+  button.active{background:#10b981}
+  .vis-area{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+  .card{background:#1e293b;border-radius:12px;padding:16px}
+  .card h3{font-size:.9rem;color:#fff;margin-bottom:12px;text-align:center}
+  canvas{display:block;margin:0 auto;border-radius:8px;background:#0f172a}
+  .info{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px}
+  .info .math{color:#38bdf8;font-family:'Courier New',monospace;font-size:.9rem;margin:4px 0;text-align:center}
+  .info .desc{color:#94a3b8;font-size:.82rem;text-align:center}
+  .step-controls{display:flex;gap:8px;justify-content:center;margin:12px 0}
+  .grid-container{display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-top:8px}
+  .grid-label{text-align:center;font-size:.8rem;color:#94a3b8;margin-bottom:4px}
+  table.grid{border-collapse:collapse}
+  table.grid td{width:44px;height:44px;text-align:center;font-size:.8rem;font-weight:600;border:1px solid #334155;transition:background .3s}
+  .cell-input{background:#1e293b;color:#e2e8f0}
+  .cell-kernel{background:#7c3aed;color:#fff}
+  .cell-active{background:#3b82f6;color:#fff}
+  .cell-output{background:#10b981;color:#fff}
+  .cell-empty{background:#0f172a;color:#475569}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Convolution Explorer</h1>
+  <p>IME 775 &mdash; Chapter 10: Convolutions in Neural Networks</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>Dimension</label>
+      <select id="dim">
+        <option value="1d">1D Convolution</option>
+        <option value="2d" selected>2D Convolution</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Kernel Type</label>
+      <select id="kernelType">
+        <option value="smooth">Smoothing (averaging)</option>
+        <option value="edge">Edge Detection</option>
+        <option value="sharpen">Sharpening</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Stride</label>
+      <input type="range" id="stride" min="1" max="3" step="1" value="1">
+      <span class="val" id="stride-val">s = 1</span>
+    </div>
+    <div class="control-group">
+      <label>Padding</label>
+      <select id="padding">
+        <option value="valid">Valid (no padding)</option>
+        <option value="same">Same (zero padding)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="step-controls">
+    <button id="btnPrev">◀ Prev Step</button>
+    <button id="btnPlay">▶ Play</button>
+    <button id="btnNext">Next Step ▶</button>
+    <button id="btnReset">Reset</button>
+  </div>
+
+  <div class="info">
+    <div class="math" id="stepInfo">Step 0</div>
+    <div class="desc" id="formula"></div>
+  </div>
+
+  <div class="vis-area">
+    <div class="card">
+      <h3>Convolution Visualization</h3>
+      <div class="grid-container" id="gridContainer"></div>
+    </div>
+  </div>
+
+  <div class="info" style="margin-top:16px">
+    <div class="math">Output size: o = ⌊(n + 2p − k) / s⌋ + 1</div>
+    <div class="desc" id="sizeInfo"></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const KERNELS_1D = {
+  smooth: { w: [1/3, 1/3, 1/3], label: 'Smoothing [⅓, ⅓, ⅓]' },
+  edge:   { w: [0.5, -0.5],     label: 'Edge [0.5, -0.5]' },
+  sharpen:{ w: [-1, 3, -1],     label: 'Sharpen [-1, 3, -1]' }
+};
+const KERNELS_2D = {
+  smooth: { w: [[1/9,1/9,1/9],[1/9,1/9,1/9],[1/9,1/9,1/9]], label: 'Smoothing 3×3' },
+  edge:   { w: [[-0.25,0.25],[-0.25,0.25]], label: 'Vert Edge 2×2' },
+  sharpen:{ w: [[0,-1,0],[-1,5,-1],[0,-1,0]], label: 'Sharpen 3×3' }
+};
+const INPUT_1D = [14, -1, 4, 11, 21, 25, 30, 15, 8, 22];
+const INPUT_2D = [
+  [0, 6, 12, 18, 23],
+  [12,19, 25, 31, 37],
+  [26,31, 38, 43, 49],
+  [39,44, 50, 57, 63],
+  [51,57, 63, 70, 75]
+];
+
+let step = 0, maxStep = 0, playing = false, playTimer = null;
+
+function getParams() {
+  const dim = $('dim').value;
+  const kt = $('kernelType').value;
+  const s = +$('stride').value;
+  const pad = $('padding').value;
+  return { dim, kt, s, pad };
+}
+
+function computeOutputSize1D(n, k, s, p) {
+  return Math.floor((n + 2*p - k) / s) + 1;
+}
+
+function compute1D(input, kernel, s, pad) {
+  const k = kernel.length;
+  const n = input.length;
+  const p = pad === 'same' ? Math.floor(k/2) : 0;
+  const padded = [];
+  for (let i = 0; i < p; i++) padded.push(0);
+  padded.push(...input);
+  for (let i = 0; i < p; i++) padded.push(0);
+  const o = computeOutputSize1D(n, k, s, p);
+  const output = [];
+  const positions = [];
+  for (let i = 0; i < o; i++) {
+    const start = i * s;
+    let val = 0;
+    for (let j = 0; j < k; j++) val += padded[start + j] * kernel[j];
+    output.push(+val.toFixed(2));
+    positions.push(start - p);
+  }
+  return { output, positions, padSize: p, paddedInput: padded };
+}
+
+function compute2D(input, kernel, s, pad) {
+  const kH = kernel.length, kW = kernel[0].length;
+  const H = input.length, W = input[0].length;
+  const pH = pad === 'same' ? Math.floor(kH/2) : 0;
+  const pW = pad === 'same' ? Math.floor(kW/2) : 0;
+  const padded = [];
+  for (let r = 0; r < H + 2*pH; r++) {
+    const row = [];
+    for (let c = 0; c < W + 2*pW; c++) {
+      const ir = r - pH, ic = c - pW;
+      row.push(ir >= 0 && ir < H && ic >= 0 && ic < W ? input[ir][ic] : 0);
+    }
+    padded.push(row);
+  }
+  const oH = Math.floor((H + 2*pH - kH) / s) + 1;
+  const oW = Math.floor((W + 2*pW - kW) / s) + 1;
+  const output = [], positions = [];
+  for (let r = 0; r < oH; r++) {
+    const outRow = [];
+    for (let c = 0; c < oW; c++) {
+      const sr = r * s, sc = c * s;
+      let val = 0;
+      for (let i = 0; i < kH; i++)
+        for (let j = 0; j < kW; j++)
+          val += padded[sr+i][sc+j] * kernel[i][j];
+      outRow.push(+val.toFixed(2));
+      positions.push({ r: sr - pH, c: sc - pW });
+    }
+    output.push(outRow);
+  }
+  return { output, positions, padH: pH, padW: pW, padded, oH, oW };
+}
+
+function render() {
+  const { dim, kt, s, pad } = getParams();
+  const container = $('gridContainer');
+  container.innerHTML = '';
+
+  if (dim === '1d') {
+    const kernel = KERNELS_1D[kt].w;
+    const res = compute1D(INPUT_1D, kernel, s, pad);
+    maxStep = res.output.length - 1;
+    if (step > maxStep) step = maxStep;
+
+    const kStart = step * s;
+    const n = INPUT_1D.length;
+    const k = kernel.length;
+    const p = res.padSize;
+
+    // Input row
+    let inputHTML = '<div><div class="grid-label">Input (n=' + n + ')</div><table class="grid"><tr>';
+    for (let i = 0; i < res.paddedInput.length; i++) {
+      const isKernel = i >= kStart && i < kStart + k;
+      const isPad = i < p || i >= n + p;
+      const cls = isKernel ? 'cell-active' : (isPad ? 'cell-empty' : 'cell-input');
+      inputHTML += `<td class="${cls}">${isPad && !isKernel ? '0' : res.paddedInput[i]}</td>`;
+    }
+    inputHTML += '</tr></table></div>';
+
+    // Kernel row
+    let kernelHTML = '<div><div class="grid-label">Kernel (' + KERNELS_1D[kt].label + ')</div><table class="grid"><tr>';
+    for (let j = 0; j < k; j++) {
+      kernelHTML += `<td class="cell-kernel">${kernel[j].toFixed(2)}</td>`;
+    }
+    kernelHTML += '</tr></table></div>';
+
+    // Output row
+    let outputHTML = '<div><div class="grid-label">Output (o=' + res.output.length + ')</div><table class="grid"><tr>';
+    for (let i = 0; i < res.output.length; i++) {
+      const cls = i === step ? 'cell-output' : 'cell-input';
+      outputHTML += `<td class="${cls}">${i <= step ? res.output[i] : '?'}</td>`;
+    }
+    outputHTML += '</tr></table></div>';
+
+    container.innerHTML = inputHTML + kernelHTML + outputHTML;
+
+    let terms = [];
+    for (let j = 0; j < k; j++) {
+      terms.push(`${kernel[j].toFixed(2)}×${res.paddedInput[kStart+j]}`);
+    }
+    $('formula').textContent = `y[${step}] = ${terms.join(' + ')} = ${res.output[step]}`;
+    $('sizeInfo').textContent = `n=${n}, k=${k}, s=${s}, p=${p} → o = ⌊(${n}+2×${p}−${k})/${s}⌋+1 = ${res.output.length}`;
+  } else {
+    const kernel = KERNELS_2D[kt].w;
+    const res = compute2D(INPUT_2D, kernel, s, pad);
+    maxStep = res.positions.length - 1;
+    if (step > maxStep) step = maxStep;
+
+    const kH = kernel.length, kW = kernel[0].length;
+    const pos = res.positions[step];
+    const H = res.padded.length, W = res.padded[0].length;
+
+    // Input grid
+    let inputHTML = '<div><div class="grid-label">Input</div><table class="grid">';
+    for (let r = 0; r < H; r++) {
+      inputHTML += '<tr>';
+      for (let c = 0; c < W; c++) {
+        const kr = r - pos.r - res.padH, kc = c - pos.c - res.padW;
+        const isKernel = kr >= 0 && kr < kH && kc >= 0 && kc < kW;
+        const isPad = r < res.padH || r >= H - res.padH || c < res.padW || c >= W - res.padW;
+        const cls = isKernel ? 'cell-active' : (isPad ? 'cell-empty' : 'cell-input');
+        inputHTML += `<td class="${cls}">${res.padded[r][c]}</td>`;
+      }
+      inputHTML += '</tr>';
+    }
+    inputHTML += '</table></div>';
+
+    // Kernel grid
+    let kernelHTML = '<div><div class="grid-label">Kernel (' + KERNELS_2D[kt].label + ')</div><table class="grid">';
+    for (let i = 0; i < kH; i++) {
+      kernelHTML += '<tr>';
+      for (let j = 0; j < kW; j++) {
+        kernelHTML += `<td class="cell-kernel">${kernel[i][j].toFixed(2)}</td>`;
+      }
+      kernelHTML += '</tr>';
+    }
+    kernelHTML += '</table></div>';
+
+    // Output grid
+    const oH = res.oH, oW = res.oW;
+    const curR = Math.floor(step / oW), curC = step % oW;
+    let outputHTML = '<div><div class="grid-label">Output (' + oH + '×' + oW + ')</div><table class="grid">';
+    for (let r = 0; r < oH; r++) {
+      outputHTML += '<tr>';
+      for (let c = 0; c < oW; c++) {
+        const idx = r * oW + c;
+        const isCurrent = r === curR && c === curC;
+        const cls = isCurrent ? 'cell-output' : (idx <= step ? 'cell-input' : 'cell-empty');
+        outputHTML += `<td class="${cls}">${idx <= step ? res.output[r][c] : '?'}</td>`;
+      }
+      outputHTML += '</tr>';
+    }
+    outputHTML += '</table></div>';
+
+    container.innerHTML = inputHTML + kernelHTML + outputHTML;
+
+    let terms = [];
+    for (let i = 0; i < kH; i++)
+      for (let j = 0; j < kW; j++)
+        terms.push(`${kernel[i][j].toFixed(2)}×${res.padded[pos.r+res.padH+i][pos.c+res.padW+j]}`);
+    $('formula').textContent = `y[${curR},${curC}] = ${terms.join(' + ')} = ${res.output[curR][curC]}`;
+
+    const origH = INPUT_2D.length, origW = INPUT_2D[0].length;
+    $('sizeInfo').textContent = `H=${origH}, W=${origW}, k=${kH}×${kW}, s=${s}, pad=${pad} → o = ${oH}×${oW}`;
+  }
+  $('stepInfo').textContent = `Step ${step} of ${maxStep}`;
+}
+
+function nextStep() { if (step < maxStep) { step++; render(); } }
+function prevStep() { if (step > 0) { step--; render(); } }
+function resetStep() { step = 0; render(); }
+function togglePlay() {
+  playing = !playing;
+  $('btnPlay').textContent = playing ? '⏸ Pause' : '▶ Play';
+  $('btnPlay').classList.toggle('active', playing);
+  if (playing) {
+    playTimer = setInterval(() => {
+      if (step >= maxStep) { step = 0; }
+      else { step++; }
+      render();
+    }, 600);
+  } else {
+    clearInterval(playTimer);
+  }
+}
+
+$('btnNext').addEventListener('click', nextStep);
+$('btnPrev').addEventListener('click', prevStep);
+$('btnReset').addEventListener('click', resetStep);
+$('btnPlay').addEventListener('click', togglePlay);
+$('stride').addEventListener('input', () => { $('stride-val').textContent = 's = ' + $('stride').value; step = 0; render(); });
+$('dim').addEventListener('change', () => { step = 0; render(); });
+$('kernelType').addEventListener('change', () => { step = 0; render(); });
+$('padding').addEventListener('change', () => { step = 0; render(); });
+
+render();
+</script>
+</body>
+</html>

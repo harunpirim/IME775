@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Convolution Output Size Calculator — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:900px;margin:0 auto;padding:0 16px 32px}
+  .card{background:#1e293b;border-radius:12px;padding:24px;margin-top:16px}
+  .card h3{font-size:1rem;color:#fff;margin-bottom:16px;text-align:center}
+  .formula{text-align:center;margin:16px 0}
+  .formula .f{color:#38bdf8;font-family:'Courier New',monospace;font-size:1.2rem}
+  .params{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:16px 0}
+  .param{text-align:center}
+  .param label{display:block;font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .param input{width:100%;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:8px;padding:8px 12px;text-align:center;font-size:1.1rem;font-weight:600}
+  .param .val{color:#38bdf8;font-size:.85rem;margin-top:4px}
+  input[type=range]{accent-color:#38bdf8}
+  .result{text-align:center;margin:24px 0;padding:20px;background:#0f172a;border-radius:12px}
+  .result .big{font-size:2.5rem;font-weight:700;color:#10b981}
+  .result .detail{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .dim-toggle{display:flex;gap:8px;justify-content:center;margin:16px 0}
+  .dim-btn{background:#334155;color:#94a3b8;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s}
+  .dim-btn.active{background:#3b82f6;color:#fff}
+  .canvas-wrap{margin-top:16px;text-align:center}
+  canvas{border-radius:8px;background:#0f172a}
+  .chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:16px}
+  .chain-step{background:#0f172a;border-radius:8px;padding:12px;text-align:center}
+  .chain-step .layer{color:#94a3b8;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+  .chain-step .size{color:#38bdf8;font-size:1.1rem;font-weight:700;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Convolution Output Size Calculator</h1>
+  <p>IME 775 &mdash; Chapter 10: Understanding How Dimensions Change</p>
+</div>
+<div class="container">
+  <div class="card">
+    <h3>Single Layer</h3>
+    <div class="formula"><div class="f">o = ⌊(n + 2p − k) / s⌋ + 1</div></div>
+
+    <div class="dim-toggle">
+      <button class="dim-btn active" data-d="1">1D</button>
+      <button class="dim-btn" data-d="2">2D</button>
+      <button class="dim-btn" data-d="3">3D</button>
+    </div>
+
+    <div class="params" id="paramArea"></div>
+    <div class="result">
+      <div class="big" id="outputSize"></div>
+      <div class="detail" id="outputDetail"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Multi-Layer CNN Dimension Tracker</h3>
+    <p style="text-align:center;color:#94a3b8;font-size:.82rem;margin-bottom:12px">
+      Track how dimensions change through a typical CNN pipeline (28×28 grayscale input)
+    </p>
+    <div class="chain" id="chainArea"></div>
+  </div>
+
+  <div class="card">
+    <h3>Receptive Field</h3>
+    <canvas id="rfCanvas" width="500" height="200"></canvas>
+    <div style="text-align:center;margin-top:8px">
+      <span style="color:#94a3b8;font-size:.82rem" id="rfInfo"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let dims = 1;
+
+document.querySelectorAll('.dim-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.dim-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    dims = +btn.dataset.d;
+    buildParams();
+    compute();
+  };
+});
+
+function buildParams() {
+  const area = $('paramArea');
+  const labels = dims === 1 ? ['n'] : dims === 2 ? ['H','W'] : ['T','H','W'];
+  const defaults = dims === 1 ? [32] : dims === 2 ? [28,28] : [16,28,28];
+  const kDefaults = dims === 1 ? [5] : dims === 2 ? [3,3] : [2,3,3];
+  const sDefaults = dims === 1 ? [1] : dims === 2 ? [1,1] : [1,1,1];
+  const pDefaults = dims === 1 ? [0] : dims === 2 ? [0,0] : [0,0,0];
+
+  let html = '';
+  for (let i = 0; i < labels.length; i++) {
+    html += `
+      <div class="param">
+        <label>Input ${labels[i]}</label>
+        <input type="number" class="inp-n" value="${defaults[i]}" min="1" max="512">
+      </div>
+      <div class="param">
+        <label>Kernel k<sub>${labels[i]}</sub></label>
+        <input type="number" class="inp-k" value="${kDefaults[i]}" min="1" max="31">
+      </div>
+      <div class="param">
+        <label>Stride s<sub>${labels[i]}</sub></label>
+        <input type="number" class="inp-s" value="${sDefaults[i]}" min="1" max="8">
+      </div>
+      <div class="param">
+        <label>Padding p<sub>${labels[i]}</sub></label>
+        <input type="number" class="inp-p" value="${pDefaults[i]}" min="0" max="15">
+      </div>`;
+  }
+  area.innerHTML = html;
+  area.querySelectorAll('input').forEach(inp => inp.oninput = compute);
+}
+
+function compute() {
+  const ns = [...document.querySelectorAll('.inp-n')].map(e => +e.value);
+  const ks = [...document.querySelectorAll('.inp-k')].map(e => +e.value);
+  const ss = [...document.querySelectorAll('.inp-s')].map(e => +e.value);
+  const ps = [...document.querySelectorAll('.inp-p')].map(e => +e.value);
+
+  const outs = ns.map((n, i) => Math.floor((n + 2*ps[i] - ks[i]) / ss[i]) + 1);
+
+  if (outs.length === 1) {
+    $('outputSize').textContent = outs[0];
+    $('outputDetail').textContent = `⌊(${ns[0]} + 2×${ps[0]} − ${ks[0]}) / ${ss[0]}⌋ + 1 = ${outs[0]}`;
+  } else {
+    $('outputSize').textContent = outs.join(' × ');
+    const details = outs.map((o, i) => `⌊(${ns[i]}+2×${ps[i]}−${ks[i]})/${ss[i]}⌋+1=${o}`);
+    $('outputDetail').textContent = details.join('  |  ');
+  }
+}
+
+// Multi-layer tracker
+function buildChain() {
+  const layers = [
+    { name: 'Input', h: 28, w: 28, ch: 1 },
+    { name: 'Conv2d(1,16,3,p=1)', h: 28, w: 28, ch: 16, k:3, s:1, p:1 },
+    { name: 'MaxPool(2,2)', h: 14, w: 14, ch: 16 },
+    { name: 'Conv2d(16,32,3,p=1)', h: 14, w: 14, ch: 32, k:3, s:1, p:1 },
+    { name: 'MaxPool(2,2)', h: 7, w: 7, ch: 32 },
+    { name: 'Conv2d(32,64,3,p=1)', h: 7, w: 7, ch: 64, k:3, s:1, p:1 },
+    { name: 'Flatten', h: 1, w: 1, ch: 3136 },
+    { name: 'Linear→10', h: 1, w: 1, ch: 10 },
+  ];
+
+  let html = '';
+  for (const l of layers) {
+    const sizeStr = l.name === 'Flatten' ? `${l.ch}` :
+                    l.name === 'Linear→10' ? `10` :
+                    `${l.ch}×${l.h}×${l.w}`;
+    html += `<div class="chain-step"><div class="layer">${l.name}</div><div class="size">${sizeStr}</div></div>`;
+  }
+  $('chainArea').innerHTML = html;
+}
+
+// Receptive field
+function drawRF() {
+  const canvas = $('rfCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const layers = [
+    { k: 3, s: 1, rf: 3 },
+    { k: 3, s: 1, rf: 5 },
+    { k: 3, s: 1, rf: 7 },
+  ];
+
+  const cellW = 18, gap = 60;
+  const numInputCells = 11;
+  const startX = 20;
+  const colors = ['#3b82f6', '#f97316', '#10b981'];
+
+  for (let l = 0; l <= layers.length; l++) {
+    const y = 30 + l * 42;
+    const numCells = l === 0 ? numInputCells : numInputCells - 2 * l;
+    const x0 = startX + l * cellW;
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px monospace';
+    ctx.fillText(l === 0 ? 'Input' : `Conv ${l}`, W - 80, y + 12);
+
+    for (let c = 0; c < numCells; c++) {
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x0 + c * cellW, y, cellW, 20);
+    }
+
+    if (l > 0) {
+      const rf = layers[l-1].rf;
+      const halfRF = Math.floor(rf / 2);
+      const highlight = Math.floor(numCells / 2);
+      ctx.fillStyle = colors[l-1] + '40';
+      ctx.fillRect(x0 + highlight * cellW, y, cellW, 20);
+      ctx.strokeStyle = colors[l-1];
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x0 + highlight * cellW, y, cellW, 20);
+
+      const inputStart = highlight + l - halfRF;
+      const prevY = 30 + (l-1) * 42;
+      ctx.fillStyle = colors[l-1] + '20';
+      ctx.fillRect(startX + (l-1) * cellW + inputStart * cellW, prevY, rf * cellW, 20);
+      ctx.strokeStyle = colors[l-1];
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(startX + (l-1) * cellW + inputStart * cellW, prevY, rf * cellW, 20);
+    }
+  }
+
+  $('rfInfo').textContent = 'After 3 stacked 3×3 conv layers: receptive field = 7×7 (each layer adds 2)';
+}
+
+buildParams();
+compute();
+buildChain();
+drawRF();
+</script>
+</body>
+</html>

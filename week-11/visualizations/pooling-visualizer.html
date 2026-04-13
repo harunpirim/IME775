@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pooling Visualizer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.6rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:0 16px 32px}
+  .controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:16px 0}
+  .control-group{background:#1e293b;border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:160px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .control-group .val{color:#38bdf8;font-weight:600;font-size:.85rem}
+  select{background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:4px 8px;font-size:.85rem}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  .vis{display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:20px}
+  .grid-wrap{text-align:center}
+  .grid-wrap h3{font-size:.9rem;color:#fff;margin-bottom:8px}
+  table.grid{border-collapse:collapse;margin:0 auto}
+  table.grid td{width:54px;height:54px;text-align:center;font-size:.85rem;font-weight:600;border:1px solid #334155;transition:background .3s}
+  .cell-normal{background:#1e293b;color:#e2e8f0}
+  .cell-active{background:#3b82f6;color:#fff}
+  .cell-max{background:#f97316;color:#fff}
+  .cell-out{background:#10b981;color:#fff}
+  .cell-current{background:#10b981;color:#fff}
+  .cell-future{background:#0f172a;color:#475569}
+  .step-controls{display:flex;gap:8px;justify-content:center;margin:16px 0}
+  button{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600;transition:background .2s}
+  button:hover{background:#2563eb}
+  button.active{background:#10b981}
+  .info{background:#1e293b;border-radius:12px;padding:16px;margin-top:16px;text-align:center}
+  .info .math{color:#38bdf8;font-family:'Courier New',monospace;font-size:.95rem}
+  .info .desc{color:#94a3b8;font-size:.82rem;margin-top:4px}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+  @media(max-width:700px){.compare{grid-template-columns:1fr}}
+  .compare-card{background:#1e293b;border-radius:12px;padding:16px;text-align:center}
+  .compare-card h3{font-size:.9rem;color:#fff;margin-bottom:8px}
+  .compare-card .val{font-size:1.8rem;font-weight:700;margin:8px 0}
+  .c-max{color:#f97316}.c-avg{color:#a78bfa}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Pooling Visualizer</h1>
+  <p>IME 775 &mdash; Chapter 10: Max Pooling vs Average Pooling</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>Pooling Type</label>
+      <select id="poolType">
+        <option value="max">Max Pooling</option>
+        <option value="avg">Average Pooling</option>
+        <option value="both">Side by Side</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Kernel Size</label>
+      <select id="kSize">
+        <option value="2" selected>2×2</option>
+        <option value="3">3×3</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Stride</label>
+      <select id="pStride">
+        <option value="2" selected>2</option>
+        <option value="1">1</option>
+        <option value="3">3</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Input Size</label>
+      <select id="inputSize">
+        <option value="4">4×4</option>
+        <option value="6" selected>6×6</option>
+        <option value="8">8×8</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="step-controls">
+    <button id="btnPrev">◀ Prev</button>
+    <button id="btnPlay">▶ Play</button>
+    <button id="btnNext">Next ▶</button>
+    <button id="btnReset">Reset</button>
+  </div>
+
+  <div id="visArea" class="vis"></div>
+
+  <div class="info">
+    <div class="math" id="stepLabel">Step 0</div>
+    <div class="desc" id="computation"></div>
+  </div>
+
+  <div class="compare" id="compareArea"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let step = 0, maxStep = 0, playing = false, timer = null;
+let inputGrid = [];
+
+function generateInput(size) {
+  const grid = [];
+  for (let r = 0; r < size; r++) {
+    const row = [];
+    for (let c = 0; c < size; c++) {
+      row.push(Math.floor(Math.random() * 80) + 10);
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+function pool(grid, k, s, type) {
+  const H = grid.length, W = grid[0].length;
+  const oH = Math.floor((H - k) / s) + 1;
+  const oW = Math.floor((W - k) / s) + 1;
+  const out = [], positions = [];
+  for (let r = 0; r < oH; r++) {
+    const outRow = [];
+    for (let c = 0; c < oW; c++) {
+      const sr = r * s, sc = c * s;
+      let val = type === 'max' ? -Infinity : 0;
+      let maxR = sr, maxC = sc;
+      for (let i = 0; i < k; i++) {
+        for (let j = 0; j < k; j++) {
+          if (type === 'max') {
+            if (grid[sr+i][sc+j] > val) { val = grid[sr+i][sc+j]; maxR = sr+i; maxC = sc+j; }
+          } else {
+            val += grid[sr+i][sc+j];
+          }
+        }
+      }
+      if (type === 'avg') val = +(val / (k * k)).toFixed(1);
+      outRow.push(val);
+      positions.push({ sr, sc, maxR, maxC });
+    }
+    out.push(outRow);
+  }
+  return { out, oH, oW, positions };
+}
+
+function renderGrid(grid, k, s, positions, stepIdx, type, label) {
+  const oW = Math.floor((grid[0].length - k) / s) + 1;
+  const pos = positions[stepIdx];
+  const curR = Math.floor(stepIdx / oW), curC = stepIdx % oW;
+  const result = pool(grid, k, s, type);
+
+  let html = `<div class="grid-wrap"><h3>${label} — Input</h3><table class="grid">`;
+  for (let r = 0; r < grid.length; r++) {
+    html += '<tr>';
+    for (let c = 0; c < grid[0].length; c++) {
+      const inKernel = r >= pos.sr && r < pos.sr + k && c >= pos.sc && c < pos.sc + k;
+      const isMax = type === 'max' && r === pos.maxR && c === pos.maxC && inKernel;
+      const cls = isMax ? 'cell-max' : (inKernel ? 'cell-active' : 'cell-normal');
+      html += `<td class="${cls}">${grid[r][c]}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+
+  html += `<div class="grid-wrap"><h3>Output (${result.oH}×${result.oW})</h3><table class="grid">`;
+  for (let r = 0; r < result.oH; r++) {
+    html += '<tr>';
+    for (let c = 0; c < result.oW; c++) {
+      const idx = r * result.oW + c;
+      const cls = idx === stepIdx ? 'cell-current' : (idx < stepIdx ? 'cell-out' : 'cell-future');
+      html += `<td class="${cls}">${idx <= stepIdx ? result.out[r][c] : '?'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table></div>';
+  return html;
+}
+
+function render() {
+  const k = +$('kSize').value;
+  const s = +$('pStride').value;
+  const size = +$('inputSize').value;
+  const type = $('poolType').value;
+
+  if (inputGrid.length !== size) inputGrid = generateInput(size);
+
+  const resMax = pool(inputGrid, k, s, 'max');
+  const resAvg = pool(inputGrid, k, s, 'avg');
+  maxStep = resMax.positions.length - 1;
+  if (step > maxStep) step = maxStep;
+
+  const vis = $('visArea');
+  if (type === 'both') {
+    vis.innerHTML = renderGrid(inputGrid, k, s, resMax.positions, step, 'max', 'Max Pool') +
+                    renderGrid(inputGrid, k, s, resAvg.positions, step, 'avg', 'Avg Pool');
+  } else {
+    const positions = type === 'max' ? resMax.positions : resAvg.positions;
+    vis.innerHTML = renderGrid(inputGrid, k, s, positions, step, type, type === 'max' ? 'Max Pooling' : 'Average Pooling');
+  }
+
+  const pos = resMax.positions[step];
+  const oW = resMax.oW;
+  const curR = Math.floor(step / oW), curC = step % oW;
+  $('stepLabel').textContent = `Step ${step} of ${maxStep} — output[${curR},${curC}]`;
+
+  let vals = [];
+  for (let i = 0; i < k; i++)
+    for (let j = 0; j < k; j++)
+      vals.push(inputGrid[pos.sr+i][pos.sc+j]);
+
+  if (type === 'max' || type === 'both') {
+    $('computation').textContent = `Max(${vals.join(', ')}) = ${Math.max(...vals)}` +
+      (type === 'both' ? `  |  Avg(${vals.join(', ')}) = ${(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)}` : '');
+  } else {
+    $('computation').textContent = `Avg(${vals.join(', ')}) = ${(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)}`;
+  }
+
+  const compare = $('compareArea');
+  compare.innerHTML = `
+    <div class="compare-card">
+      <h3>Max Pooling Result</h3>
+      <div class="val c-max">${resMax.oH}×${resMax.oW}</div>
+      <div class="desc">Keeps strongest activations</div>
+    </div>
+    <div class="compare-card">
+      <h3>Average Pooling Result</h3>
+      <div class="val c-avg">${resAvg.oH}×${resAvg.oW}</div>
+      <div class="desc">Smooths local neighborhoods</div>
+    </div>`;
+}
+
+function nextStep() { if (step < maxStep) { step++; render(); } }
+function prevStep() { if (step > 0) { step--; render(); } }
+function resetStep() { step = 0; render(); }
+function togglePlay() {
+  playing = !playing;
+  $('btnPlay').textContent = playing ? '⏸ Pause' : '▶ Play';
+  $('btnPlay').classList.toggle('active', playing);
+  if (playing) {
+    timer = setInterval(() => { if (step >= maxStep) step = 0; else step++; render(); }, 500);
+  } else clearInterval(timer);
+}
+
+$('btnNext').onclick = nextStep;
+$('btnPrev').onclick = prevStep;
+$('btnReset').onclick = resetStep;
+$('btnPlay').onclick = togglePlay;
+['poolType','kSize','pStride','inputSize'].forEach(id => {
+  $(id).onchange = () => { step = 0; if (id === 'inputSize') inputGrid = generateInput(+$('inputSize').value); render(); };
+});
+
+inputGrid = generateInput(+$('inputSize').value);
+render();
+</script>
+</body>
+</html>

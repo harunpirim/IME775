@@ -66,7 +66,7 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 09 | Training Neural Networks: Activation Functions, Forward Prop & Backprop | Ch. 8 | [📝 Lecture 15](week-09/notes/Chapter8_Lecture_Notes.md) \| [📝 Lecture 16](week-09/notes/Chapter8_Lecture_Notes2.md) \| [📓 Notebook](week-09/code/IME775_Ch8_Training_marimo.py) \| [🎮 Visualizations](week-09/visualizations/) |
 | 10 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | [📝 Lecture 17](week-10/notes/Chapter9_Lecture_Notes.md) \| [📝 Lecture 18](week-10/notes/Chapter9_Lecture_Notes2.md) \| [📓 Notebook](week-10/code/IME775_Ch9_Optimization_marimo.py) \| [🎮 Visualizations](week-10/visualizations/) |
 | 11 | Midterm Exam | Ch. 1-9 | 🔒 Coming Soon |
-| 12 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | 🔒 Coming Soon |
+| 12 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | [📝 Lecture 19](week-11/notes/Chapter10_Lecture_Notes.md) \| [📝 Lecture 20](week-11/notes/Chapter10_Lecture_Notes2.md) \| [📓 Notebook](week-11/code/IME775_Ch10_Convolutions_marimo.py) \| [🎮 Visualizations](week-11/visualizations/) |
 | 13 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
 | 14 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
 | 15 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
@@ -101,6 +101,7 @@ Explore mathematical concepts through browser-based interactive demos:
 | 08 | Neural Network Architecture Evolution |
 | 09 | Activation Functions Explorer • Gradient Descent & Learning Rate • Forward & Backpropagation |
 | 10 | Loss Functions Explorer • Softmax Explorer • Optimizer Trajectories • Regularization (L1 vs L2) |
+| 11 | Convolution Explorer (1D/2D) • Pooling Visualizer (Max/Avg) • Transposed Convolution • Output Size Calculator |
 
 > *No installation required — runs directly in your browser!*
 
@@ -174,12 +175,16 @@ IME775/
 │   ├── notes/                   # Lecture notes (Ch 8: Training NNs, Backpropagation)
 │   ├── code/                    # Marimo notebook (PyTorch training lab)
 │   └── visualizations/          # Interactive HTML demos (Activations, GD, Backprop)
-└── week-10/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 9: Loss, Optimization, Regularization)
-    ├── code/                    # Marimo notebook (Loss & optimizer lab)
-    └── visualizations/          # Interactive HTML demos (Loss, Softmax, Optimizers, Regularization)
+├── week-10/                     # ✅ Released
+│   ├── notes/                   # Lecture notes (Ch 9: Loss, Optimization, Regularization)
+│   ├── code/                    # Marimo notebook (Loss & optimizer lab)
+│   └── visualizations/          # Interactive HTML demos (Loss, Softmax, Optimizers, Regularization)
+└── week-11/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 10: Convolutions in Neural Networks)
+    ├── code/                    # Marimo notebook (1D/2D/3D Conv, Transpose Conv, Pooling)
+    └── visualizations/          # Interactive HTML demos (Conv Explorer, Pooling, Transpose Conv)
 
-Note: Additional weekly materials (week-11 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-12 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools

@@ -175,6 +175,8 @@ optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999))
 
 **Modern default:** Adam is the most popular choice. Start with Adam and $\eta = 10^{-3}$ unless you have a specific reason to use something else.
 
+	Different optimizers induce different implicit biases, which may affect generalization similarly to regularization.
+
 ---
 
 ## 8. Regularization
