@@ -65,11 +65,11 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 08 | Function Approximation: Perceptrons, MLPs, Universal Approximation | Ch. 7 | [📝 Lecture 13](week-08/notes/Chapter7_Lecture_Notes.md) \| [📝 Lecture 14](week-08/notes/Chapter7_Lecture_Notes2.md) \| [🎮 Visualizations](week-08/visualizations/) |
 | 09 | Training Neural Networks: Activation Functions, Forward Prop & Backprop | Ch. 8 | [📝 Lecture 15](week-09/notes/Chapter8_Lecture_Notes.md) \| [📝 Lecture 16](week-09/notes/Chapter8_Lecture_Notes2.md) \| [📓 Notebook](week-09/code/IME775_Ch8_Training_marimo.py) \| [🎮 Visualizations](week-09/visualizations/) |
 | 10 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | [📝 Lecture 17](week-10/notes/Chapter9_Lecture_Notes.md) \| [📝 Lecture 18](week-10/notes/Chapter9_Lecture_Notes2.md) \| [📓 Notebook](week-10/code/IME775_Ch9_Optimization_marimo.py) \| [🎮 Visualizations](week-10/visualizations/) |
-| 11 | Midterm Exam | Ch. 1-9 | 🔒 Coming Soon |
-| 12 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | [📝 Lecture 19](week-11/notes/Chapter10_Lecture_Notes.md) \| [📝 Lecture 20](week-11/notes/Chapter10_Lecture_Notes2.md) \| [📓 Notebook](week-11/code/IME775_Ch10_Convolutions_marimo.py) \| [🎮 Visualizations](week-11/visualizations/) |
-| 13 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
-| 14 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
-| 15 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
+| — | **Midterm Exam** | Ch. 1–9 | Covers weeks 01–10 |
+| 11 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | [📝 Lecture 19](week-11/notes/Chapter10_Lecture_Notes.md) \| [📝 Lecture 20](week-11/notes/Chapter10_Lecture_Notes2.md) \| [📓 Notebook](week-11/code/IME775_Ch10_Convolutions_marimo.py) \| [🎮 Visualizations](week-11/visualizations/) |
+| 12 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
+| 13 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
+| 14 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
 
 ---
 
