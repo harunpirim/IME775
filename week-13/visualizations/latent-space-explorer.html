@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latent Space Explorer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.7rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px 40px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .panel{background:#1e293b;border-radius:14px;padding:16px}
+  .panel h3{font-size:1rem;color:#fff;margin-bottom:4px}
+  .panel .sub{font-size:.82rem;color:#94a3b8;margin-bottom:10px}
+  canvas{background:#0b1220;border-radius:10px;display:block;width:100%;height:auto;cursor:crosshair}
+  .z-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .z-info .cell{background:#0b1220;border-radius:8px;padding:10px;text-align:center}
+  .z-info .k{font-size:.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+  .z-info .v{font-size:1.3rem;font-weight:700;color:#38bdf8;font-family:'Courier New',monospace}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:.78rem}
+  .legend .item{display:flex;align-items:center;gap:6px}
+  .swatch{width:12px;height:12px;border-radius:3px}
+  .hint{background:#1e293b;border-left:4px solid #8b5cf6;padding:14px 18px;border-radius:8px;margin-top:18px;font-size:.9rem;line-height:1.55;color:#cbd5e1}
+  .mode{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .mode button{background:#334155;color:#cbd5e1;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:.85rem;font-weight:600;transition:background .2s}
+  .mode button.active{background:#3b82f6;color:#fff}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Latent Space Explorer</h1>
+  <p>IME 775 — Chapter 14: drag a point in latent space, see the decoded output</p>
+</div>
+<div class="container">
+  <div class="mode">
+    <button id="modeDigits" class="active">Digits (synthetic)</button>
+    <button id="modeShapes">Shapes</button>
+    <button id="modeWaves">Waveforms</button>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>2D Latent Space</h3>
+      <div class="sub">Click or drag to move the latent code <b>z</b>. Dots are training codes; the unit ball (dashed) is the VAE prior N(0, I).</div>
+      <canvas id="latent" width="560" height="560"></canvas>
+      <div class="z-info">
+        <div class="cell"><div class="k">z<sub>0</sub></div><div class="v" id="z0">0.00</div></div>
+        <div class="cell"><div class="k">z<sub>1</sub></div><div class="v" id="z1">0.00</div></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="panel">
+      <h3>Decoded output  x̃ = D(z)</h3>
+      <div class="sub">A simulated decoder reconstructs the input from the latent vector.</div>
+      <canvas id="decoded" width="560" height="560"></canvas>
+      <div class="z-info">
+        <div class="cell"><div class="k">nearest class</div><div class="v" id="nearCls">—</div></div>
+        <div class="cell"><div class="k">‖z‖ (dist to prior mean)</div><div class="v" id="zNorm">0.00</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">
+    <b>What you are seeing.</b> A 2D latent space where each class occupies a Gaussian cluster around some
+    learned mean. Moving the cursor selects any <b>z</b> in the plane; the right panel decodes that <b>z</b> by
+    blending class prototypes weighted by closeness to each cluster centre — a stand-in for what a real VAE
+    decoder neural network does. Traverse between two clusters to see smooth <em>morphing</em> — this is why
+    VAE latent spaces are useful for generation and interpolation. Drifting far from the clusters produces
+    blurry / mixed outputs — the latent region there was never trained on.
+  </div>
+</div>
+<script>
+const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#14b8a6','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+const names = ['0','1','2','3','4','5','6','7','8','9'];
+
+// cluster centers arranged on a circle - just like a VAE trained on MNIST might produce
+const centers = [];
+for(let c=0; c<10; c++){
+  centers.push([1.8*Math.cos(2*Math.PI*c/10), 1.8*Math.sin(2*Math.PI*c/10)]);
+}
+
+// Synthetic class "prototypes" - bitmaps (16x16) that our fake decoder will blend.
+// We procedurally generate three different modes.
+function makeDigitProto(cls){
+  const g = new Float64Array(16*16);
+  const digit = cls;
+  const draw = (x,y,v)=>{ if(x<0||x>=16||y<0||y>=16) return; g[y*16+x] = Math.max(g[y*16+x], v); };
+  const line = (x1,y1,x2,y2,thickness=1.2)=>{
+    const steps = 60;
+    for(let i=0;i<=steps;i++){
+      const t=i/steps;
+      const px=x1+(x2-x1)*t, py=y1+(y2-y1)*t;
+      for(let dy=-2; dy<=2; dy++) for(let dx=-2; dx<=2; dx++){
+        const d = Math.hypot(dx,dy);
+        if(d<=thickness){
+          const v = 1 - d/thickness;
+          draw(Math.round(px)+dx, Math.round(py)+dy, v);
+        }
+      }
+    }
+  };
+  const arc = (cx,cy,r,a1,a2)=>{
+    const steps=80;
+    for(let i=0;i<=steps;i++){
+      const a = a1+(a2-a1)*i/steps;
+      const x = cx + r*Math.cos(a), y = cy+r*Math.sin(a);
+      for(let dy=-2; dy<=2; dy++) for(let dx=-2; dx<=2; dx++){
+        const d = Math.hypot(dx,dy);
+        if(d<=1.2) draw(Math.round(x)+dx, Math.round(y)+dy, 1 - d/1.2);
+      }
+    }
+  };
+  switch(digit){
+    case 0: arc(8,8,5, 0, 2*Math.PI); break;
+    case 1: line(8,2,8,14); line(6,4,8,2); break;
+    case 2: arc(8,5,3, Math.PI, 2*Math.PI); line(11,6,4,14); line(4,14,13,14); break;
+    case 3: arc(8,5,3, -Math.PI/2, Math.PI); arc(8,11,3, -Math.PI, Math.PI/2); break;
+    case 4: line(4,2,4,8); line(4,8,13,8); line(11,2,11,14); break;
+    case 5: line(4,3,12,3); line(4,3,4,8); arc(7,10,4, -Math.PI, Math.PI/2); break;
+    case 6: arc(8,8,5,0,2*Math.PI); line(3,8,3,3); line(3,3,8,3); break;
+    case 7: line(3,3,13,3); line(13,3,6,14); break;
+    case 8: arc(8,5,3,0,2*Math.PI); arc(8,11,3,0,2*Math.PI); break;
+    case 9: arc(8,6,3,0,2*Math.PI); line(11,7,11,14); break;
+  }
+  return g;
+}
+function makeShapeProto(cls){
+  const g = new Float64Array(16*16);
+  const cx=8, cy=8;
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const dx=x-cx, dy=y-cy, r=Math.hypot(dx,dy), a=Math.atan2(dy,dx);
+    let inside = false;
+    if(cls===0) inside = r < 6;                                    // circle
+    else if(cls===1) inside = Math.max(Math.abs(dx),Math.abs(dy))<6; // square
+    else if(cls===2) inside = Math.abs(dx)+Math.abs(dy)<7;         // diamond
+    else if(cls===3) inside = r < 6 && Math.sin(3*a)>0;            // 3-lobed
+    else if(cls===4) inside = r < 6 && Math.sin(4*a)>0;            // 4-lobed
+    else if(cls===5) inside = r < 6 && Math.sin(5*a)>0;            // 5-lobed
+    else if(cls===6) inside = Math.abs(dx*dy)<18 && r<7;           // X
+    else if(cls===7) inside = r < 6 && Math.abs(dx)<1.5;           // I
+    else if(cls===8) inside = r>3 && r<6;                          // ring
+    else inside = r<6 && Math.sin(a*2+r*0.6)>0;                    // spiral
+    if(inside) g[y*16+x] = 1;
+  }
+  return g;
+}
+function makeWaveProto(cls){
+  const g = new Float64Array(16*16);
+  const freq = 0.3 + cls*0.15;
+  const phase = cls*0.4;
+  for(let x=0;x<16;x++){
+    const y = 8 + 5*Math.sin(freq*x + phase);
+    const yi = Math.round(y);
+    for(let dy=-1; dy<=1; dy++){
+      const yy = yi+dy;
+      if(yy>=0 && yy<16) g[yy*16+x] = Math.max(g[yy*16+x], 1 - Math.abs(dy)*0.4);
+    }
+  }
+  return g;
+}
+
+let protos = [];
+let mode = 'digits';
+function buildProtos(){
+  protos = [];
+  for(let c=0;c<10;c++){
+    if(mode==='digits') protos.push(makeDigitProto(c));
+    else if(mode==='shapes') protos.push(makeShapeProto(c));
+    else protos.push(makeWaveProto(c));
+  }
+}
+buildProtos();
+
+// generate training codes scattered around centers
+let codes = [];
+function randn(){ let u1=Math.random(),u2=Math.random(); return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2); }
+function buildCodes(){
+  codes = [];
+  for(let c=0;c<10;c++){
+    const [cx,cy] = centers[c];
+    for(let i=0;i<80;i++){
+      codes.push({cls:c, xy:[cx+randn()*0.35, cy+randn()*0.35]});
+    }
+  }
+}
+buildCodes();
+
+const latent = document.getElementById('latent');
+const decoded = document.getElementById('decoded');
+const lctx = latent.getContext('2d');
+const dctx = decoded.getContext('2d');
+const z0El = document.getElementById('z0');
+const z1El = document.getElementById('z1');
+const znEl = document.getElementById('zNorm');
+const ncEl = document.getElementById('nearCls');
+
+const legend = document.getElementById('legend');
+palette.forEach((c,i)=>{
+  const d = document.createElement('div'); d.className='item';
+  d.innerHTML = `<span class="swatch" style="background:${c}"></span>${names[i]}`;
+  legend.appendChild(d);
+});
+
+let currentZ = [0,0];
+
+function drawLatent(){
+  const W = latent.width, H = latent.height;
+  lctx.clearRect(0,0,W,H);
+  const range = 4, pad = 30, S = (Math.min(W,H)-2*pad)/2;
+  const toX = v => W/2 + v/range*S;
+  const toY = v => H/2 - v/range*S;
+
+  // grid
+  lctx.strokeStyle='#1e293b';
+  for(let g=-range; g<=range; g+=0.5){
+    lctx.beginPath(); lctx.moveTo(toX(g), pad); lctx.lineTo(toX(g), H-pad); lctx.stroke();
+    lctx.beginPath(); lctx.moveTo(pad, toY(g)); lctx.lineTo(W-pad, toY(g)); lctx.stroke();
+  }
+  lctx.strokeStyle='#334155'; lctx.lineWidth=1.5;
+  lctx.beginPath(); lctx.moveTo(pad, toY(0)); lctx.lineTo(W-pad, toY(0)); lctx.stroke();
+  lctx.beginPath(); lctx.moveTo(toX(0), pad); lctx.lineTo(toX(0), H-pad); lctx.stroke();
+
+  lctx.fillStyle='#94a3b8'; lctx.font='11px sans-serif'; lctx.textAlign='center';
+  for(let g=-range; g<=range; g+=1){
+    if(Math.abs(g)>0.01) lctx.fillText(g, toX(g), toY(0)+14);
+  }
+
+  // unit ball (the VAE prior N(0,I))
+  lctx.strokeStyle='#f97316'; lctx.setLineDash([5,4]); lctx.lineWidth=1.5;
+  lctx.beginPath(); lctx.arc(W/2, H/2, 1/range*S, 0, 2*Math.PI); lctx.stroke();
+  lctx.setLineDash([]);
+
+  // codes
+  codes.forEach(p=>{
+    lctx.fillStyle = palette[p.cls];
+    lctx.globalAlpha = 0.65;
+    lctx.beginPath();
+    lctx.arc(toX(p.xy[0]), toY(p.xy[1]), 2.5, 0, 2*Math.PI);
+    lctx.fill();
+  });
+  lctx.globalAlpha = 1;
+
+  // current z
+  const zx = toX(currentZ[0]), zy = toY(currentZ[1]);
+  lctx.strokeStyle='#fff'; lctx.lineWidth=2;
+  lctx.beginPath(); lctx.arc(zx, zy, 9, 0, 2*Math.PI); lctx.stroke();
+  lctx.fillStyle='#fff';
+  lctx.beginPath(); lctx.arc(zx, zy, 4, 0, 2*Math.PI); lctx.fill();
+
+  // crosshair
+  lctx.strokeStyle='rgba(255,255,255,0.3)'; lctx.lineWidth=1;
+  lctx.beginPath(); lctx.moveTo(zx, pad); lctx.lineTo(zx, H-pad); lctx.stroke();
+  lctx.beginPath(); lctx.moveTo(pad, zy); lctx.lineTo(W-pad, zy); lctx.stroke();
+}
+
+function drawDecoded(){
+  const W = decoded.width, H = decoded.height;
+  dctx.clearRect(0,0,W,H);
+
+  // compute decoder output as softmax-weighted blend of prototypes by distance to class centers
+  const T = 0.6;                                    // temperature
+  const logits = centers.map(c=>{
+    const dx = currentZ[0]-c[0], dy = currentZ[1]-c[1];
+    return -(dx*dx + dy*dy) / T;
+  });
+  const maxL = Math.max(...logits);
+  const exps = logits.map(l=>Math.exp(l-maxL));
+  const s = exps.reduce((a,b)=>a+b,0);
+  const w = exps.map(v=>v/s);
+
+  const img = new Float64Array(16*16);
+  for(let c=0;c<10;c++){
+    for(let i=0;i<16*16;i++) img[i] += w[c] * protos[c][i];
+  }
+  // normalize
+  let mx = 0; for(let i=0;i<img.length;i++) if(img[i]>mx) mx=img[i];
+  if(mx>0) for(let i=0;i<img.length;i++) img[i] /= mx;
+
+  // draw 16x16 as blocks
+  const cell = Math.floor((Math.min(W,H)-40)/16);
+  const offX = (W - cell*16)/2, offY = (H - cell*16)/2;
+  for(let y=0;y<16;y++){
+    for(let x=0;x<16;x++){
+      const v = img[y*16+x];
+      const g = Math.round(v*255);
+      dctx.fillStyle = `rgb(${g},${g},${g})`;
+      dctx.fillRect(offX + x*cell, offY + y*cell, cell, cell);
+    }
+  }
+
+  // classification summary
+  let best=0; for(let c=1;c<10;c++) if(w[c]>w[best]) best=c;
+  ncEl.textContent = `${names[best]}  (${(w[best]*100).toFixed(0)}%)`;
+  ncEl.style.color = palette[best];
+  znEl.textContent = Math.hypot(currentZ[0], currentZ[1]).toFixed(2);
+
+  // top-3 bar
+  const ranked = w.map((p,c)=>[p,c]).sort((a,b)=>b[0]-a[0]).slice(0,3);
+  dctx.fillStyle='#0b1220'; dctx.fillRect(10, H-28, W-20, 18);
+  let startX = 12;
+  ranked.forEach(([p,c])=>{
+    dctx.fillStyle = palette[c];
+    dctx.fillRect(startX, H-26, p*(W-24), 14);
+    dctx.fillStyle = '#fff'; dctx.font='11px sans-serif'; dctx.textAlign='left';
+    dctx.fillText(`${names[c]} ${(p*100).toFixed(0)}%`, startX+4, H-14);
+    startX += p*(W-24);
+  });
+}
+
+function draw(){
+  drawLatent();
+  drawDecoded();
+  z0El.textContent = currentZ[0].toFixed(2);
+  z1El.textContent = currentZ[1].toFixed(2);
+}
+
+function handle(e){
+  const rect = latent.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (latent.width/rect.width);
+  const y = (e.clientY - rect.top) * (latent.height/rect.height);
+  const range = 4, pad=30, S = (Math.min(latent.width, latent.height)-2*pad)/2;
+  currentZ = [ (x - latent.width/2)/S * range, -(y - latent.height/2)/S * range ];
+  draw();
+}
+let dragging = false;
+latent.addEventListener('mousedown', e=>{ dragging=true; handle(e); });
+latent.addEventListener('mousemove', e=>{ if(dragging) handle(e); });
+latent.addEventListener('mouseup',   ()=> dragging=false);
+latent.addEventListener('mouseleave',()=> dragging=false);
+latent.addEventListener('click', handle);
+
+latent.addEventListener('touchmove', e=>{ if(e.touches[0]){ handle(e.touches[0]); e.preventDefault(); } }, {passive:false});
+latent.addEventListener('touchstart', e=>{ if(e.touches[0]){ handle(e.touches[0]); } });
+
+document.getElementById('modeDigits').addEventListener('click', ()=>{
+  mode='digits'; updateMode();
+});
+document.getElementById('modeShapes').addEventListener('click', ()=>{
+  mode='shapes'; updateMode();
+});
+document.getElementById('modeWaves').addEventListener('click', ()=>{
+  mode='waves'; updateMode();
+});
+function updateMode(){
+  ['modeDigits','modeShapes','modeWaves'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById('mode'+ mode[0].toUpperCase() + mode.slice(1)).classList.add('active');
+  buildProtos(); draw();
+}
+draw();
+</script>
+</body>
+</html>

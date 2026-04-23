@@ -67,9 +67,9 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 10 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | [📝 Lecture 17](week-10/notes/Chapter9_Lecture_Notes.md) \| [📝 Lecture 18](week-10/notes/Chapter9_Lecture_Notes2.md) \| [📓 Notebook](week-10/code/IME775_Ch9_Optimization_marimo.py) \| [🎮 Visualizations](week-10/visualizations/) |
 | — | **Midterm Exam** | Ch. 1–9 | Covers weeks 01–10 |
 | 11 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | [📝 Lecture 19](week-11/notes/Chapter10_Lecture_Notes.md) \| [📝 Lecture 20](week-11/notes/Chapter10_Lecture_Notes2.md) \| [📓 Notebook](week-11/code/IME775_Ch10_Convolutions_marimo.py) \| [🎮 Visualizations](week-11/visualizations/) |
-| 12 | CNNs: LeNet, VGG, Inception, ResNet | Ch. 11 | 🔒 Coming Soon |
-| 13 | Object Detection: R-CNN, Fast/Faster R-CNN | Ch. 11 | 🔒 Coming Soon |
-| 14 | Manifolds, Autoencoders, and VAEs | Ch. 12-14 | 🔒 Coming Soon |
+| 12 | Manifolds, Homeomorphism, and Neural Networks | Ch. 12 | [📝 Lecture 21](week-12/notes/Chapter12_Lecture_Notes.md) |
+| 13 | CNNs and Object Detection: LeNet, VGG, Inception, ResNet, R-CNN | Ch. 11 | 🔒 Coming Soon |
+| 14 | Bayesian Parameter Estimation, Autoencoders, and VAEs | Ch. 13–14 | 🔒 Coming Soon |
 
 ---
 
@@ -179,12 +179,16 @@ IME775/
 │   ├── notes/                   # Lecture notes (Ch 9: Loss, Optimization, Regularization)
 │   ├── code/                    # Marimo notebook (Loss & optimizer lab)
 │   └── visualizations/          # Interactive HTML demos (Loss, Softmax, Optimizers, Regularization)
-└── week-11/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 10: Convolutions in Neural Networks)
-    ├── code/                    # Marimo notebook (1D/2D/3D Conv, Transpose Conv, Pooling)
-    └── visualizations/          # Interactive HTML demos (Conv Explorer, Pooling, Transpose Conv)
+├── week-11/                     # ✅ Released
+│   ├── notes/                   # Lecture notes (Ch 10: Convolutions in Neural Networks)
+│   ├── code/                    # Marimo notebook (1D/2D/3D Conv, Transpose Conv, Pooling)
+│   └── visualizations/          # Interactive HTML demos (Conv Explorer, Pooling, Transpose Conv)
+└── week-12/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 12: Manifolds, Homeomorphism, and Neural Networks)
+    ├── code/                    # (placeholder for notebooks)
+    └── visualizations/          # (placeholder for interactive HTML demos)
 
-Note: Additional weekly materials (week-12 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-13 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools

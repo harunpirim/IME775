@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autoencoder vs VAE Latent Space — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.7rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1200px;margin:0 auto;padding:0 16px 40px}
+  .controls{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:20px 0}
+  .control-group{background:#1e293b;border-radius:12px;padding:14px 18px;display:flex;flex-direction:column;gap:8px;min-width:200px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.7px}
+  .control-group .val{color:#38bdf8;font-weight:700;font-size:.95rem;font-family:'Courier New',monospace}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  button{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:.9rem;font-weight:600}
+  button:hover{background:#2563eb}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  .panel{background:#1e293b;border-radius:14px;padding:16px}
+  .panel h3{font-size:1rem;color:#fff;margin-bottom:6px}
+  .panel .sub{font-size:.82rem;color:#94a3b8;margin-bottom:10px}
+  canvas{background:#0b1220;border-radius:10px;display:block;width:100%;height:auto}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+  .stat{background:#0b1220;border-radius:8px;padding:8px;text-align:center}
+  .stat .k{font-size:.7rem;color:#94a3b8;text-transform:uppercase}
+  .stat .v{font-size:1rem;font-weight:700;color:#38bdf8;font-family:'Courier New',monospace}
+  .hint{background:#1e293b;border-left:4px solid #10b981;padding:14px 18px;border-radius:8px;margin-top:18px;font-size:.9rem;line-height:1.55;color:#cbd5e1}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;font-size:.78rem}
+  .legend .item{display:flex;align-items:center;gap:6px}
+  .swatch{width:12px;height:12px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Autoencoder vs VAE Latent Space</h1>
+  <p>IME 775 — Chapter 14: why the KL term makes the latent space compact</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>VAE β (KL weight) <span class="val" id="betaVal">1.00</span></label>
+      <input type="range" id="beta" min="0" max="3" step="0.05" value="1">
+    </div>
+    <div class="control-group">
+      <label>Samples per class <span class="val" id="nVal">80</span></label>
+      <input type="range" id="n" min="20" max="200" step="10" value="80">
+    </div>
+    <div class="control-group" style="justify-content:center">
+      <button id="refresh">Resample</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h3>Autoencoder latent space</h3>
+      <div class="sub">Reconstruction loss only → latent codes sprawl.</div>
+      <canvas id="aeCanvas" width="560" height="560"></canvas>
+      <div class="stats">
+        <div class="stat"><div class="k">mean ‖z‖</div><div class="v" id="aeMean">—</div></div>
+        <div class="stat"><div class="k">max ‖z‖</div><div class="v" id="aeMax">—</div></div>
+        <div class="stat"><div class="k">spread (std)</div><div class="v" id="aeStd">—</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>VAE latent space</h3>
+      <div class="sub">Reconstruction + β · KL(q‖N(0, I)) → latent codes concentrate.</div>
+      <canvas id="vaeCanvas" width="560" height="560"></canvas>
+      <div class="stats">
+        <div class="stat"><div class="k">mean ‖μ‖</div><div class="v" id="vaeMean">—</div></div>
+        <div class="stat"><div class="k">max ‖μ‖</div><div class="v" id="vaeMax">—</div></div>
+        <div class="stat"><div class="k">spread (std)</div><div class="v" id="vaeStd">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="hint">
+    <b>What you are looking at.</b> A synthetic 10-class 2D latent-space simulation. The <em>autoencoder</em> panel
+    shows codes that minimize reconstruction with no regularization — clusters stay separable but spread widely, with
+    large empty regions that decode to garbage. The <em>VAE</em> panel shows the same clusters pulled toward the origin
+    by the KL term to N(0, I) (the orange dashed circle marks the unit ball). Raise β to see clusters shrink and
+    overlap; lower β to see the VAE behave more like the AE.
+  </div>
+</div>
+<script>
+const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#14b8a6','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+const legend = document.getElementById('legend');
+palette.forEach((c,i)=>{
+  const d = document.createElement('div'); d.className='item';
+  d.innerHTML = `<span class="swatch" style="background:${c}"></span>class ${i}`;
+  legend.appendChild(d);
+});
+
+const aeC = document.getElementById('aeCanvas');
+const vaeC = document.getElementById('vaeCanvas');
+const aeX = aeC.getContext('2d');
+const vaeX = vaeC.getContext('2d');
+
+const betaI = document.getElementById('beta');
+const betaV = document.getElementById('betaVal');
+const nI = document.getElementById('n');
+const nV = document.getElementById('nVal');
+const btn = document.getElementById('refresh');
+
+let data = [];
+
+function randn(){
+  let u1=Math.random(), u2=Math.random();
+  return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+}
+
+function generate(){
+  const n = parseInt(nI.value);
+  data = [];
+  for(let c=0; c<10; c++){
+    // random cluster center, spread widely (AE-like)
+    const cx = 5*Math.cos(2*Math.PI*c/10) + randn()*0.6;
+    const cy = 5*Math.sin(2*Math.PI*c/10) + randn()*0.6;
+    const aeCx = cx * 1.8;    // AE centers sprawl further
+    const aeCy = cy * 1.8;
+    for(let i=0;i<n;i++){
+      data.push({
+        cls:c,
+        ae: [aeCx + randn()*0.7, aeCy + randn()*0.7]
+      });
+    }
+  }
+}
+
+function drawPlot(ctx, pts, label, unitBall){
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // compute extent
+  let mx=0;
+  pts.forEach(p=>{ mx = Math.max(mx, Math.abs(p.xy[0]), Math.abs(p.xy[1])); });
+  mx = Math.max(mx, 4);
+  const pad = 30, S = (Math.min(W,H)-2*pad)/2;
+  const cx = W/2, cy = H/2;
+  const toX = v => cx + v/mx*S;
+  const toY = v => cy - v/mx*S;
+
+  // grid
+  ctx.strokeStyle='#1e293b';
+  for(let g=-mx; g<=mx; g+=mx/5){
+    ctx.beginPath(); ctx.moveTo(toX(g), pad); ctx.lineTo(toX(g), H-pad); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, toY(g)); ctx.lineTo(W-pad, toY(g)); ctx.stroke();
+  }
+  // axes
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pad, toY(0)); ctx.lineTo(W-pad, toY(0)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(toX(0), pad); ctx.lineTo(toX(0), H-pad); ctx.stroke();
+
+  // axis ticks
+  ctx.fillStyle='#94a3b8'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  for(let g=-mx; g<=mx; g+=mx/5){
+    if(Math.abs(g)>0.01) ctx.fillText(g.toFixed(1), toX(g), toY(0)+14);
+  }
+
+  // unit ball
+  if(unitBall){
+    ctx.strokeStyle='#f97316'; ctx.setLineDash([5,4]); ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, 1/mx*S, 0, 2*Math.PI); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#f97316'; ctx.font='11px sans-serif';
+    ctx.fillText('‖z‖=1', cx + 1/mx*S + 24, cy);
+  }
+
+  // points
+  pts.forEach(p=>{
+    ctx.fillStyle = palette[p.cls];
+    ctx.globalAlpha = 0.75;
+    ctx.beginPath();
+    ctx.arc(toX(p.xy[0]), toY(p.xy[1]), 2.2, 0, 2*Math.PI);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle='#cbd5e1'; ctx.font='12px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(label, 14, 18);
+}
+
+function stats(pts, refs){
+  let sumN=0, maxN=0;
+  let xs=[], ys=[];
+  pts.forEach(p=>{
+    const n = Math.sqrt(p.xy[0]*p.xy[0] + p.xy[1]*p.xy[1]);
+    sumN += n; maxN = Math.max(maxN, n);
+    xs.push(p.xy[0]); ys.push(p.xy[1]);
+  });
+  const meanN = sumN/pts.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/xs.length;
+  const my = ys.reduce((a,b)=>a+b,0)/ys.length;
+  let v=0; for(let i=0;i<xs.length;i++){ v += (xs[i]-mx)**2 + (ys[i]-my)**2; }
+  const std = Math.sqrt(v/xs.length);
+  refs.mean.textContent = meanN.toFixed(2);
+  refs.max.textContent = maxN.toFixed(2);
+  refs.std.textContent = std.toFixed(2);
+}
+
+function draw(){
+  const beta = parseFloat(betaI.value);
+  betaV.textContent = beta.toFixed(2);
+  nV.textContent = nI.value;
+
+  // "train" VAE as shrinking AE codes toward origin by factor depending on β
+  // shrink = 1/(1+β)  (larger β → stronger pull toward 0)
+  const shrink = 1/(1 + beta);
+  const aePts = data.map(d=>({cls:d.cls, xy:d.ae}));
+  const vaePts = data.map(d=>({cls:d.cls, xy:[d.ae[0]*shrink, d.ae[1]*shrink]}));
+
+  drawPlot(aeX, aePts, 'AE: reconstruction only', false);
+  drawPlot(vaeX, vaePts, `VAE: recon + ${beta.toFixed(2)} · KL`, true);
+
+  stats(aePts, {mean: document.getElementById('aeMean'), max: document.getElementById('aeMax'), std: document.getElementById('aeStd')});
+  stats(vaePts, {mean: document.getElementById('vaeMean'), max: document.getElementById('vaeMax'), std: document.getElementById('vaeStd')});
+}
+
+betaI.addEventListener('input', draw);
+nI.addEventListener('input', ()=>{ generate(); draw(); });
+btn.addEventListener('click', ()=>{ generate(); draw(); });
+generate(); draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+{
+  "main": {
+    "id": "c8971571b1fb4d6c",
+    "type": "split",
+    "children": [
+      {
+        "id": "b9113aed4960fa1d",
+        "type": "split",
+        "children": [
+          {
+            "id": "eb4a4f18e44aeed6",
+            "type": "tabs",
+            "dimension": 75,
+            "children": [
+              {
+                "id": "98c306b33a7c2960",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "notes/Chapter10_Lecture_Notes.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "Chapter10_Lecture_Notes"
+                }
+              }
+            ]
+          },
+          {
+            "id": "4112771a1254b000",
+            "type": "tabs",
+            "dimension": 25,
+            "children": [
+              {
+                "id": "c976db63f8084176",
+                "type": "leaf",
+                "pinned": true,
+                "state": {
+                  "type": "terminal:terminal",
+                  "state": {
+                    "terminal:terminal": {
+                      "cwd": "/Users/harunpirim/Library/Mobile Documents/com~apple~CloudDocs/Documents/GitHub/IME775/week-11",
+                      "focus": false,
+                      "profile": {
+                        "args": [
+                          "--login"
+                        ],
+                        "executable": "/bin/zsh",
+                        "followTheme": true,
+                        "name": "",
+                        "platforms": {
+                          "darwin": true
+                        },
+                        "pythonExecutable": "python3",
+                        "restoreHistory": false,
+                        "rightClickAction": "copyPaste",
+                        "successExitCodes": [
+                          "0",
+                          "SIGINT",
+                          "SIGTERM"
+                        ],
+                        "terminalOptions": {
+                          "documentOverride": null
+                        },
+                        "type": "integrated",
+                        "useWin32Conhost": true
+                      },
+                      "serial": null
+                    }
+                  },
+                  "pinned": true,
+                  "icon": "terminal",
+                  "title": "Terminal: ✳ Add parameter definitions to Chapter 10 table"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal"
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "f0054a481841f292",
+    "type": "split",
+    "children": [
+      {
+        "id": "e035b9930094fb5e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a971483754a7dea8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "b3ba39f40730969a",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "ecc6350fc403abc5",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "38b97e8d6c75cbab",
+    "type": "split",
+    "children": [
+      {
+        "id": "96391cedabb04bec",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "cbd30b2ba9cbe4a7",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "notes/Chapter10_Lecture_Notes.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Chapter10_Lecture_Notes"
+            }
+          },
+          {
+            "id": "4e7756e30f5c2c46",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "notes/Chapter10_Lecture_Notes.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Chapter10_Lecture_Notes"
+            }
+          },
+          {
+            "id": "9f21408bafdc8fa3",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "4628624f3e901eba",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "03820ed08b438f78",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "notes/Chapter10_Lecture_Notes.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Chapter10_Lecture_Notes"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "terminal:Open terminal": false
+    }
+  },
+  "active": "98c306b33a7c2960",
+  "lastOpenFiles": [
+    "notes/Chapter10_Lecture_Notes2.pdf",
+    "Pasted image 20260415231554.png",
+    "Pasted image 20260415231509.png",
+    "Pasted image 20260415231400.png",
+    "Pasted image 20260415231328.png",
+    "Pasted image 20260415230004.png",
+    "Pasted image 20260415225907.png",
+    "notes/Chapter10_Lecture_Notes.md",
+    "Untitled.base"
+  ]
+}

@@ -16,6 +16,15 @@ Image analysis requires identifying **local patterns** — eyes, noses, ears —
 | **Number of parameters** | $O(n_{\text{in}} \times n_{\text{out}})$ — prohibitive for images | $O(k^d)$ — depends only on kernel size |
 | **What it captures** | Global relationships | **Local patterns** (edges, corners, textures) |
 
+**Parameter definitions for the table above:**
+
+| Symbol | Definition |
+|---|---|
+| $n_{\text{in}}$ | Number of input units (e.g., total pixels in an image) |
+| $n_{\text{out}}$ | Number of output units |
+| $k$ | Kernel size — the number of weights along one spatial dimension |
+| $d$ | Number of spatial dimensions (1 for 1D signals, 2 for images) |
+
 **Key insight:** In a multilayer convolutional neural network, the lowest layers detect simple local features (edges, corners), and successive layers combine them into increasingly complex, increasingly global patterns (ears → faces → people).
 
 ---
@@ -41,6 +50,9 @@ As the ruler slides left-to-right, a 1D output array is generated.
 | **Padding** | $p$ | How to handle kernel elements falling outside the input |
 | **Output size** | $o$ | Length of the resulting output array |
 
+![[Pasted image 20260415225907.png]]
+
+![[Pasted image 20260415230004.png]]
 ### 2.3 Padding Strategies
 
 **Valid padding:** Stop whenever any kernel element falls outside the input. The entire kernel always falls on valid input elements. Output is smaller than input.
@@ -51,7 +63,30 @@ As the ruler slides left-to-right, a 1D output array is generated.
 
 $$Y_x = \sum_{j=0}^{k_W - 1} X_{x+j}\,W_j \qquad \forall\, x \in S_o$$
 
-where $S_o$ is the set of output positions determined by the stride.
+**Reading the equation piece by piece:**
+
+| Symbol | Meaning |
+|---|---|
+| $Y_x$ | The output value at position $x$ |
+| $\sum_{j=0}^{k_W - 1}$ | Sum over all kernel positions $j = 0, 1, \ldots, k_W - 1$ |
+| $X_{x+j}$ | The input element at index $x + j$ — this is the input pixel that kernel element $j$ is currently covering |
+| $W_j$ | The j-th weight of the kernel |
+| $X_{x+j}$ , $W_j$ | Multiply each covered input element by its corresponding kernel weight |
+| $\forall\, x \in S_o$ | Repeat for every valid output position $x$ in the output grid $S_o$ |
+
+**In plain language:** Place the kernel's left edge at input position $x$. The kernel covers input elements $X_x, X_{x+1}, \ldots, X_{x+k_W-1}$. Multiply each covered input element by the kernel weight sitting on it, and sum the products. That sum is the single output value $Y_x$. Then slide the kernel to the next position (determined by stride) and repeat.
+
+**Example:** Input $\vec{x} = [4, 1, 7, 3, 5]$, kernel $\vec{w} = [W_0, W_1, W_2] = [\frac{1}{3}, \frac{1}{3}, \frac{1}{3}]$, stride 1, valid padding.
+
+With $k_W = 3$, the output positions are $S_o = \{0, 1, 2\}$. Expanding the sum for each:
+
+$$Y_0 = \underbrace{X_{0} W_0}_{4 \cdot \frac{1}{3}} + \underbrace{X_{1} W_1}_{1 \cdot \frac{1}{3}} + \underbrace{X_{2} W_2}_{7 \cdot \frac{1}{3}} = \frac{12}{3} = 4.0$$
+
+$$Y_1 = \underbrace{X_{1} W_0}_{1 \cdot \frac{1}{3}} + \underbrace{X_{2} W_1}_{7 \cdot \frac{1}{3}} + \underbrace{X_{3} W_2}_{3 \cdot \frac{1}{3}} = \frac{11}{3} \approx 3.67$$
+
+$$Y_2 = \underbrace{X_{2} W_0}_{7 \cdot \frac{1}{3}} + \underbrace{X_{3} W_1}_{3 \cdot \frac{1}{3}} + \underbrace{X_{4} W_2}_{5 \cdot \frac{1}{3}} = \frac{15}{3} = 5.0$$
+
+Output: $\vec{y} = [4.0,\; 3.67,\; 5.0]$. Notice how the index into $\vec{x}$ shifts by 1 (the stride) between successive outputs, but the kernel weights $W_0, W_1, W_2$ stay the same — this is the "sliding" and "weight sharing" at work.
 
 ---
 
@@ -175,6 +210,11 @@ $$o_H = \left\lfloor \frac{5 - 3}{1} \right\rfloor + 1 = 3, \qquad o_W = \left\l
 
 Output size: $3 \times 3$.
 
+![[Pasted image 20260415231328.png]]
+
+![[Pasted image 20260415231400.png]]
+
+
 ---
 
 ## 7. 2D Convolution Applications
@@ -187,6 +227,8 @@ $$W = \begin{bmatrix} \frac{1}{9} & \frac{1}{9} & \frac{1}{9} \\ \frac{1}{9} & \
 
 Each output pixel is the **local average** of a $3 \times 3$ neighborhood. This eliminates salt-and-pepper noise while preserving broad image content.
 
+![[Pasted image 20260415231509.png]]
+
 ### 7.2 Edge Detection
 
 **Vertical edge detection kernel:**
@@ -198,6 +240,9 @@ $$W_{\text{vert}} = \begin{bmatrix} -0.25 & 0.25 \\ -0.25 & 0.25 \end{bmatrix}$$
 $$W_{\text{horiz}} = \begin{bmatrix} -0.25 & -0.25 \\ 0.25 & 0.25 \end{bmatrix}$$
 
 **How it works:** In a uniform region, the positive and negative kernel elements fall on equal values → weighted sum is zero (suppressed). At an edge, one half falls on high values and the other on low values → large output (detected).
+
+![[Pasted image 20260415231554.png]]
+
 
 ```python
 import torch

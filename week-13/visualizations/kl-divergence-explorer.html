@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KL Divergence Explorer — IME 775</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+  .header{text-align:center;padding:24px 16px 8px}
+  .header h1{font-size:1.7rem;color:#fff}
+  .header p{color:#94a3b8;font-size:.9rem;margin-top:4px}
+  .container{max-width:1100px;margin:0 auto;padding:0 16px 40px}
+  .controls{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:20px 0}
+  .control-group{background:#1e293b;border-radius:12px;padding:14px 20px;display:flex;flex-direction:column;gap:8px;min-width:220px}
+  .control-group label{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.7px}
+  .control-group .val{color:#38bdf8;font-weight:700;font-size:.95rem;font-family:'Courier New',monospace}
+  input[type=range]{width:100%;accent-color:#38bdf8}
+  .canvas-wrap{background:#1e293b;border-radius:14px;padding:18px;margin-top:10px}
+  canvas{background:#0b1220;border-radius:10px;display:block;width:100%;height:auto}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:18px}
+  @media(max-width:720px){.info-grid{grid-template-columns:1fr}}
+  .info-card{background:#1e293b;border-radius:12px;padding:14px;text-align:center}
+  .info-card .k{font-size:.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px}
+  .info-card .v{font-size:1.7rem;font-weight:700;margin-top:6px;font-family:'Courier New',monospace}
+  .v-blue{color:#38bdf8}.v-orange{color:#f97316}.v-purple{color:#a78bfa}.v-green{color:#10b981}
+  .hint{background:#1e293b;border-left:4px solid #38bdf8;padding:14px 18px;border-radius:8px;margin-top:18px;font-size:.9rem;line-height:1.5;color:#cbd5e1}
+  .formula{background:#0b1220;border-radius:8px;padding:14px;margin-top:14px;font-family:'Courier New',monospace;font-size:.95rem;color:#67e8f9;text-align:center}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>KL Divergence Explorer</h1>
+  <p>IME 775 — Chapter 14: How close is q = N(μ, σ²) to the VAE prior p = N(0, 1)?</p>
+</div>
+<div class="container">
+  <div class="controls">
+    <div class="control-group">
+      <label>μ (mean of q) <span class="val" id="muVal">0.00</span></label>
+      <input type="range" id="mu" min="-3" max="3" step="0.05" value="0">
+    </div>
+    <div class="control-group">
+      <label>σ (std of q) <span class="val" id="sigVal">1.00</span></label>
+      <input type="range" id="sig" min="0.1" max="3.0" step="0.02" value="1">
+    </div>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="plot" width="1040" height="420"></canvas>
+  </div>
+  <div class="info-grid">
+    <div class="info-card"><div class="k">KL(q ‖ p)</div><div class="v v-orange" id="klVal">0.000</div></div>
+    <div class="info-card"><div class="k">μ² term</div><div class="v v-blue" id="muTerm">0.000</div></div>
+    <div class="info-card"><div class="k">σ² − 2 ln σ − 1</div><div class="v v-purple" id="sigTerm">0.000</div></div>
+  </div>
+  <div class="formula">
+    KL(q ‖ p) = ½ ( μ² + σ² − 2 ln σ − 1 )
+  </div>
+  <div class="hint">
+    <b>Why this matters.</b> In a VAE, the encoder outputs μ and log σ² for every input. The KL term pushes those
+    outputs toward (0, 1): the latent distribution concentrates near the origin with unit variance, giving a <em>compact,
+    continuous</em> latent space that we can sample from at inference time. Try μ = 0, σ = 1 → KL = 0.
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('plot');
+const ctx = canvas.getContext('2d');
+const muI = document.getElementById('mu');
+const sgI = document.getElementById('sig');
+const muV = document.getElementById('muVal');
+const sgV = document.getElementById('sigVal');
+const klV = document.getElementById('klVal');
+const muT = document.getElementById('muTerm');
+const sgT = document.getElementById('sigTerm');
+
+function pdf(x, mu, sg){
+  return (1/(sg*Math.sqrt(2*Math.PI))) * Math.exp(-0.5*Math.pow((x-mu)/sg,2));
+}
+
+function draw(){
+  const mu = parseFloat(muI.value);
+  const sg = parseFloat(sgI.value);
+  muV.textContent = mu.toFixed(2);
+  sgV.textContent = sg.toFixed(2);
+
+  const muTerm = mu*mu;
+  const sgTerm = sg*sg - 2*Math.log(sg) - 1;
+  const kl = 0.5 * (muTerm + sgTerm);
+  klV.textContent = kl.toFixed(3);
+  muT.textContent = (0.5*muTerm).toFixed(3);
+  sgT.textContent = (0.5*sgTerm).toFixed(3);
+
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const xMin=-6, xMax=6;
+  const yMax = 0.6;
+  const toX = x => (x-xMin)/(xMax-xMin) * W;
+  const toY = y => H - 30 - y/yMax * (H-60);
+
+  // grid
+  ctx.strokeStyle='#1e293b'; ctx.lineWidth=1;
+  for(let gx=xMin; gx<=xMax; gx++){
+    ctx.beginPath(); ctx.moveTo(toX(gx),20); ctx.lineTo(toX(gx),H-30); ctx.stroke();
+  }
+  ctx.strokeStyle='#334155'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,H-30); ctx.lineTo(W,H-30); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(toX(0),20); ctx.lineTo(toX(0),H-30); ctx.stroke();
+
+  // x-axis labels
+  ctx.fillStyle='#94a3b8'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+  for(let gx=xMin; gx<=xMax; gx++){
+    ctx.fillText(gx, toX(gx), H-12);
+  }
+
+  function plot(mu, sg, colorFill, colorStroke){
+    const pts = [];
+    for(let x=xMin; x<=xMax; x+=0.01) pts.push([x, pdf(x, mu, sg)]);
+    ctx.fillStyle = colorFill;
+    ctx.beginPath();
+    ctx.moveTo(toX(pts[0][0]), toY(0));
+    for(const [x,y] of pts) ctx.lineTo(toX(x), toY(y));
+    ctx.lineTo(toX(pts[pts.length-1][0]), toY(0));
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = colorStroke; ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<pts.length;i++){
+      const [x,y]=pts[i];
+      if(i===0) ctx.moveTo(toX(x), toY(y)); else ctx.lineTo(toX(x), toY(y));
+    }
+    ctx.stroke();
+  }
+
+  plot(0, 1, 'rgba(56, 189, 248, 0.28)', '#38bdf8');   // prior
+  plot(mu, sg, 'rgba(249, 115, 22, 0.35)', '#f97316'); // q
+
+  // legend
+  ctx.font='13px sans-serif'; ctx.textAlign='left';
+  ctx.fillStyle='#38bdf8'; ctx.fillRect(20,20,16,12);
+  ctx.fillStyle='#cbd5e1'; ctx.fillText('p(z) = N(0, 1)  — prior', 42, 30);
+  ctx.fillStyle='#f97316'; ctx.fillRect(20,42,16,12);
+  ctx.fillStyle='#cbd5e1'; ctx.fillText(`q(z|x) = N(${mu.toFixed(2)}, ${sg.toFixed(2)}²)`, 42, 52);
+}
+
+muI.addEventListener('input', draw);
+sgI.addEventListener('input', draw);
+draw();
+</script>
+</body>
+</html>
