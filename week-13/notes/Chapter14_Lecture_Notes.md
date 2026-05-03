@@ -36,6 +36,8 @@ Consider the mental picture of figure 14.1 in the text. A cloud of data points (
 
 **Case (b) — Curved manifold.** The points cluster around a curved surface (think of a swiss roll or an S-curve). At each point on the surface we can still locally define "in-manifold" directions and "off-manifold" directions, but the in-manifold directions rotate as we move around.
 
+![[Pasted image 20260427222914.png]]
+
 ### 2.1 Decomposing the Input Vector
 
 Pick a training point $\vec x$. Project it onto the manifold to obtain the **in-manifold component** $\vec x_{\parallel}$. The leftover $\vec x_{\perp} = \vec x - \vec x_{\parallel}$ is **orthogonal** to the manifold. Any input vector decomposes as
@@ -83,9 +85,82 @@ Latent-space models are naturally **generative**. Understanding the contrast wit
 
 The text's figures (14.2a–c) compare a smooth discriminative boundary, a zig-zag overfit discriminative boundary, and a generative heat-map. The heat-map elegantly avoids the question "which side of the boundary?" by assigning every point in the input space a probability of belonging to the class of interest.
 
+![[Pasted image 20260427163136.png]]
+
 ### 3.2 Three Concrete Advantages of Generative Models
 
 **1. Smoother decision surfaces.** Because a generative model parameterizes a smooth probability density, it cannot suddenly carve out an irregular protrusion to capture a single outlier. This is a form of **inductive bias**: when training data is scarce, generative models generalize better.
+
+#### Why the boundary is smoother
+
+A discriminative model learns *where the boundary is* — it has no obligation to make it smooth. Given enough parameters it will bend and twist the boundary to correctly label every training point, including outliers.
+
+A generative model instead learns a *density* — the shape of the probability "hill" for each class. The decision boundary is a side effect of those densities, not the primary object being learned.
+
+**Concrete picture.** Suppose class A fills a tight cluster with one stray outlier far away.
+
+```
+Discriminative model:        Generative model:
+  A A A  |  B                  A A A    B
+  A A    |  B B    ←arm        A A      B B
+  A A A  |  B                  A A A    B
+       ↑ boundary bends           smooth boundary
+       out to grab outlier        ignores the outlier
+```
+
+The discriminative boundary grows an arm to capture that one point. On new data that arm is pure noise — it will misclassify anything that falls near it. The generative model's density hill stays smooth and centered on the main cluster; its implied boundary never sprouts the arm.
+
+**Why generative models structurally cannot overfit this way.** The decision boundary is derived from Bayes' rule:
+
+$$p(\text{class} \mid \vec x) \propto p(\vec x \mid \text{class}) \cdot p(\text{class})$$
+
+The density $p(\vec x \mid \text{class})$ is constrained to a smooth parametric family. These families simply have no parameters that can create a sudden jagged protrusion. The smoothness is baked into the model's structure, not enforced through an external penalty.
+
+---
+
+#### Inductive bias — is it good?
+
+**Yes — inductive bias is not just good, it is mathematically necessary.** Without it, learning is provably impossible.
+
+**The No Free Lunch (NFL) theorem** (Wolpert, 1996):
+
+> *Averaged over all possible problems, every learning algorithm performs equally well — including random guessing.*
+
+Any algorithm that does better than chance on the problems *you care about* must do worse on some others. The only way to win on your target problems is to build in assumptions that favor them. Inductive bias is the price of admission to learning anything at all.
+
+**The bias–variance tradeoff.** Inductive bias trades directly against variance:
+
+| | High inductive bias | Low inductive bias |
+|---|---|---|
+| Model flexibility | rigid | flexible |
+| With little data | generalizes well | overfits badly |
+| With lots of data | may underfit | can approximate truth |
+| Risk | wrong assumption → stuck | memorizes noise |
+
+**When inductive bias hurts.** Bias is harmful when the assumption is *wrong for the problem*:
+
+- **Linear regression on a nonlinear problem** — the linearity assumption is so strong the model can never fit the data no matter how much you train. This is underfitting due to high bias.
+- **CNNs on tabular data** — CNNs assume local spatial structure (nearby pixels are related). Tabular columns (age, income, zip code) have no spatial structure. The assumption is wrong, and plain MLPs or gradient boosting outperform CNNs there.
+- **Naive Bayes with correlated features** — assumes features are conditionally independent. When they are correlated (e.g., number of rooms and house price), this misleads the model.
+
+**Examples across the bias spectrum:**
+
+| Model | Inductive bias baked in |
+|---|---|
+| Linear regression | relationship is linear |
+| CNN | local spatial patterns, translation invariance |
+| RNN / LSTM | sequential / temporal structure |
+| Transformer | pairwise attention over tokens |
+| Naive Bayes | features are conditionally independent |
+| Decision tree | axis-aligned splits, hierarchical structure |
+| **1-NN (k = 1)** | almost none — memorizes training points exactly |
+| **Deep net, no regularization** | almost none — universal approximator, fits noise too |
+
+**The clearest low-bias example: 1-Nearest Neighbor.** Its rule is simply "copy the label of the single closest training point." A single mislabeled outlier carves out a permanent island in the decision region. With enough data 1-NN converges to the Bayes-optimal classifier — but with scarce data it is among the worst generalizers precisely *because* it has no assumption to fall back on.
+
+> **Key insight.** Inductive bias is not a flaw to minimize — it is a deliberate design choice. The question is not *bias or no bias* but *is my bias well-matched to my problem?* Modern large models trend toward weaker bias (more data, larger networks) because massive datasets let the model *learn* structure rather than assume it. But even transformers bake in assumptions — attention over tokens, positional encodings, layer normalization — they just make fewer geometric assumptions than a CNN.
+
+---
 
 **2. Extra diagnostic insight.** Consider a "horse detector" trained discriminatively that also calls zebras horses. You'd need extra non-horse, non-zebra images to diagnose whether the model is "useless". A generative horse detector instead reports, e.g., $p(\text{horse}) = 0.92$ for horses vs $0.68$ for zebras — revealing that the model *does* distinguish them but has set an inclusive threshold.
 
@@ -318,6 +393,32 @@ fc = nn.Linear(576, n_z)                       # → n_z-dimensional latent
 
 Every `MaxPool2d(2)` halves the spatial resolution, and every `Conv2d` expands the channel count. By the time we reach the linear layer the input has been squeezed from $784$ dimensions down to $576$ spatial features, then down to $n_z$.
 
+#### Code walk-through
+
+The encoder is a stack of three identical "blocks" plus a flatten + linear head. Each block does the same three things:
+
+| Block step     | Purpose                                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Conv2d`       | learn local patterns; **expand the channel count** (more feature detectors)                                                                                                                                           |
+| `BatchNorm2d`  | normalize the Conv **pre-activations** across the batch (zero mean, unit variance per channel) — stabilizes training, allows higher learning rate, and gives ReLU a clean zero-centered input so ~half the units fire |
+| `ReLU`         | nonlinearity; without it the whole stack collapses to a single linear map                                                                                                                                             |
+| `MaxPool2d(2)` | **halve the spatial resolution** by keeping the maximum in each 2×2 window                                                                                                                                            |
+
+**Shape evolution** for one MNIST image (`1 × 28 × 28`):
+
+```
+input           : 1  × 28 × 28   (1 channel, 784 pixels)
+after block 1   : 16 × 14 × 14   (Conv expands channels, MaxPool halves H,W)
+after block 2   : 32 ×  7 ×  7
+after block 3   : 64 ×  3 ×  3   (= 576 features after flatten)
+after Flatten   : 576
+after fc        : 8              ← the latent code z
+```
+
+Notice the **classic CNN trade**: spatial dimensions shrink (28 → 14 → 7 → 3) while channel depth grows (1 → 16 → 32 → 64). The network gives up "where" in exchange for "what" — losing pixel coordinates but gaining higher-level feature detectors. The final `Linear(576, 8)` is the bottleneck that forces a 98% compression (784 → 8).
+
+**Why `padding=1` with `kernel_size=3` and `stride=1`?** This is the "same padding" trick — it keeps the spatial dimensions unchanged after the convolution. All shrinking happens in the `MaxPool2d` step, so shape arithmetic stays simple.
+
 ### 6.4 Convolutional Decoder (Listing 14.3)
 
 The decoder mirrors the encoder, replacing `Conv2d → MaxPool` with `ConvTranspose2d` to re-inflate the spatial resolution:
@@ -336,6 +437,29 @@ conv_decoder = nn.Sequential(
 
 Transposed convolution (Chapter 10) is the "learnable upsampling" operation. `Sigmoid` at the end squashes the output to $[0, 1]$, matching the pixel range of MNIST.
 
+#### Code walk-through
+
+The decoder runs the encoder *in reverse*. Where the encoder used `MaxPool` to **shrink** the spatial size, the decoder uses `ConvTranspose2d` (with `stride=2`) to **double** it — effectively a learnable upsampling.
+
+Before this stack runs, the 8-dimensional latent `z` is passed through a linear layer and reshaped to `64 × 3 × 3` so it has the spatial shape the decoder expects.
+
+**Shape evolution** through the decoder:
+
+```
+z              : 8                (latent code)
+linear + view  : 64 ×  3 ×  3
+after layer 1  : 32 ×  7 ×  7    (ConvTranspose, stride=2)
+after layer 2  : 16 × 14 × 14
+after layer 3  :  1 × 28 × 28    (back to original image shape)
+Sigmoid        :  1 × 28 × 28    (pixel values in [0, 1])
+```
+
+**Mirror image of the encoder**: spatial dimensions grow (3 → 7 → 14 → 28) while channel depth shrinks (64 → 32 → 16 → 1). The network is rebuilding "where" from the compressed "what."
+
+**Why `Sigmoid` at the end?** MNIST pixels live in `[0, 1]` (after normalization). `Sigmoid` squashes any real number into that range, so the output is automatically a valid image. Without it the decoder could produce pixel values like `-3.2` or `42.7`, which would inflate the MSE loss without being meaningful.
+
+**`output_padding=1`** is a small bookkeeping correction that handles the ambiguity in the inverse of strided convolution — different input sizes can produce the same output size, so PyTorch needs a hint to pick the right one.
+
 ### 6.5 Training Loop
 
 ```python
@@ -350,6 +474,55 @@ def step(x, encoder, fc, decoder, optim):
 ```
 
 Typical choices: Adam optimizer, learning rate $10^{-3}$, batch size 128, 10–20 epochs for a rough MNIST autoencoder.
+
+#### Code walk-through
+
+This `step` function performs **one gradient update** for a single batch of images.
+
+**The forward pass:**
+
+```python
+z = fc(encoder(x))
+```
+Two stages of encoding:
+1. `encoder(x)` — runs the conv blocks, producing a flat 576-dimensional vector per image.
+2. `fc(...)` — squeezes 576 → 8. `z` is the **latent code**.
+
+```python
+x_hat = decoder(z.view(-1, 64, 3, 3))
+```
+`.view(-1, 64, 3, 3)` reshapes the flat 8-dim `z` (after a linear projection back to 576) into a 3D tensor with 64 channels and 3×3 spatial size — the format the decoder's first `ConvTranspose2d` expects. Then `decoder(...)` upsamples back to `1 × 28 × 28`. `x_hat` is the reconstructed image.
+
+```python
+loss = F.mse_loss(x_hat, x)
+```
+**Reconstruction loss** — pixel-wise mean squared error between reconstruction and input. The target *is* the input (no labels needed) — this is what makes autoencoder training **self-supervised**.
+
+**The backward pass:**
+
+```python
+optim.zero_grad(); loss.backward(); optim.step()
+```
+
+| Call | What it does |
+|---|---|
+| `optim.zero_grad()` | Clears gradients from the previous step. PyTorch *accumulates* gradients by default, so without this they would pile up. |
+| `loss.backward()` | Backpropagates: computes $\partial \text{loss}/\partial \theta$ for every weight in encoder + fc + decoder. |
+| `optim.step()` | Nudges every weight in the direction that reduces the loss (Adam, SGD, etc.). |
+
+**Data flow:**
+
+```
+x ──► encoder ──► fc ──► z ──► view ──► decoder ──► x_hat
+│                                                    │
+└──────────────── MSE loss ◄─────────────────────────┘
+                       │
+                  backward()
+                       │
+              update all weights
+```
+
+The bottleneck (`z` is 8-dim, `x` is 784-dim) forces the network to learn a meaningful 98% compression — it cannot just copy the input through.
 
 ### 6.6 Asymmetric Architectures
 
@@ -378,8 +551,6 @@ This is the most useful mental model:
 | How to **project** an arbitrary ambient point onto the manifold | the encoder weights |
 
 The decoder's weights are, collectively, an average memory of "where the data manifold sits". The encoder's weights know how to project any new point onto that manifold. Neither network knows anything about any individual training example after training — that information is carried by the latent code.
-
----
 
 ## 7. Limits of a Plain Autoencoder
 
@@ -431,36 +602,6 @@ Two complementary strategies:
 
 Strategy 2, combined with a clever trick for keeping the network differentiable, yields **variational autoencoders** — the subject of Lecture 23.
 
----
-
-## 8. Summary and Preview
-
-### What we covered
-
-- Data of interest concentrates on low-dimensional **manifolds** inside high-dimensional ambient spaces.
-- A **latent vector** is the in-manifold coordinate of a data point. The orthogonal component is discarded as noise.
-- **Generative models** describe the data density $p(\vec x)$. They are smoother, more diagnostic, and can sample new instances — unlike discriminative models that only draw decision boundaries.
-- **PCA** is the simplest latent-space model: best-fit hyperplane via SVD. Closed-form, fast, optimal among **linear** projections; fails on curved manifolds.
-- **Autoencoders** replace PCA's hyperplane with an arbitrary nonlinear hypersurface via neural-network encoder / decoder pairs trained by reconstruction loss.
-- Plain autoencoders have no structural constraint on the latent space — they can learn zig-zag manifolds that overfit, interpolate poorly, and cannot generate.
-
-### What comes next (Lecture 23)
-
-- Make the latent space **smooth, compact, and continuous** by modelling it as a probability distribution.
-- The **Variational Autoencoder (VAE)** — a stochastic encoder that emits the parameters of a distribution, a KL-divergence regularizer pulling that distribution toward $\mathcal{N}(0, I)$, and the **reparameterization trick** that keeps the whole system differentiable.
-- The **Evidence Lower BOund (ELBO)** — the variational objective that unifies reconstruction loss and KL regularization into a principled lower bound on $\log p(\vec x)$.
-- Side-by-side comparison of AE and VAE latent spaces on MNIST, showing why VAEs can generate new digits and AEs cannot.
-
----
-
-## 9. Companion Materials (Lecture 22 portion)
-
-- **Marimo notebook** — `week-13/code/IME775_Ch14_Autoencoders_VAE_marimo.py`. Relevant sections for this lecture:
-  - §1 PCA in PyTorch (3D → 2D)
-  - §2 S-curve: where PCA fails
-  - §3 Convolutional autoencoder on MNIST
-- **Interactive HTML visualizations** — `week-13/visualizations/`
-  - `ae-vs-vae.html` — preview of how the KL term will compact the latent space (set β = 0 to see pure autoencoder behaviour).
 
 ---
 

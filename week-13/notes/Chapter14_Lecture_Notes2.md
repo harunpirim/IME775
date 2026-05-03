@@ -3,7 +3,7 @@
 
 *Chapter 14 of Math & Architectures of Deep Learning — Part 2 of 2*
 
-*Prerequisite: Lecture 22 (latent spaces, PCA, autoencoders). Notation — inputs $\vec x$, latent codes $\vec z$, encoder $E$, decoder $D$.*
+Notation — inputs $\vec x$, latent codes $\vec z$, encoder $E$, decoder $D$.*
 
 ---
 
@@ -30,6 +30,8 @@ The **variational autoencoder (VAE)** achieves all four by reformulating the enc
 ## 2. Geometric View of a VAE
 
 Figure 14.7 in the text shows the key picture. During training, given an input $\vec x$:
+
+![[Pasted image 20260429154045.png]]
 
 1. The **encoder does not emit a single point $\vec z$**. It emits the **parameters of a distribution** $q(\vec z \mid \vec x)$ over latent space.
 2. A latent vector $\vec z$ is drawn **by sampling** that distribution.
