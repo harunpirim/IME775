@@ -69,7 +69,6 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 11 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | [📝 Lecture 19](week-11/notes/Chapter10_Lecture_Notes.md) \| [📝 Lecture 20](week-11/notes/Chapter10_Lecture_Notes2.md) \| [📓 Notebook](week-11/code/IME775_Ch10_Convolutions_marimo.py) \| [🎮 Visualizations](week-11/visualizations/) |
 | 12 | Manifolds, Homeomorphism, and Neural Networks | Ch. 12 | [📝 Lecture 21](week-12/notes/Chapter12_Lecture_Notes.md) \| [📄 PDF](week-12/notes/Chapter12_Lecture_Notes.pdf) |
 | 13 | Latent Spaces, Autoencoders, and VAEs | Ch. 14 | [📝 Lecture 22](week-13/notes/Chapter14_Lecture_Notes.md) \| [📝 Lecture 23](week-13/notes/Chapter14_Lecture_Notes2.md) \| [📄 PDF 1](week-13/notes/Chapter14_Lecture_Notes.pdf) \| [📄 PDF 2](week-13/notes/Chapter14_Lecture_Notes2.pdf) \| [📓 Notebook](week-13/code/IME775_Ch14_Autoencoders_VAE_marimo.py) \| [🎮 Visualizations](week-13/visualizations/) |
-| 14 | CNNs and Object Detection: LeNet, VGG, Inception, ResNet, R-CNN | Ch. 11 | 🔒 Coming Soon |
 
 ---
 
@@ -191,7 +190,7 @@ IME775/
     ├── code/                    # Marimo notebook (Autoencoders and VAEs)
     └── visualizations/          # Interactive HTML demos (Latent spaces, VAEs, reparameterization)
 
-Note: Additional weekly materials (week-14 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
