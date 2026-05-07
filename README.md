@@ -67,9 +67,9 @@ Chapter PDFs available in the `resources/textbooks/` folder.
 | 10 | Loss Functions, Optimization (SGD, Adam), Regularization | Ch. 9 | [📝 Lecture 17](week-10/notes/Chapter9_Lecture_Notes.md) \| [📝 Lecture 18](week-10/notes/Chapter9_Lecture_Notes2.md) \| [📓 Notebook](week-10/code/IME775_Ch9_Optimization_marimo.py) \| [🎮 Visualizations](week-10/visualizations/) |
 | — | **Midterm Exam** | Ch. 1–9 | Covers weeks 01–10 |
 | 11 | Convolutions in Neural Networks (1D, 2D, 3D) | Ch. 10 | [📝 Lecture 19](week-11/notes/Chapter10_Lecture_Notes.md) \| [📝 Lecture 20](week-11/notes/Chapter10_Lecture_Notes2.md) \| [📓 Notebook](week-11/code/IME775_Ch10_Convolutions_marimo.py) \| [🎮 Visualizations](week-11/visualizations/) |
-| 12 | Manifolds, Homeomorphism, and Neural Networks | Ch. 12 | [📝 Lecture 21](week-12/notes/Chapter12_Lecture_Notes.md) |
-| 13 | CNNs and Object Detection: LeNet, VGG, Inception, ResNet, R-CNN | Ch. 11 | 🔒 Coming Soon |
-| 14 | Bayesian Parameter Estimation, Autoencoders, and VAEs | Ch. 13–14 | 🔒 Coming Soon |
+| 12 | Manifolds, Homeomorphism, and Neural Networks | Ch. 12 | [📝 Lecture 21](week-12/notes/Chapter12_Lecture_Notes.md) \| [📄 PDF](week-12/notes/Chapter12_Lecture_Notes.pdf) |
+| 13 | Latent Spaces, Autoencoders, and VAEs | Ch. 14 | [📝 Lecture 22](week-13/notes/Chapter14_Lecture_Notes.md) \| [📝 Lecture 23](week-13/notes/Chapter14_Lecture_Notes2.md) \| [📄 PDF 1](week-13/notes/Chapter14_Lecture_Notes.pdf) \| [📄 PDF 2](week-13/notes/Chapter14_Lecture_Notes2.pdf) \| [📓 Notebook](week-13/code/IME775_Ch14_Autoencoders_VAE_marimo.py) \| [🎮 Visualizations](week-13/visualizations/) |
+| 14 | CNNs and Object Detection: LeNet, VGG, Inception, ResNet, R-CNN | Ch. 11 | 🔒 Coming Soon |
 
 ---
 
@@ -102,6 +102,7 @@ Explore mathematical concepts through browser-based interactive demos:
 | 09 | Activation Functions Explorer • Gradient Descent & Learning Rate • Forward & Backpropagation |
 | 10 | Loss Functions Explorer • Softmax Explorer • Optimizer Trajectories • Regularization (L1 vs L2) |
 | 11 | Convolution Explorer (1D/2D) • Pooling Visualizer (Max/Avg) • Transposed Convolution • Output Size Calculator |
+| 13 | Latent Space Explorer • Autoencoder vs VAE • KL Divergence Explorer • Reparameterization Trick |
 
 > *No installation required — runs directly in your browser!*
 
@@ -183,12 +184,14 @@ IME775/
 │   ├── notes/                   # Lecture notes (Ch 10: Convolutions in Neural Networks)
 │   ├── code/                    # Marimo notebook (1D/2D/3D Conv, Transpose Conv, Pooling)
 │   └── visualizations/          # Interactive HTML demos (Conv Explorer, Pooling, Transpose Conv)
-└── week-12/                     # ✅ Released
-    ├── notes/                   # Lecture notes (Ch 12: Manifolds, Homeomorphism, and Neural Networks)
-    ├── code/                    # (placeholder for notebooks)
-    └── visualizations/          # (placeholder for interactive HTML demos)
+├── week-12/                     # ✅ Released
+│   └── notes/                   # Lecture notes (Ch 12: Manifolds, Homeomorphism, and Neural Networks)
+└── week-13/                     # ✅ Released
+    ├── notes/                   # Lecture notes (Ch 14: Autoencoders and VAEs)
+    ├── code/                    # Marimo notebook (Autoencoders and VAEs)
+    └── visualizations/          # Interactive HTML demos (Latent spaces, VAEs, reparameterization)
 
-Note: Additional weekly materials (week-13 through week-15) will be released progressively throughout the semester.
+Note: Additional weekly materials (week-14 through week-15) will be released progressively throughout the semester.
 ```
 
 ## 🔧 Libraries & Tools
