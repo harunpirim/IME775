@@ -78,9 +78,18 @@ All graded work and practice problems are in the [`assignments/`](assignments/) 
 
 | # | Type | Topic | Files |
 |---|------|-------|-------|
-| 1 | Assignment | Ch. 1 — ML Overview | [📄 Problem Set](assignments/assignment-01/Ch1_Problem_Set.pdf) |
-| 2 | Assignment | Ch. 2 — Linear Algebra | [📝 Problems](assignments/assignment-02/IME775_Lecture3-4_Problems.md) \| [📝 Solutions](assignments/assignment-02/Assignment2_Solutions.md) |
-| 1 | Quiz | Ch. 2–3 — Linear Algebra & Calculus | [📄 Solutions](assignments/quiz-01/Q1_Solutions.pdf) |
+| 1 | Assignment | Ch. 1–2 — ML Overview & Linear Algebra | [📝 Problems](assignments/assignment-01/assignment_ch1_ch2.md) \| [📝 Solutions](assignments/assignment-01/assignment_ch1_ch2_solutions.md) |
+| 2 | Assignment | Ch. 3 — Classifiers & Vector Calculus | [📝 Problems](assignments/assignment-02/assignment_ch3.md) \| [📝 Solutions](assignments/assignment-02/assignment_ch3_solutions.md) |
+| 3 | Assignment | Ch. 4 — Linear Algebraic Tools | [📝 Problems](assignments/assignment-03/Assignment3_Problems.md) \| [📝 Solutions](assignments/assignment-03/Assignment3_Solutions.md) |
+| 4 | Assignment | Ch. 5–6 — Probability & Bayesian Tools | [📝 Problems](assignments/assignment-04/Assignment4_Problems.md) \| [📝 Solutions](assignments/assignment-04/Assignment4_Solutions.md) |
+| 5 | Assignment | Ch. 7–9 — Neural Networks & Training | [📝 Problems](assignments/assignment-05/Assignment5_Problems.md) \| [📝 Solutions](assignments/assignment-05/Assignment5_Solutions.md) |
+| 6 | Assignment | Ch. 10 — Convolutions | [📝 Problems](assignments/assignment-06/Ch10_Convolutions_Problems.md) \| [📝 Solutions](assignments/assignment-06/Ch10_Convolutions_Solutions.md) |
+| 1 | Quiz | Quiz 1 | [📝 Problems](assignments/quiz-01/Q1.md) |
+| 2 | Quiz | Quiz 2 | [📝 Problems](assignments/quiz-02/Q2.md) |
+| 3 | Quiz | Quiz 3 | [📝 Problems](assignments/quiz-03/Quiz3_v2_Problems.md) \| [📝 Solutions](assignments/quiz-03/Quiz3_v2_Solutions.md) |
+| 4 | Quiz | Quiz 4 | [📝 Problems](assignments/quiz-04/Quiz5_Problems.md) \| [📝 Solutions](assignments/quiz-04/Quiz5_Solutions.md) |
+| 5 | Quiz | Quiz 5 | [📝 Problems](assignments/quiz-05/Quiz5_Problems.md) \| [📝 Solutions](assignments/quiz-05/Quiz5_Solutions.md) |
+| 6 | Quiz | Quiz 6 — Convolutions | [📝 Problems](assignments/quiz-06/Quiz6_Convolutions.md) \| [📝 Solutions](assignments/quiz-06/Quiz6_Solutions.md) |
 | — | Practice | Ch. 5 — Probability | [📝 Problems & Solutions](assignments/ch5-practice/Chapter5_Problems.md) |
 
 ---
